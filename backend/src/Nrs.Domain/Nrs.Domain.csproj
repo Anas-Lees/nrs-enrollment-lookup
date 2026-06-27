@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Domain layer — pure entities and rules. The core of the onion.
+    No project references: nothing inward of here.
+  -->
+
+</Project>
