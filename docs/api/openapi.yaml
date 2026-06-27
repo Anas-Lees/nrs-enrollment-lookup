@@ -1,0 +1,371 @@
+openapi: 3.0.3
+info:
+  title: NRS Enrollment — Applicant Lookup API
+  version: 1.0.0
+  description: >
+    Contract-first API for the NRS Enrollment "Applicant Lookup" feature.
+
+    This document is the **single source of truth**: the backend implements it, the frontend
+    mocks against it, and QA tests conformance to it. It is frozen in Sprint 0 and changed only
+    through versioned, reviewed updates.
+
+    An operator searches for a person (by CRN, name in Arabic or English, date of birth, and/or
+    nationality) and opens a full profile that includes the person's ID cards and passports.
+
+    All string fields support Unicode; Arabic name fields are returned alongside their English
+    counterparts so the UI can render both (Arabic right-to-left).
+  contact:
+    name: NRS Enrollment Team
+  license:
+    name: MIT
+    url: https://github.com/Anas-Lees/nrs-enrollment-lookup/blob/main/LICENSE
+
+servers:
+  - url: http://localhost:5000
+    description: Local development (HTTP)
+  - url: https://localhost:7001
+    description: Local development (HTTPS)
+  - url: https://api.nrs.example.gov.om
+    description: Production (illustrative)
+
+tags:
+  - name: Persons
+    description: Search for and retrieve person records.
+
+paths:
+  /api/v1/persons/search:
+    get:
+      tags: [Persons]
+      operationId: searchPersons
+      summary: Search persons (paged, multi-filter)
+      description: >
+        Returns a paginated list of persons matching the supplied filters. All filters are
+        optional and combine with AND semantics. Name matching is a partial (contains) match
+        across both Arabic and English name fields. With no filters, returns all persons paged.
+      parameters:
+        - name: crn
+          in: query
+          description: Civil Registration Number (8 or 9 digits). Exact or prefix match.
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            example: "12345678"
+        - name: name
+          in: query
+          description: Partial name match across Arabic and English first/family names.
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+            example: "Al"
+        - name: dob
+          in: query
+          description: Date of birth (Gregorian), exact match.
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "1990-05-21"
+        - name: nationality
+          in: query
+          description: Nationality code, ISO 3166-1 alpha-3.
+          required: false
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+            example: "OMN"
+        - name: page
+          in: query
+          description: 1-based page number.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          description: Number of items per page.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: A page of matching persons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedResultOfPersonSummary"
+              example:
+                items:
+                  - civilNumber: "12345678"
+                    firstNameAr: "محمد"
+                    familyNameAr: "البلوشي"
+                    firstNameEn: "Mohammed"
+                    familyNameEn: "Al Balushi"
+                    dateOfBirth: "1990-05-21"
+                    gender: "M"
+                    nationalityCode: "OMN"
+                    status: "ACTIVE"
+                totalCount: 1
+                page: 1
+                pageSize: 20
+        "400":
+          description: Invalid query parameters.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /api/v1/persons/{crn}:
+    get:
+      tags: [Persons]
+      operationId: getPersonByCrn
+      summary: Get a person's full profile by CRN
+      description: >
+        Returns a single person's biographic data together with all related ID card and
+        passport records.
+      parameters:
+        - name: crn
+          in: path
+          description: Civil Registration Number (8 or 9 digits).
+          required: true
+          schema:
+            type: string
+            maxLength: 9
+            example: "12345678"
+      responses:
+        "200":
+          description: The person's full profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+              example:
+                civilNumber: "12345678"
+                firstNameAr: "محمد"
+                familyNameAr: "البلوشي"
+                firstNameEn: "Mohammed"
+                familyNameEn: "Al Balushi"
+                dateOfBirth: "1990-05-21"
+                gender: "M"
+                nationalityCode: "OMN"
+                status: "ACTIVE"
+                photoPath: "/photos/12345678.jpg"
+                idCards:
+                  - idCardId: 1001
+                    civilNumber: "12345678"
+                    cardNumber: "ID-0099887766"
+                    issueDate: "2021-03-01"
+                    expiryDate: "2031-03-01"
+                    status: "ACTIVE"
+                    cardType: "OMANI"
+                passports:
+                  - passportId: 2001
+                    civilNumber: "12345678"
+                    passportNumber: "P1234567"
+                    passportType: "ORDINARY"
+                    issueDate: "2022-07-15"
+                    expiryDate: "2032-07-14"
+                    status: "ACTIVE"
+        "404":
+          description: No person exists with the supplied CRN.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+components:
+  schemas:
+    PersonSummary:
+      type: object
+      description: One row in the search results table.
+      required:
+        - civilNumber
+        - firstNameAr
+        - familyNameAr
+        - firstNameEn
+        - familyNameEn
+        - dateOfBirth
+        - gender
+        - nationalityCode
+        - status
+      properties:
+        civilNumber:
+          type: string
+          description: Civil Registration Number (CRN), primary key.
+          example: "12345678"
+        firstNameAr:
+          type: string
+          description: Arabic first name (RTL).
+          example: "محمد"
+        familyNameAr:
+          type: string
+          description: Arabic family name (RTL).
+          example: "البلوشي"
+        firstNameEn:
+          type: string
+          example: "Mohammed"
+        familyNameEn:
+          type: string
+          example: "Al Balushi"
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1990-05-21"
+        gender:
+          $ref: "#/components/schemas/Gender"
+        nationalityCode:
+          type: string
+          description: ISO 3166-1 alpha-3.
+          example: "OMN"
+        status:
+          $ref: "#/components/schemas/PersonStatus"
+
+    Person:
+      description: Full person profile, including related documents.
+      allOf:
+        - $ref: "#/components/schemas/PersonSummary"
+        - type: object
+          properties:
+            photoPath:
+              type: string
+              nullable: true
+              description: Path to the face photo (placeholder for the POC).
+              example: "/photos/12345678.jpg"
+            idCards:
+              type: array
+              items:
+                $ref: "#/components/schemas/IdCard"
+            passports:
+              type: array
+              items:
+                $ref: "#/components/schemas/Passport"
+
+    IdCard:
+      type: object
+      required: [idCardId, civilNumber, cardNumber, status, cardType]
+      properties:
+        idCardId:
+          type: integer
+          format: int64
+          example: 1001
+        civilNumber:
+          type: string
+          example: "12345678"
+        cardNumber:
+          type: string
+          example: "ID-0099887766"
+        issueDate:
+          type: string
+          format: date
+          nullable: true
+        expiryDate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          $ref: "#/components/schemas/CardStatus"
+        cardType:
+          $ref: "#/components/schemas/CardType"
+
+    Passport:
+      type: object
+      required: [passportId, civilNumber, passportNumber, passportType, status]
+      properties:
+        passportId:
+          type: integer
+          format: int64
+          example: 2001
+        civilNumber:
+          type: string
+          example: "12345678"
+        passportNumber:
+          type: string
+          example: "P1234567"
+        passportType:
+          $ref: "#/components/schemas/PassportType"
+        issueDate:
+          type: string
+          format: date
+          nullable: true
+        expiryDate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          $ref: "#/components/schemas/PassportStatus"
+
+    PagedResultOfPersonSummary:
+      type: object
+      description: A page of results plus the total count for pagination controls.
+      required: [items, totalCount, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersonSummary"
+        totalCount:
+          type: integer
+          format: int32
+          description: Total number of matches across all pages.
+          example: 137
+        page:
+          type: integer
+          format: int32
+          example: 1
+        pageSize:
+          type: integer
+          format: int32
+          example: 20
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 problem details for error responses.
+      properties:
+        type:
+          type: string
+          example: "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+        title:
+          type: string
+          example: "One or more validation errors occurred."
+        status:
+          type: integer
+          format: int32
+          example: 400
+        detail:
+          type: string
+          example: "pageSize must be between 1 and 100."
+        instance:
+          type: string
+          example: "/api/v1/persons/search"
+
+    Gender:
+      type: string
+      enum: [M, F]
+
+    PersonStatus:
+      type: string
+      enum: [ACTIVE, DECEASED, MERGED]
+
+    CardStatus:
+      type: string
+      enum: [ACTIVE, EXPIRED, BLOCKED, LOST]
+
+    CardType:
+      type: string
+      enum: [OMANI, RESIDENT, GCC, INVESTOR]
+
+    PassportType:
+      type: string
+      enum: [ORDINARY, DIPLOMATIC, SERVICE, SPECIAL, ROYAL_DIPLOMATIC]
+
+    PassportStatus:
+      type: string
+      enum: [ACTIVE, EXPIRED, CANCELLED, LOST, STOLEN]
