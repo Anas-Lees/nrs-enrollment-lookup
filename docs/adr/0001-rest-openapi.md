@@ -1,0 +1,50 @@
+# ADR 0001: REST API with OpenAPI, Contract-First
+
+- Status: Accepted
+- Date: 2026-06-28
+- Deciders: Solutions Architect, Backend Tech Lead, Frontend Tech Lead
+- Workstream: WS3 + Architecture
+
+## Context
+The Applicant Lookup capability exposes two read operations for the Royal Oman Police National Registration System: searching for persons and retrieving a full person profile. Multiple teams (frontend, backend, QA) must work in parallel from Sprint 0, so the interface between them needs to be stable, well-tooled, and verifiable independently of any implementation. We also need an interface style that ROP stakeholders recognise and that browser-based clients can consume comfortably.
+
+Key forces:
+- Parallel delivery: the frontend cannot afford to wait for the backend to be ready.
+- Verifiability: QA needs a single, authoritative description of the API to test against.
+- Tooling and familiarity: the team and the organisation expect mature, mainstream tooling.
+
+## Decision
+We will expose a **REST API described by OpenAPI**, with a versioned base path `/api/v1`. The OpenAPI contract is authored in Sprint 0 and **frozen as the single source of truth** for all teams.
+
+Endpoints:
+- `GET /api/v1/persons/search` — paged, multi-filter search with partial name matching.
+- `GET /api/v1/persons/{crn}` — full person profile, including `idCards[]` and `passports[]`.
+
+Cross-cutting conventions:
+- Errors follow **RFC 7807 ProblemDetails**.
+- Paged responses use the envelope `{ items, totalCount, page, pageSize }`.
+
+Working contract-first, the frontend builds against a generated mock and never waits for the backend, QA tests against the spec, and the backend implements the frozen contract.
+
+## Consequences
+
+### Positive
+- True contract-first parallelism: frontend, backend, and QA proceed independently from Sprint 0.
+- Excellent, mature tooling for REST/OpenAPI (Swagger UI, client/mock generation, schema validation).
+- A single, frozen contract removes ambiguity and integration drift between teams.
+- Consistent, machine-readable error and pagination shapes simplify clients and tests.
+
+### Negative / trade-offs
+- A frozen contract requires discipline: changes need a deliberate, reviewed revision process.
+- Two fixed read endpoints offer less query flexibility than a general-purpose query language.
+- Over-fetching is possible on the profile endpoint when a client needs only part of the payload.
+
+### Neutral / follow-ups
+- Maintain the OpenAPI document under version control as the canonical artefact.
+- Wire Swagger UI for interactive exploration and keep generated mocks in step with the spec.
+- Establish a lightweight change process for any post-freeze contract revision (new version path if breaking).
+
+## Alternatives considered
+- **GraphQL** — Rejected. Overkill for two read endpoints; the tooling fit is less mature for this team and does not match ROP expectations.
+- **gRPC** — Rejected. Poor browser and Swagger ergonomics for a web-facing lookup capability.
+- **Code-first / no formal contract** — Rejected. Breaks the parallelism that lets frontend and QA work ahead of the backend.
