@@ -1,0 +1,50 @@
+name: 🐞 Bug report
+description: Something isn't working as expected
+title: "fix: <short description>"
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for filing a bug. Please give us enough to reproduce it.
+  - type: dropdown
+    id: workstream
+    attributes:
+      label: Workstream
+      options:
+        - WS1 · Platform & CI/CD
+        - WS2 · Data & Persistence
+        - WS3 · Backend API
+        - WS4 · Frontend App
+        - WS5 · Design & UX
+        - WS6 · Quality & Test
+        - WS7 · Security & IAM
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including any error messages.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Search for '...'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "e.g. backend Dev, Chrome 124, Angular dev server"

@@ -1,0 +1,41 @@
+name: ✨ User story / feature
+description: A new capability, framed as a user story
+title: "feat: <short description>"
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: dropdown
+    id: workstream
+    attributes:
+      label: Workstream
+      options:
+        - WS1 · Platform & CI/CD
+        - WS2 · Data & Persistence
+        - WS3 · Backend API
+        - WS4 · Frontend App
+        - WS5 · Design & UX
+        - WS6 · Quality & Test
+        - WS7 · Security & IAM
+    validations:
+      required: true
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      description: As a <role>, I want <goal> so that <benefit>.
+      placeholder: As an operator, I want to search by partial name so that I can find a person quickly.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What must be demonstrably true for this to be "done"?
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / dependencies

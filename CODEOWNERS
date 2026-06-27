@@ -1,0 +1,41 @@
+# CODEOWNERS — GitHub auto-requests these reviewers when matching files change.
+# https://docs.github.com/articles/about-code-owners
+#
+# This is a single-maintainer POC, so every path currently resolves to @Anas-Lees.
+# The folder → workstream mapping documents the intended ownership for when the
+# full cross-functional squad is staffed (see docs/project-structure.md).
+
+# Default owner for everything
+*                                       @Anas-Lees
+
+# WS1 · Platform & CI/CD
+/.github/                               @Anas-Lees
+/deploy/                                @Anas-Lees
+/docker-compose.yml                     @Anas-Lees
+/backend/Dockerfile                     @Anas-Lees
+/frontend/Dockerfile                    @Anas-Lees
+
+# WS2 · Data & Persistence
+/backend/src/Nrs.Domain/                @Anas-Lees
+/backend/src/Nrs.Infrastructure/        @Anas-Lees
+
+# WS3 · Backend API
+/backend/src/Nrs.Api/                   @Anas-Lees
+/backend/src/Nrs.Application/           @Anas-Lees
+
+# WS4 · Frontend App
+/frontend/                              @Anas-Lees
+
+# WS5 · Design & UX
+/frontend/src/assets/i18n/              @Anas-Lees
+
+# WS6 · Quality & Test
+/backend/tests/                         @Anas-Lees
+/frontend/e2e/                          @Anas-Lees
+
+# WS7 · Security & IAM
+/deploy/keycloak/                       @Anas-Lees
+
+# Architecture & contract — the single source of truth
+/docs/api/openapi.yaml                  @Anas-Lees
+/docs/adr/                              @Anas-Lees
