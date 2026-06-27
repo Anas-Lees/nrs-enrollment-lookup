@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    API layer — thin controllers, HTTP concerns only. The composition root.
+    References Application (to call services) and Infrastructure (to wire them up via DI).
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nrs.Application\Nrs.Application.csproj" />
+    <ProjectReference Include="..\Nrs.Infrastructure\Nrs.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

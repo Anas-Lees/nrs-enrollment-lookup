@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Application layer — services, DTOs, interfaces. Depends on Domain only. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nrs.Domain\Nrs.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

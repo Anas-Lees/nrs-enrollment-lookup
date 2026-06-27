@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Nrs.Api/Nrs.Api.csproj" />
+    <Project Path="src/Nrs.Application/Nrs.Application.csproj" />
+    <Project Path="src/Nrs.Domain/Nrs.Domain.csproj" />
+    <Project Path="src/Nrs.Infrastructure/Nrs.Infrastructure.csproj" />
+  </Folder>
+</Solution>

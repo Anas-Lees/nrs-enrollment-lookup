@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Infrastructure layer — EF Core, repositories, seeding. Depends on Application + Domain. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nrs.Application\Nrs.Application.csproj" />
+    <ProjectReference Include="..\Nrs.Domain\Nrs.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
