@@ -1,0 +1,35 @@
+# Normalise line endings — keep the repo LF, let Git handle checkout per-OS.
+* text=auto eol=lf
+
+# Scripts that must stay platform-native
+*.ps1   text eol=crlf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+*.sh    text eol=lf
+
+# Explicit text types
+*.cs       text diff=csharp
+*.ts       text
+*.html     text
+*.scss     text
+*.css      text
+*.json     text
+*.yml      text
+*.yaml     text
+*.md       text
+
+# Binary assets — never normalise or diff as text
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.pdf      binary
+*.docx     binary
+*.xlsx     binary
+*.woff     binary
+*.woff2    binary
+
+# Collapse generated/vendored files in PR diffs
+frontend/package-lock.json   linguist-generated=true
+**/Migrations/*.cs           linguist-generated=true

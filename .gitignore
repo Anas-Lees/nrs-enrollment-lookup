@@ -1,0 +1,64 @@
+## ──────────────────────────────────────────────────────────────
+## NRS Enrollment — Applicant Lookup · .gitignore
+## ──────────────────────────────────────────────────────────────
+
+# ── .NET / C# ──────────────────────────────────────────────────
+bin/
+obj/
+out/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+project.lock.json
+artifacts/
+.vs/
+*.dll
+*.pdb
+
+# EF Core local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── Node / Angular ─────────────────────────────────────────────
+node_modules/
+dist/
+.angular/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+coverage/
+/frontend/.angular/cache/
+playwright-report/
+test-results/
+
+# ── Environment & secrets ──────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+appsettings.*.local.json
+secrets.json
+
+# ── IDE / editor ───────────────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+*.swp
+*~
+
+# ── OS ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Build / logs ───────────────────────────────────────────────
+*.log
+logs/
+TestResults/
