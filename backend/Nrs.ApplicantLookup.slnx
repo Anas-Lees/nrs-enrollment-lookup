@@ -8,5 +8,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Nrs.Api.IntegrationTests/Nrs.Api.IntegrationTests.csproj" />
     <Project Path="tests/Nrs.Application.Tests/Nrs.Application.Tests.csproj" />
+    <Project Path="tests/Nrs.Architecture.Tests/Nrs.Architecture.Tests.csproj" />
+    <Project Path="tests/Nrs.Contract.Tests/Nrs.Contract.Tests.csproj" />
   </Folder>
 </Solution>
