@@ -1,4 +1,87 @@
 <section class="page">
   <h1>Applicant search</h1>
-  <p class="page__hint">The search form and results table land in the next task.</p>
+
+  <form class="search-form" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="search-form__field">
+      <label for="crn">CRN</label>
+      <input id="crn" type="text" formControlName="crn" />
+    </div>
+
+    <div class="search-form__field">
+      <label for="name">Name</label>
+      <input id="name" type="text" formControlName="name" placeholder="Arabic or English" />
+    </div>
+
+    <div class="search-form__field">
+      <label for="dob">Date of birth</label>
+      <input id="dob" type="date" formControlName="dob" />
+    </div>
+
+    <div class="search-form__field">
+      <label for="nationality">Nationality</label>
+      <select id="nationality" formControlName="nationality">
+        @for (opt of nationalityOptions; track opt.code) {
+          <option [value]="opt.code">{{ opt.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="search-form__actions">
+      <button type="submit">Search</button>
+    </div>
+  </form>
+
+  <div class="results-area">
+    @if (loading()) {
+      <p>Searching…</p>
+    } @else if (error()) {
+      <p class="error">{{ error() }}</p>
+    } @else if (results(); as r) {
+      @if (r.items.length === 0) {
+        <p>No matching persons found.</p>
+      } @else {
+        <table class="results">
+          <thead>
+            <tr>
+              <th>CRN</th>
+              <th>Name (English)</th>
+              <th>Name (Arabic)</th>
+              <th>Date of birth</th>
+              <th>Gender</th>
+              <th>Nationality</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of r.items; track p.civilNumber) {
+              <tr
+                class="results__row"
+                tabindex="0"
+                role="button"
+                (click)="openProfile(p.civilNumber)"
+                (keydown.enter)="openProfile(p.civilNumber)"
+              >
+                <td>{{ p.civilNumber }}</td>
+                <td>{{ p.firstNameEn }} {{ p.familyNameEn }}</td>
+                <td dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</td>
+                <td>{{ p.dateOfBirth | date: 'mediumDate' }}</td>
+                <td>{{ p.gender }}</td>
+                <td>{{ p.nationalityCode | nationality }}</td>
+                <td><app-status-badge [status]="p.status" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <app-pagination
+          [page]="r.page"
+          [pageSize]="r.pageSize"
+          [totalCount]="r.totalCount"
+          (pageChange)="onPageChange($event)"
+        />
+      }
+    } @else {
+      <p class="hint">Enter search criteria and press Search.</p>
+    }
+  </div>
 </section>
