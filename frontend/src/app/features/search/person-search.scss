@@ -125,6 +125,12 @@
 }
 
 .card {
+  // Works as both <a> (skeleton) and <button> (selectable row).
+  appearance: none;
+  width: 100%;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -147,6 +153,11 @@
   &:focus-visible {
     outline: 2px solid var(--rop-green-600);
     outline-offset: 2px;
+  }
+
+  &.is-selected {
+    border-color: var(--rop-green);
+    box-shadow: 0 0 0 1px var(--rop-green) inset;
   }
 
   &__avatar {
@@ -240,6 +251,163 @@
   .skeleton-box,
   .skeleton-line {
     animation: none;
+  }
+}
+
+/* ---------------- Results + preview layout ---------------- */
+.results-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.results-list {
+  min-width: 0;
+}
+
+.preview {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+
+  &__label {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted-2);
+  }
+
+  &__photo {
+    align-self: center;
+    width: 110px;
+    height: 130px;
+    border-radius: var(--radius-sm);
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-surface-alt),
+      var(--color-surface-alt) 8px,
+      #e6e4dc 8px,
+      #e6e4dc 16px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--color-muted-2);
+    margin: 0.25rem 0;
+  }
+
+  &__name {
+    margin: 0;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  &__name-ar {
+    margin: 0;
+    text-align: center;
+    color: var(--color-muted);
+  }
+
+  &__crn {
+    margin: 0;
+    text-align: center;
+    color: var(--color-text);
+  }
+
+  app-status-badge {
+    align-self: center;
+  }
+
+  &__facts {
+    margin: 0.5rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-top: 1px solid var(--color-border);
+    padding-top: 0.85rem;
+
+    > div {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    dt {
+      color: var(--color-muted-2);
+      font-size: 0.85rem;
+    }
+
+    dd {
+      margin: 0;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-align: end;
+    }
+  }
+
+  &__note {
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    color: var(--color-muted-2);
+  }
+
+  &__empty {
+    color: var(--color-muted-2);
+    font-size: 0.9rem;
+    padding: 1.5rem 0;
+    text-align: center;
+  }
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+a.btn-primary.btn-block {
+  text-decoration: none;
+}
+
+.btn-outline {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--rop-green);
+
+  &:hover {
+    background: var(--color-surface-alt);
+  }
+}
+
+.skeleton-box-lg {
+  background: linear-gradient(90deg, #e9e7e0 25%, #f3f1ea 50%, #e9e7e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s infinite;
+}
+
+@media (max-width: 980px) {
+  .results-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .preview {
+    position: static;
   }
 }
 

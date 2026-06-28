@@ -6,7 +6,7 @@ import { Router, RouterLink } from '@angular/router';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { PersonService } from '../../core/services/person.service';
 import { PagedResult, PersonSearchCriteria } from '../../core/models/paged-result.model';
-import { PersonSummary } from '../../core/models/person.model';
+import { Person, PersonSummary } from '../../core/models/person.model';
 import { Pagination } from '../../shared/components/pagination';
 import { StatusBadge } from '../../shared/components/status-badge';
 import { avatarColor, personInitials } from '../../shared/avatar';
@@ -39,6 +39,12 @@ export class PersonSearch {
   readonly searched = signal(false);
   readonly elapsedMs = signal(0);
 
+  // Quick-preview state for the right-hand panel.
+  readonly selectedCrn = signal<string | null>(null);
+  readonly preview = signal<Person | null>(null);
+  readonly previewLoading = signal(false);
+  readonly enrollNote = signal(false);
+
   private criteria: PersonSearchCriteria = {};
   readonly pageSize = 10;
 
@@ -46,6 +52,16 @@ export class PersonSearch {
     const r = this.results();
     return r ? Math.max(1, Math.ceil(r.totalCount / r.pageSize)) : 1;
   });
+
+  readonly validIdCards = computed(
+    () => this.preview()?.idCards.filter((c) => c.status === 'ACTIVE').length ?? 0,
+  );
+  readonly validPassports = computed(
+    () => this.preview()?.passports.filter((p) => p.status === 'ACTIVE').length ?? 0,
+  );
+  readonly expiredPassports = computed(
+    () => this.preview()?.passports.filter((p) => p.status === 'EXPIRED').length ?? 0,
+  );
 
   readonly nationalityOptions: NationalityOption[] = [
     { code: 'OMN', label: 'Oman' },
@@ -95,6 +111,7 @@ export class PersonSearch {
     this.results.set(null);
     this.error.set(null);
     this.searched.set(false);
+    this.clearPreview();
   }
 
   load(page: number): void {
@@ -107,6 +124,12 @@ export class PersonSearch {
         this.elapsedMs.set(Math.round(performance.now() - startedAt));
         this.results.set(r);
         this.loading.set(false);
+        // Auto-select the first result so the preview is never empty.
+        if (r.items.length > 0) {
+          this.select(r.items[0]);
+        } else {
+          this.clearPreview();
+        }
       },
       error: () => {
         this.error.set(this.i18n.t('search.error'));
@@ -119,8 +142,37 @@ export class PersonSearch {
     this.load(page);
   }
 
-  openProfile(crn: string): void {
-    this.router.navigate(['/persons', crn]);
+  /** Select a row → load the full record into the quick-preview panel. */
+  select(p: PersonSummary): void {
+    this.enrollNote.set(false);
+    if (this.selectedCrn() === p.civilNumber && this.preview()) {
+      return;
+    }
+    this.selectedCrn.set(p.civilNumber);
+    this.preview.set(null);
+    this.previewLoading.set(true);
+    this.personService.getByCrn(p.civilNumber).subscribe({
+      next: (full) => {
+        // Ignore a stale response if the selection changed meanwhile.
+        if (this.selectedCrn() === full.civilNumber) {
+          this.preview.set(full);
+          this.previewLoading.set(false);
+        }
+      },
+      error: () => this.previewLoading.set(false),
+    });
+  }
+
+  private clearPreview(): void {
+    this.selectedCrn.set(null);
+    this.preview.set(null);
+    this.previewLoading.set(false);
+    this.enrollNote.set(false);
+  }
+
+  startEnrollment(): void {
+    // New enrollment is outside the Applicant Lookup POC; show an honest note.
+    this.enrollNote.set(true);
   }
 
   // --- presentation helpers ---
