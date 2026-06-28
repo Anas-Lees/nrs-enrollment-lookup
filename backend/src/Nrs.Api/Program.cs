@@ -41,6 +41,9 @@ builder.Services.AddSwaggerGen(options =>
 // Application services (DbContext, repository, service).
 builder.Services.AddNrsServices(builder.Configuration);
 
+// Health checks for container/Kubernetes probes.
+builder.Services.AddHealthChecks();
+
 // Allow the Angular dev server to call the API.
 builder.Services.AddCors(options => options.AddPolicy(SpaCorsPolicy, policy => policy
     .WithOrigins("http://localhost:4200")
@@ -66,6 +69,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(SpaCorsPolicy);
 app.MapControllers();
+
+// Liveness/readiness endpoint for probes.
+app.MapHealthChecks("/health");
 
 app.Run();
 
