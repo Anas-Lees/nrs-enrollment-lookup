@@ -1,4 +1,51 @@
 <section class="page">
-  <h1>Applicant profile</h1>
-  <p class="page__hint">The profile summary, photo and documents table land in a later task.</p>
+  <div class="topbar">
+    <a routerLink="/search" class="back-link">← Back to search</a>
+  </div>
+
+  @if (loading()) {
+    <p>Loading profile…</p>
+  } @else if (notFound()) {
+    <p class="error">No person found with that CRN.</p>
+  } @else if (error()) {
+    <p class="error">Could not load this profile. Please try again.</p>
+  } @else if (person(); as p) {
+    <article class="card">
+      <header class="summary">
+        <div class="avatar" [style.background]="avatarColor()">{{ initials() }}</div>
+        <div class="summary__names">
+          <h1>{{ p.firstNameEn }} {{ p.familyNameEn }}</h1>
+          <p class="name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
+        </div>
+      </header>
+
+      <dl class="fields">
+        <div class="field">
+          <dt>CRN</dt>
+          <dd>{{ p.civilNumber }}</dd>
+        </div>
+        <div class="field">
+          <dt>Date of birth</dt>
+          <dd>{{ p.dateOfBirth | date: 'mediumDate' }}</dd>
+        </div>
+        <div class="field">
+          <dt>Gender</dt>
+          <dd>{{ p.gender }}</dd>
+        </div>
+        <div class="field">
+          <dt>Nationality</dt>
+          <dd>{{ p.nationalityCode | nationality }}</dd>
+        </div>
+        <div class="field">
+          <dt>Status</dt>
+          <dd><app-status-badge [status]="p.status" /></dd>
+        </div>
+      </dl>
+    </article>
+
+    <section class="documents">
+      <h2>Documents</h2>
+      <app-document-table [idCards]="p.idCards" [passports]="p.passports" />
+    </section>
+  }
 </section>
