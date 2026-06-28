@@ -1,37 +1,58 @@
 import { Injectable, computed, signal } from '@angular/core';
+import Keycloak from 'keycloak-js';
+
 import { environment } from '../../../environments/environment';
 
 /**
- * Authentication state for the (stretch) Keycloak integration. Disabled by default
- * (environment.auth.enabled = false), in which case the app behaves as an open POC.
+ * Authentication via Keycloak (keycloak-js). Disabled by default
+ * (environment.auth.enabled = false), in which case the app behaves as an open POC
+ * and no Keycloak instance is created.
  *
- * A production build would replace login()/logout() with a real OIDC adapter
- * (e.g. keycloak-js or angular-oauth2-oidc) that performs the redirect flow and
- * keeps the access token fresh; everything else here stays the same.
+ * When enabled, init() runs at app startup (APP_INITIALIZER) and silently restores
+ * an existing session; the guard triggers an interactive login when needed and the
+ * HTTP interceptor attaches the access token.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   readonly enabled = environment.auth.enabled;
 
-  private readonly token = signal<string | null>(null);
+  private readonly keycloak: Keycloak | null = this.enabled
+    ? new Keycloak({
+        url: environment.auth.url,
+        realm: environment.auth.realm,
+        clientId: environment.auth.clientId,
+      })
+    : null;
 
-  /** True when auth is off, or when a token is present. */
-  readonly isAuthenticated = computed(() => !this.enabled || this.token() !== null);
+  private readonly authed = signal(false);
+
+  /** True when auth is off, or when a valid session exists. */
+  readonly isAuthenticated = computed(() => !this.enabled || this.authed());
+
+  /** Restore an existing session without forcing a redirect. Called at startup. */
+  async init(): Promise<void> {
+    if (!this.keycloak) {
+      return;
+    }
+    const authenticated = await this.keycloak.init({
+      onLoad: 'check-sso',
+      pkceMethod: 'S256',
+      // The login-status iframe is unreliable under modern 3rd-party-cookie rules
+      // (and hangs in headless browsers); rely on token expiry/refresh instead.
+      checkLoginIframe: false,
+    });
+    this.authed.set(authenticated);
+  }
 
   getToken(): string | null {
-    return this.token();
+    return this.keycloak?.token ?? null;
   }
 
-  setToken(token: string | null): void {
-    this.token.set(token);
-  }
-
-  /** Placeholder for the OIDC redirect to Keycloak (not wired in this POC build). */
   login(): void {
-    console.warn('[auth] Keycloak login is not wired in this build (stretch goal).');
+    void this.keycloak?.login();
   }
 
   logout(): void {
-    this.token.set(null);
+    void this.keycloak?.logout();
   }
 }

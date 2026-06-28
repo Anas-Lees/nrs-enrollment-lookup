@@ -6,7 +6,8 @@ export const environment = {
   // Keycloak (OIDC) — disabled by default (stretch goal).
   auth: {
     enabled: false,
-    issuer: 'http://localhost:8081/realms/nrs',
+    url: 'http://localhost:8081',
+    realm: 'nrs',
     clientId: 'nrs-spa',
   },
 };

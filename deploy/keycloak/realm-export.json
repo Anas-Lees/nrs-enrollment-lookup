@@ -20,7 +20,7 @@
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "redirectUris": ["http://localhost:4200/*", "https://*"],
       "webOrigins": ["http://localhost:4200", "+"],
       "attributes": {
@@ -52,8 +52,10 @@
       "username": "operator1",
       "enabled": true,
       "emailVerified": true,
+      "email": "operator1@nrs.example.om",
       "firstName": "Demo",
       "lastName": "Operator",
+      "requiredActions": [],
       "credentials": [
         {
           "type": "password",
