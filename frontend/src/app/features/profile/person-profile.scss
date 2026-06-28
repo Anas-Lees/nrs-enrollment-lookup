@@ -1,5 +1,85 @@
-.page {
-  &__hint {
-    color: #5b6b7b;
+.topbar {
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  color: #5b6b7b;
+  text-decoration: none;
+  font-size: 0.9rem;
+
+  &:hover {
+    color: #1f6feb;
+    text-decoration: underline;
+  }
+}
+
+.error {
+  color: #c0392b;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 8%);
+  padding: 1.5rem;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  &__names h1 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+}
+
+.avatar {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+
+.name-ar {
+  margin: 0.25rem 0 0;
+  color: #5b6b7b;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+}
+
+.field {
+  dt {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #8492a6;
+  }
+
+  dd {
+    margin: 0.25rem 0 0;
+    font-size: 0.95rem;
+    color: #1f2d3d;
+  }
+}
+
+.documents {
+  margin-top: 2rem;
+
+  h2 {
+    font-size: 1.1rem;
   }
 }
