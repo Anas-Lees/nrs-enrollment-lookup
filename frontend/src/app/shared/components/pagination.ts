@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+
+import { TranslationService } from '../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-pagination',
@@ -8,6 +10,8 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Pagination {
+  protected readonly i18n = inject(TranslationService);
+
   readonly page = input.required<number>();
   readonly pageSize = input.required<number>();
   readonly totalCount = input.required<number>();

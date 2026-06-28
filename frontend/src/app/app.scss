@@ -34,6 +34,12 @@
     letter-spacing: 0.05em;
   }
 
+  &__nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   &__nav a {
     color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
@@ -45,6 +51,21 @@
       background: rgba(255, 255, 255, 0.15);
       color: #fff;
     }
+  }
+}
+
+.lang-toggle {
+  color: #fff;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 0.375rem;
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #fff;
   }
 }
 

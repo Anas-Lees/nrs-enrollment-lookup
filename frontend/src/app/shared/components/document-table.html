@@ -1,21 +1,21 @@
 @if (rows().length === 0) {
-  <p class="doc-table__empty">No documents on file.</p>
+  <p class="doc-table__empty">{{ i18n.t('doc.empty') }}</p>
 } @else {
   <table class="doc-table">
     <thead>
       <tr>
-        <th>Type</th>
-        <th>Number</th>
-        <th>Sub-type</th>
-        <th>Status</th>
-        <th>Issued</th>
-        <th>Expires</th>
+        <th>{{ i18n.t('doc.type') }}</th>
+        <th>{{ i18n.t('doc.number') }}</th>
+        <th>{{ i18n.t('doc.subType') }}</th>
+        <th>{{ i18n.t('doc.status') }}</th>
+        <th>{{ i18n.t('doc.issued') }}</th>
+        <th>{{ i18n.t('doc.expires') }}</th>
       </tr>
     </thead>
     <tbody>
       @for (row of rows(); track row.number) {
         <tr>
-          <td>{{ row.kind }}</td>
+          <td>{{ i18n.t(row.kind === 'ID Card' ? 'doc.idCard' : 'doc.passport') }}</td>
           <td>{{ row.number }}</td>
           <td>{{ row.subType }}</td>
           <td><app-status-badge [status]="row.status" /></td>

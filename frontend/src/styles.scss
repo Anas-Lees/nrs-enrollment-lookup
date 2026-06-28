@@ -1,1 +1,37 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles + design tokens */
+
+:root {
+  /* Palette */
+  --color-primary: #0b3d6b;
+  --color-primary-600: #1f6feb;
+  --color-bg: #f4f6f9;
+  --color-surface: #ffffff;
+  --color-text: #1f2d3d;
+  --color-muted: #5b6b7b;
+  --color-border: #e2e8f0;
+  --color-danger: #c0392b;
+
+  /* Scale */
+  --radius: 8px;
+  --space: 1rem;
+
+  /* Typography — system stack with Arabic coverage */
+  --font-sans: "Segoe UI", Tahoma, "Noto Sans Arabic", system-ui, -apple-system, Arial, sans-serif;
+}
+
+/* Base reset */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}

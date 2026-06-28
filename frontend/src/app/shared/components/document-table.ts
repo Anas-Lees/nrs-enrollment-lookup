@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { TranslationService } from '../../core/i18n/translation.service';
 import { IdCard, Passport } from '../../core/models/person.model';
 import { StatusBadge } from './status-badge';
 
@@ -20,6 +21,8 @@ interface DocumentRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DocumentTable {
+  protected readonly i18n = inject(TranslationService);
+
   readonly idCards = input<IdCard[]>([]);
   readonly passports = input<Passport[]>([]);
 

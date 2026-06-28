@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
+import { TranslationService } from '../../core/i18n/translation.service';
 import { PersonService } from '../../core/services/person.service';
 import { Person } from '../../core/models/person.model';
 import { DocumentTable } from '../../shared/components/document-table';
@@ -19,6 +20,7 @@ const AVATAR_PALETTE = ['#1f6feb', '#0b8457', '#a83279', '#b8860b', '#5b4b8a', '
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PersonProfile {
+  protected readonly i18n = inject(TranslationService);
   private readonly route = inject(ActivatedRoute);
   private readonly personService = inject(PersonService);
 
