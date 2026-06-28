@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import Keycloak from 'keycloak-js';
 
-import { environment } from '../../../environments/environment';
+import { APP_CONFIG } from '../config/app-config';
 
 /**
  * Authentication via Keycloak (keycloak-js). Disabled by default
@@ -14,13 +14,13 @@ import { environment } from '../../../environments/environment';
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  readonly enabled = environment.auth.enabled;
+  readonly enabled = APP_CONFIG.auth.enabled;
 
   private readonly keycloak: Keycloak | null = this.enabled
     ? new Keycloak({
-        url: environment.auth.url,
-        realm: environment.auth.realm,
-        clientId: environment.auth.clientId,
+        url: APP_CONFIG.auth.url,
+        realm: APP_CONFIG.auth.realm,
+        clientId: APP_CONFIG.auth.clientId,
       })
     : null;
 
