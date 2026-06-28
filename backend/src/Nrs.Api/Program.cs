@@ -1,12 +1,11 @@
 using System.Data.Common;
-using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi;
 using Nrs.Api.Extensions;
 using Nrs.Api.Middleware;
 using Nrs.Infrastructure.Persistence;
 using Nrs.Infrastructure.Seed;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,27 +16,8 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-// OpenAPI / Swagger.
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "NRS Enrollment — Applicant Lookup API",
-        Version = "v1",
-        Description = "Search for persons and retrieve their full profile (ID cards and passports).",
-    });
-
-    // Surface the XML doc comments from the API and Application assemblies in Swagger.
-    foreach (var assembly in new[] { Assembly.GetExecutingAssembly(), typeof(Nrs.Application.Dtos.PersonDto).Assembly })
-    {
-        var xml = Path.Combine(AppContext.BaseDirectory, $"{assembly.GetName().Name}.xml");
-        if (File.Exists(xml))
-        {
-            options.IncludeXmlComments(xml);
-        }
-    }
-});
+// First-party OpenAPI document generation (served at /openapi/v1.json), rendered by Scalar.
+builder.Services.AddOpenApi();
 
 // Application services (DbContext, repository, service).
 builder.Services.AddNrsServices(builder.Configuration);
@@ -61,8 +41,10 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // OpenAPI doc + Scalar API reference UI (anonymous, like the docs tool it replaces).
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference(options => options.WithTitle("NRS Enrollment — Applicant Lookup API"))
+        .AllowAnonymous();
 
     // Create/upgrade the schema and seed sample data on startup (dev convenience).
     using var scope = app.Services.CreateScope();
@@ -75,16 +57,19 @@ if (app.Environment.IsDevelopment())
     }
     else
     {
-        // Create the schema from the model. Guarded: EnsureCreated's existence check can
-        // be unreliable against a persistent Oracle volume on restart, so if the schema is
-        // already there we log and continue (the seeder below is idempotent).
+        // Guarded: EnsureCreated's existence check can be unreliable against a persistent
+        // Oracle volume on restart, so if the schema is already there we log and continue
+        // (the seeder below is idempotent).
         try
         {
             await db.Database.EnsureCreatedAsync();
         }
         catch (DbException ex)
         {
+            // Startup-only diagnostic; a LoggerMessage delegate would be overkill here.
+#pragma warning disable CA1848
             app.Logger.LogWarning(ex, "Schema creation skipped; it appears to already exist.");
+#pragma warning restore CA1848
         }
     }
     await DataSeeder.SeedAsync(db);
