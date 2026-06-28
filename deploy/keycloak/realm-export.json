@@ -1,0 +1,67 @@
+{
+  "realm": "nrs",
+  "enabled": true,
+  "displayName": "NRS Enrollment",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "operator",
+        "description": "Enrollment counter operator"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "nrs-spa",
+      "name": "NRS Applicant Lookup SPA",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:4200/*", "https://*"],
+      "webOrigins": ["http://localhost:4200", "+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-nrs-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "nrs-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "nrs-api",
+      "name": "NRS Applicant Lookup API",
+      "enabled": true,
+      "bearerOnly": true,
+      "publicClient": false
+    }
+  ],
+  "users": [
+    {
+      "username": "operator1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Operator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "operator1",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["operator"]
+    }
+  ]
+}

@@ -44,6 +44,9 @@ builder.Services.AddNrsServices(builder.Configuration);
 // Health checks for container/Kubernetes probes.
 builder.Services.AddHealthChecks();
 
+// Optional Keycloak (OIDC/JWT) auth — off unless Auth:Enabled is true.
+var authEnabled = builder.Services.AddNrsAuthentication(builder.Configuration);
+
 // Allow the Angular dev server to call the API.
 builder.Services.AddCors(options => options.AddPolicy(SpaCorsPolicy, policy => policy
     .WithOrigins("http://localhost:4200")
@@ -68,10 +71,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors(SpaCorsPolicy);
+
+if (authEnabled)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
+
 app.MapControllers();
 
-// Liveness/readiness endpoint for probes.
-app.MapHealthChecks("/health");
+// Liveness/readiness endpoint for probes — always reachable, even when auth is on.
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
 
