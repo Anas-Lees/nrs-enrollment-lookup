@@ -11,7 +11,12 @@
     {{ i18n.t('page.page') }} {{ page() }} / {{ totalPages() }}
   </span>
 
-  <button type="button" class="pagination__btn" [disabled]="page() >= totalPages()" (click)="next()">
+  <button
+    type="button"
+    class="pagination__btn"
+    [disabled]="page() >= totalPages()"
+    (click)="next()"
+  >
     {{ i18n.t('page.next') }}
   </button>
 </div>

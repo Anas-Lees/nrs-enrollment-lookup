@@ -22,13 +22,14 @@ export default defineConfig({
       command: 'dotnet run --project ../backend/src/Nrs.Api/Nrs.Api.csproj',
       url: 'http://localhost:5000/swagger/v1/swagger.json',
       reuseExistingServer: true,
-      timeout: 120_000,
+      // Generous for CI cold-starts (restore + build + boot).
+      timeout: 240_000,
     },
     {
       command: 'npm start',
       url: 'http://localhost:4200',
       reuseExistingServer: true,
-      timeout: 120_000,
+      timeout: 240_000,
     },
   ],
 });
