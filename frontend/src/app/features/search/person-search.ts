@@ -1,7 +1,17 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 
 import { TranslationService } from '../../core/i18n/translation.service';
 import { PersonService } from '../../core/services/person.service';
@@ -27,11 +37,31 @@ export class PersonSearch {
   protected readonly i18n = inject(TranslationService);
   private readonly personService = inject(PersonService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   readonly form = new FormGroup({
     query: new FormControl('', { nonNullable: true }),
     nationality: new FormControl('', { nonNullable: true }),
   });
+
+  constructor() {
+    // The URL query string is the source of truth: drives the search and makes
+    // results shareable/bookmarkable and the back button work.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
+      const q = pm.get('q') ?? '';
+      const nat = pm.get('nat') ?? '';
+      const page = Number(pm.get('page')) || 1;
+      this.form.setValue({ query: q, nationality: nat }, { emitEvent: false });
+
+      if (q || nat || pm.has('page')) {
+        this.criteria = this.buildCriteria(q, nat);
+        this.searched.set(true);
+        this.load(page);
+      }
+    });
+  }
 
   readonly results = signal<PagedResult<PersonSummary> | null>(null);
   readonly loading = signal(false);
@@ -100,9 +130,7 @@ export class PersonSearch {
 
   onSubmit(): void {
     const { query, nationality } = this.form.getRawValue();
-    this.criteria = this.buildCriteria(query, nationality);
-    this.searched.set(true);
-    this.load(1);
+    this.navigateToSearch(query, nationality, 1);
   }
 
   clear(): void {
@@ -112,6 +140,59 @@ export class PersonSearch {
     this.error.set(null);
     this.searched.set(false);
     this.clearPreview();
+    this.router.navigate([], { relativeTo: this.route, queryParams: {} });
+  }
+
+  private navigateToSearch(query: string, nationality: string, page: number): void {
+    const queryParams: Params = {
+      q: query.trim() || null,
+      nat: nationality.trim() || null,
+      page,
+    };
+    this.router.navigate([], { relativeTo: this.route, queryParams });
+  }
+
+  // --- keyboard navigation: '/' focuses search, arrows move selection, Enter opens ---
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    if (event.key === '/' && !this.isTyping(event.target)) {
+      event.preventDefault();
+      this.searchInput()?.nativeElement.focus();
+      return;
+    }
+    if (this.isTyping(event.target)) {
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.moveSelection(1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.moveSelection(-1);
+    } else if (event.key === 'Enter') {
+      const crn = this.selectedCrn();
+      if (crn) {
+        this.router.navigate(['/persons', crn]);
+      }
+    }
+  }
+
+  private isTyping(target: EventTarget | null): boolean {
+    const tag = (target as HTMLElement | null)?.tagName;
+    return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+  }
+
+  private moveSelection(delta: number): void {
+    const r = this.results();
+    if (!r || r.items.length === 0) {
+      return;
+    }
+    const current = r.items.findIndex((p) => p.civilNumber === this.selectedCrn());
+    const next = Math.max(0, Math.min(r.items.length - 1, (current < 0 ? 0 : current) + delta));
+    this.select(r.items[next]);
+    queueMicrotask(() =>
+      document.querySelector('.card.is-selected')?.scrollIntoView({ block: 'nearest' }),
+    );
   }
 
   load(page: number): void {
