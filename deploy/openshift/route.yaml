@@ -1,0 +1,19 @@
+# Public HTTPS entry point. Only the SPA is exposed; it reverse-proxies /api to the
+# in-cluster API Service, so the API has no public route of its own.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: nrs-spa
+  labels:
+    app: nrs
+    component: spa
+spec:
+  to:
+    kind: Service
+    name: nrs-spa
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
