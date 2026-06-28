@@ -3,36 +3,44 @@
 }
 
 .back-link {
-  color: #5b6b7b;
+  color: var(--color-muted);
   text-decoration: none;
   font-size: 0.9rem;
 
   &:hover {
-    color: #1f6feb;
+    color: var(--rop-green-600);
     text-decoration: underline;
   }
 }
 
 .error {
-  color: #c0392b;
+  color: var(--color-danger);
 }
 
-.card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgb(15 23 42 / 8%);
-  padding: 1.5rem;
+.muted {
+  color: var(--color-muted-2);
 }
 
-.summary {
+/* ---------------- Summary header card ---------------- */
+.summary-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
 
-  &__names h1 {
-    margin: 0;
-    font-size: 1.4rem;
+  &__id {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+
+    h1 {
+      margin: 0;
+      font-size: 1.45rem;
+    }
   }
 }
 
@@ -50,36 +58,68 @@
 }
 
 .name-ar {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.crn {
   margin: 0.25rem 0 0;
-  color: #5b6b7b;
+  color: var(--color-muted-2);
+  font-size: 0.95rem;
+}
+
+.summary-card app-status-badge {
+  margin-inline-start: auto;
+  align-self: flex-start;
+}
+
+/* ---------------- Panels ---------------- */
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 1.25rem 1.5rem;
+
+  h2 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    color: var(--color-text);
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--color-border);
+  }
 }
 
 .fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1rem;
-  margin: 1.5rem 0 0;
+  margin: 0;
 }
 
 .field {
   dt {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #8492a6;
+    color: var(--color-muted-2);
   }
 
   dd {
     margin: 0.25rem 0 0;
     font-size: 0.95rem;
-    color: #1f2d3d;
+    color: var(--color-text);
   }
 }
 
+/* ---------------- Documents ---------------- */
 .documents {
-  margin-top: 2rem;
-
-  h2 {
-    font-size: 1.1rem;
-  }
+  margin-top: 1.25rem;
 }

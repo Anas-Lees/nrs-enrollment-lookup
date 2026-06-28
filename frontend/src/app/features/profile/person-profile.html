@@ -10,40 +10,111 @@
   } @else if (error()) {
     <p class="error">{{ i18n.t('profile.error') }}</p>
   } @else if (person(); as p) {
-    <article class="card">
-      <header class="summary">
-        <div class="avatar" [style.background]="avatarColor()">{{ initials() }}</div>
-        <div class="summary__names">
-          <h1>{{ p.firstNameEn }} {{ p.familyNameEn }}</h1>
-          <p class="name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
-        </div>
-      </header>
-
-      <dl class="fields">
-        <div class="field">
-          <dt>{{ i18n.t('profile.crn') }}</dt>
-          <dd>{{ p.civilNumber }}</dd>
-        </div>
-        <div class="field">
-          <dt>{{ i18n.t('profile.dob') }}</dt>
-          <dd>{{ p.dateOfBirth | date: 'mediumDate' }}</dd>
-        </div>
-        <div class="field">
-          <dt>{{ i18n.t('profile.gender') }}</dt>
-          <dd>{{ p.gender }}</dd>
-        </div>
-        <div class="field">
-          <dt>{{ i18n.t('profile.nationality') }}</dt>
-          <dd>{{ p.nationalityCode | nationality }}</dd>
-        </div>
-        <div class="field">
-          <dt>{{ i18n.t('profile.status') }}</dt>
-          <dd><app-status-badge [status]="p.status" /></dd>
-        </div>
-      </dl>
+    <article class="summary-card">
+      <div class="avatar" [style.background]="avatarColor()" aria-hidden="true">
+        {{ initials() }}
+      </div>
+      <div class="summary-card__id">
+        <h1>{{ p.firstNameEn }} {{ p.familyNameEn }}</h1>
+        <p class="name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
+        <p class="crn mono">{{ p.civilNumber }}</p>
+      </div>
+      <app-status-badge [status]="p.status" />
     </article>
 
-    <section class="documents">
+    <div class="panels">
+      <section class="panel">
+        <h2>{{ i18n.t('profile.biographic') }}</h2>
+        <dl class="fields">
+          <div class="field">
+            <dt>{{ i18n.t('profile.dob') }}</dt>
+            <dd>{{ p.dateOfBirth | date: 'dd MMM yyyy' }}</dd>
+          </div>
+          <div class="field">
+            <dt>{{ i18n.t('profile.gender') }}</dt>
+            <dd>{{ genderLabel(p.gender) }}</dd>
+          </div>
+          <div class="field">
+            <dt>{{ i18n.t('profile.nationality') }}</dt>
+            <dd>{{ nationalityName(p) }}</dd>
+          </div>
+          <div class="field">
+            <dt>{{ i18n.t('profile.placeOfBirth') }}</dt>
+            <dd>{{ pick(p.placeOfBirthEn, p.placeOfBirthAr) }}</dd>
+          </div>
+          <div class="field">
+            <dt>{{ i18n.t('profile.motherName') }}</dt>
+            <dd>{{ pick(p.motherNameEn, p.motherNameAr) }}</dd>
+          </div>
+          <div class="field">
+            <dt>{{ i18n.t('profile.maritalStatus') }}</dt>
+            <dd>{{ maritalLabel(p.maritalStatus) }}</dd>
+          </div>
+          <div class="field">
+            <dt>{{ i18n.t('profile.bloodType') }}</dt>
+            <dd>{{ value(p.bloodType) }}</dd>
+          </div>
+          <div class="field">
+            <dt>{{ i18n.t('profile.occupation') }}</dt>
+            <dd>{{ pick(p.occupationEn, p.occupationAr) }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <h2>{{ i18n.t('profile.address') }}</h2>
+        @if (p.address; as a) {
+          <dl class="fields">
+            <div class="field">
+              <dt>{{ i18n.t('profile.governorate') }}</dt>
+              <dd>{{ value(a.governorate) }}</dd>
+            </div>
+            <div class="field">
+              <dt>{{ i18n.t('profile.wilayat') }}</dt>
+              <dd>{{ value(a.wilayat) }}</dd>
+            </div>
+            <div class="field">
+              <dt>{{ i18n.t('profile.village') }}</dt>
+              <dd>{{ value(a.village) }}</dd>
+            </div>
+            <div class="field">
+              <dt>{{ i18n.t('profile.street') }}</dt>
+              <dd>{{ value(a.street) }}</dd>
+            </div>
+            <div class="field">
+              <dt>{{ i18n.t('profile.building') }}</dt>
+              <dd>{{ value(a.buildingNumber) }}</dd>
+            </div>
+            <div class="field">
+              <dt>{{ i18n.t('profile.postalCode') }}</dt>
+              <dd>{{ value(a.postalCode) }}</dd>
+            </div>
+          </dl>
+        } @else {
+          <p class="muted">{{ i18n.t('profile.noAddress') }}</p>
+        }
+      </section>
+
+      <section class="panel">
+        <h2>{{ i18n.t('profile.contact') }}</h2>
+        @if (p.contact; as c) {
+          <dl class="fields">
+            <div class="field">
+              <dt>{{ i18n.t('profile.mobile') }}</dt>
+              <dd class="mono" dir="ltr">{{ value(c.mobile) }}</dd>
+            </div>
+            <div class="field">
+              <dt>{{ i18n.t('profile.email') }}</dt>
+              <dd dir="ltr">{{ value(c.email) }}</dd>
+            </div>
+          </dl>
+        } @else {
+          <p class="muted">{{ i18n.t('profile.noContact') }}</p>
+        }
+      </section>
+    </div>
+
+    <section class="panel documents">
       <h2>{{ i18n.t('profile.documents') }}</h2>
       <app-document-table [idCards]="p.idCards" [passports]="p.passports" />
     </section>

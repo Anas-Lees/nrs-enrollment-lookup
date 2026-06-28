@@ -27,7 +27,7 @@ test.describe('Applicant Lookup — operator journey', () => {
     await expect(page).toHaveURL(new RegExp(`/persons/${crn}$`));
 
     // Profile shows a name heading and the documents section with rows.
-    await expect(page.locator('.card h1')).toBeVisible();
+    await expect(page.locator('.summary-card h1')).toBeVisible();
     await expect(page.locator('.documents')).toBeVisible();
     await expect(page.locator('.doc-table tbody tr').first()).toBeVisible();
   });
