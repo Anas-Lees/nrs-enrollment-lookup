@@ -1,0 +1,9 @@
+{
+  "apiBaseUrl": "",
+  "auth": {
+    "enabled": false,
+    "url": "http://localhost:8081",
+    "realm": "nrs",
+    "clientId": "nrs-spa"
+  }
+}

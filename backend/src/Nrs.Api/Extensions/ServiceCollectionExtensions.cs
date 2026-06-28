@@ -65,6 +65,10 @@ public static class ServiceCollectionExtensions
 
         var authority = configuration["Auth:Authority"];
         var audience = configuration["Auth:Audience"];
+        // Optional: where the API fetches OIDC discovery/JWKS from. Lets the browser and the
+        // API reach Keycloak via different hostnames (e.g. localhost:8081 vs keycloak:8080 in
+        // Docker) while the token issuer stays consistent.
+        var metadataAddress = configuration["Auth:MetadataAddress"];
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -72,6 +76,10 @@ public static class ServiceCollectionExtensions
             {
                 options.Authority = authority;
                 options.Audience = audience;
+                if (!string.IsNullOrWhiteSpace(metadataAddress))
+                {
+                    options.MetadataAddress = metadataAddress;
+                }
                 // Keycloak is typically reached over plain HTTP inside the cluster.
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new TokenValidationParameters

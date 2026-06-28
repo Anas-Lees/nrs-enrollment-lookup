@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
+import { APP_CONFIG } from '../config/app-config';
 import { PagedResult, PersonSearchCriteria } from '../models/paged-result.model';
 import { Person, PersonSummary } from '../models/person.model';
 
@@ -13,7 +13,7 @@ import { Person, PersonSummary } from '../models/person.model';
 @Injectable({ providedIn: 'root' })
 export class PersonService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiBaseUrl}/api/v1/persons`;
+  private readonly baseUrl = `${APP_CONFIG.apiBaseUrl}/api/v1/persons`;
 
   /** Paged, multi-filter search. Only the filters that are set are sent. */
   search(criteria: PersonSearchCriteria): Observable<PagedResult<PersonSummary>> {

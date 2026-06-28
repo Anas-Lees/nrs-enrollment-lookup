@@ -111,15 +111,25 @@ The full target tree (every file tagged with its workstream) lives in
 
 ## Getting started
 
-### Option A — Docker (whole stack)
+### Option A — Docker (the full production-shaped stack)
+
+One command runs everything: Angular SPA → API on **Oracle**, with **Keycloak** login.
 
 ```bash
 docker compose up --build
-# SPA:     http://localhost:4200
-# API:     http://localhost:5000/swagger
 ```
 
-### Option B — run locally
+- App: **http://localhost:4200** — redirects to Keycloak to log in (**operator1 / operator1**)
+- API/Swagger: http://localhost:5000/swagger · Keycloak admin: http://localhost:8081 (admin / admin)
+
+First start takes a few minutes (Oracle initialises; the API waits for it, then creates the
+schema and seeds 100 persons). Auth is enabled for the container SPA via a mounted
+`config.json` (see `deploy/spa-config.docker.json`); the image's default is auth-off.
+
+> If `localhost:4200` shows stale content, make sure no host `ng serve` is still bound to
+> `:4200` (it shadows Docker on `localhost`). Stop it, or use Option B for host dev.
+
+### Option B — run locally (lightweight: SQLite, no auth)
 
 Prerequisites: [.NET 10 SDK](https://dotnet.microsoft.com/), [Node.js 22+](https://nodejs.org/).
 

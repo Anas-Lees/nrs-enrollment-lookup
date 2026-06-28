@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
@@ -74,7 +75,17 @@ if (app.Environment.IsDevelopment())
     }
     else
     {
-        await db.Database.EnsureCreatedAsync();
+        // Create the schema from the model. Guarded: EnsureCreated's existence check can
+        // be unreliable against a persistent Oracle volume on restart, so if the schema is
+        // already there we log and continue (the seeder below is idempotent).
+        try
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+        catch (DbException ex)
+        {
+            app.Logger.LogWarning(ex, "Schema creation skipped; it appears to already exist.");
+        }
     }
     await DataSeeder.SeedAsync(db);
 }
