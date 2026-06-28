@@ -54,35 +54,97 @@
       @if (r.items.length === 0) {
         <p class="empty">{{ i18n.t('search.empty') }}</p>
       } @else {
-        <ul class="cards">
-          @for (p of r.items; track p.civilNumber) {
-            <li>
-              <a class="card" [routerLink]="['/persons', p.civilNumber]">
-                <span class="card__avatar" [style.background]="color(p)">{{ initials(p) }}</span>
-                <span class="card__id">
-                  <span class="card__name">{{ p.firstNameEn }} {{ p.familyNameEn }}</span>
-                  <span class="card__name-ar" dir="rtl"
-                    >{{ p.firstNameAr }} {{ p.familyNameAr }}</span
+        <div class="results-layout">
+          <div class="results-list">
+            <ul class="cards">
+              @for (p of r.items; track p.civilNumber) {
+                <li>
+                  <button
+                    type="button"
+                    class="card"
+                    [class.is-selected]="selectedCrn() === p.civilNumber"
+                    [attr.aria-pressed]="selectedCrn() === p.civilNumber"
+                    (click)="select(p)"
                   >
-                </span>
-                <span class="card__meta">
-                  <span class="card__crn mono">{{ p.civilNumber }}</span>
-                  <span class="card__facts">
-                    {{ p.dateOfBirth | date: 'dd MMM yyyy' }} · {{ nationalityName(p) }}
-                  </span>
-                </span>
-                <app-status-badge [status]="p.status" />
-              </a>
-            </li>
-          }
-        </ul>
+                    <span class="card__avatar" [style.background]="color(p)">{{
+                      initials(p)
+                    }}</span>
+                    <span class="card__id">
+                      <span class="card__name">{{ p.firstNameEn }} {{ p.familyNameEn }}</span>
+                      <span class="card__name-ar" dir="rtl">
+                        {{ p.firstNameAr }} {{ p.familyNameAr }}
+                      </span>
+                    </span>
+                    <span class="card__meta">
+                      <span class="card__crn mono">{{ p.civilNumber }}</span>
+                      <span class="card__facts">
+                        {{ p.dateOfBirth | date: 'dd MMM yyyy' }} · {{ nationalityName(p) }}
+                      </span>
+                    </span>
+                    <app-status-badge [status]="p.status" />
+                  </button>
+                </li>
+              }
+            </ul>
 
-        <app-pagination
-          [page]="r.page"
-          [pageSize]="r.pageSize"
-          [totalCount]="r.totalCount"
-          (pageChange)="onPageChange($event)"
-        />
+            <app-pagination
+              [page]="r.page"
+              [pageSize]="r.pageSize"
+              [totalCount]="r.totalCount"
+              (pageChange)="onPageChange($event)"
+            />
+          </div>
+
+          <aside class="preview" [attr.aria-label]="i18n.t('preview.title')">
+            <span class="preview__label">{{ i18n.t('preview.title') }}</span>
+
+            @if (preview(); as p) {
+              <div class="preview__photo" aria-hidden="true">{{ i18n.t('preview.photo') }}</div>
+              <h2 class="preview__name">{{ p.firstNameEn }} {{ p.familyNameEn }}</h2>
+              <p class="preview__name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
+              <p class="preview__crn mono">{{ p.civilNumber }}</p>
+              <app-status-badge [status]="p.status" />
+
+              <dl class="preview__facts">
+                <div>
+                  <dt>{{ i18n.t('preview.dob') }}</dt>
+                  <dd>{{ p.dateOfBirth | date: 'dd MMM yyyy' }}</dd>
+                </div>
+                <div>
+                  <dt>{{ i18n.t('preview.nationality') }}</dt>
+                  <dd>{{ nationalityName(p) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ i18n.t('preview.idCards') }}</dt>
+                  <dd>{{ validIdCards() }} {{ i18n.t('preview.valid') }}</dd>
+                </div>
+                <div>
+                  <dt>{{ i18n.t('preview.passports') }}</dt>
+                  <dd>
+                    {{ validPassports() }} {{ i18n.t('preview.valid') }} · {{ expiredPassports() }}
+                    {{ i18n.t('preview.expired') }}
+                  </dd>
+                </div>
+              </dl>
+
+              <a class="btn-primary btn-block" [routerLink]="['/persons', p.civilNumber]">
+                {{ i18n.t('preview.openProfile') }}
+              </a>
+              <button type="button" class="btn-outline btn-block" (click)="startEnrollment()">
+                {{ i18n.t('preview.startEnrollment') }}
+              </button>
+              @if (enrollNote()) {
+                <p class="preview__note" role="status">{{ i18n.t('preview.enrollNote') }}</p>
+              }
+            } @else if (previewLoading()) {
+              <div class="preview__photo skeleton-box-lg"></div>
+              <span class="skeleton-line"></span>
+              <span class="skeleton-line skeleton-line--sm"></span>
+            } @else {
+              <p class="preview__empty">{{ i18n.t('preview.selectHint') }}</p>
+            }
+          </aside>
+        </div>
       }
     } @else {
       <p class="hint">{{ i18n.t('search.hint') }}</p>

@@ -14,10 +14,14 @@ test.describe('Applicant Lookup — operator journey', () => {
     const firstCard = page.locator('.cards .card').first();
     await expect(firstCard).toBeVisible();
 
-    // Grab the CRN from the card, then open that person's profile.
+    // Grab the CRN from the card, then select it to populate the quick preview.
     const crn = (await firstCard.locator('.card__crn').innerText()).trim();
     expect(crn).not.toEqual('');
     await firstCard.click();
+    await expect(page.locator('.preview__name')).toBeVisible();
+
+    // Open the full profile from the preview CTA.
+    await page.locator('.preview a.btn-primary').click();
 
     // We navigated to the profile route for that CRN.
     await expect(page).toHaveURL(new RegExp(`/persons/${crn}$`));
