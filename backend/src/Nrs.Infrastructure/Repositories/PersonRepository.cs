@@ -6,7 +6,6 @@ using Nrs.Infrastructure.Persistence;
 
 namespace Nrs.Infrastructure.Repositories;
 
-
 /// <summary>
 /// EF Core implementation of <see cref="IPersonRepository"/>. Translates
 /// <see cref="PersonSearchCriteria"/> into a composable, provider-portable query
