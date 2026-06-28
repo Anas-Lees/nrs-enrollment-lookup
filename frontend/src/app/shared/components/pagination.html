@@ -1,0 +1,15 @@
+<div class="pagination">
+  <button type="button" class="pagination__btn" [disabled]="page() <= 1" (click)="prev()">
+    Previous
+  </button>
+
+  <span class="pagination__info">
+    Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ totalCount() }}
+  </span>
+
+  <span class="pagination__info">Page {{ page() }} of {{ totalPages() }}</span>
+
+  <button type="button" class="pagination__btn" [disabled]="page() >= totalPages()" (click)="next()">
+    Next
+  </button>
+</div>
