@@ -112,6 +112,8 @@ paths:
                     dateOfBirth: "1990-05-21"
                     gender: "M"
                     nationalityCode: "OMN"
+                    nationalityNameEn: "Oman"
+                    nationalityNameAr: "عُمان"
                     status: "ACTIVE"
                 totalCount: 1
                 page: 1
@@ -156,8 +158,28 @@ paths:
                 dateOfBirth: "1990-05-21"
                 gender: "M"
                 nationalityCode: "OMN"
+                nationalityNameEn: "Oman"
+                nationalityNameAr: "عُمان"
                 status: "ACTIVE"
                 photoPath: "/photos/12345678.jpg"
+                placeOfBirthEn: "Muscat"
+                placeOfBirthAr: "مسقط"
+                motherNameEn: "Fatma Al-Saadi"
+                motherNameAr: "فاطمة السعدي"
+                maritalStatus: "MARRIED"
+                bloodType: "O+"
+                occupationEn: "Engineer"
+                occupationAr: "مهندس"
+                address:
+                  governorate: "Muscat"
+                  wilayat: "Seeb"
+                  village: "Al Khoudh"
+                  street: "Street 12"
+                  buildingNumber: "45"
+                  postalCode: "133"
+                contact:
+                  mobile: "+96891234567"
+                  email: "mohammed.albalushi@example.com"
                 idCards:
                   - idCardId: 1001
                     civilNumber: "12345678"
@@ -225,6 +247,16 @@ components:
           type: string
           description: ISO 3166-1 alpha-3.
           example: "OMN"
+        nationalityNameEn:
+          type: string
+          nullable: true
+          description: English nationality name, resolved from the lookup.
+          example: "Oman"
+        nationalityNameAr:
+          type: string
+          nullable: true
+          description: Arabic nationality name, resolved from the lookup.
+          example: "عُمان"
         status:
           $ref: "#/components/schemas/PersonStatus"
 
@@ -239,6 +271,45 @@ components:
               nullable: true
               description: Path to the face photo (placeholder for the POC).
               example: "/photos/12345678.jpg"
+            placeOfBirthEn:
+              type: string
+              nullable: true
+              example: "Muscat"
+            placeOfBirthAr:
+              type: string
+              nullable: true
+              example: "مسقط"
+            motherNameEn:
+              type: string
+              nullable: true
+              example: "Fatma Al-Saadi"
+            motherNameAr:
+              type: string
+              nullable: true
+              example: "فاطمة السعدي"
+            maritalStatus:
+              $ref: "#/components/schemas/MaritalStatus"
+            bloodType:
+              type: string
+              nullable: true
+              description: ABO/Rh blood group.
+              example: "O+"
+            occupationEn:
+              type: string
+              nullable: true
+              example: "Engineer"
+            occupationAr:
+              type: string
+              nullable: true
+              example: "مهندس"
+            address:
+              allOf:
+                - $ref: "#/components/schemas/Address"
+              nullable: true
+            contact:
+              allOf:
+                - $ref: "#/components/schemas/Contact"
+              nullable: true
             idCards:
               type: array
               items:
@@ -302,6 +373,47 @@ components:
         status:
           $ref: "#/components/schemas/PassportStatus"
 
+    Address:
+      type: object
+      description: A person's current residential address.
+      required: [governorate, wilayat]
+      properties:
+        governorate:
+          type: string
+          example: "Muscat"
+        wilayat:
+          type: string
+          example: "Seeb"
+        village:
+          type: string
+          nullable: true
+          example: "Al Khoudh"
+        street:
+          type: string
+          nullable: true
+          example: "Street 12"
+        buildingNumber:
+          type: string
+          nullable: true
+          example: "45"
+        postalCode:
+          type: string
+          nullable: true
+          example: "133"
+
+    Contact:
+      type: object
+      description: A person's contact details.
+      properties:
+        mobile:
+          type: string
+          nullable: true
+          example: "+96891234567"
+        email:
+          type: string
+          nullable: true
+          example: "mohammed.albalushi@example.com"
+
     PagedResultOfPersonSummary:
       type: object
       description: A page of results plus the total count for pagination controls.
@@ -353,6 +465,11 @@ components:
     PersonStatus:
       type: string
       enum: [ACTIVE, DECEASED, MERGED]
+
+    MaritalStatus:
+      type: string
+      nullable: true
+      enum: [SINGLE, MARRIED, DIVORCED, WIDOWED]
 
     CardStatus:
       type: string

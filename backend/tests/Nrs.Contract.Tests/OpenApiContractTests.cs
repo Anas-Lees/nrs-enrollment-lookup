@@ -145,6 +145,7 @@ public class OpenApiContractTests
     [InlineData("CardType", typeof(CardType))]
     [InlineData("PassportType", typeof(PassportType))]
     [InlineData("PassportStatus", typeof(PassportStatus))]
+    [InlineData("MaritalStatus", typeof(MaritalStatus))]
     public void Enum_MatchesContract(string schemaName, Type enumType)
     {
         var expected = new HashSet<string>(GetEnumValues(schemaName), StringComparer.Ordinal);
@@ -186,6 +187,55 @@ public class OpenApiContractTests
         Assert.True(
             expected.SetEquals(actual),
             $"Schema 'Passport' does not match PassportDto: {Diff(expected, actual)}");
+    }
+
+    [Fact]
+    public void Schema_Address_MatchesDtoProperties()
+    {
+        var expected = new HashSet<string>(GetSchemaPropertyNames("Address"), StringComparer.Ordinal);
+        var actual = DtoPropertyNamesCamelCase(typeof(AddressDto));
+
+        Assert.True(
+            expected.SetEquals(actual),
+            $"Schema 'Address' does not match AddressDto: {Diff(expected, actual)}");
+    }
+
+    [Fact]
+    public void Schema_Contact_MatchesDtoProperties()
+    {
+        var expected = new HashSet<string>(GetSchemaPropertyNames("Contact"), StringComparer.Ordinal);
+        var actual = DtoPropertyNamesCamelCase(typeof(ContactDto));
+
+        Assert.True(
+            expected.SetEquals(actual),
+            $"Schema 'Contact' does not match ContactDto: {Diff(expected, actual)}");
+    }
+
+    [Fact]
+    public void Schema_Person_MatchesDtoProperties()
+    {
+        // The full Person contract is PersonSummary's properties plus everything declared
+        // inline across the allOf entries; together they must equal PersonDto exactly.
+        var expected = new HashSet<string>(GetSchemaPropertyNames("PersonSummary"), StringComparer.Ordinal);
+        var schema = GetSchema("Person");
+        var allOf = schema["allOf"] as IEnumerable<object>;
+        Assert.True(allOf is not null, "Schema 'Person' 'allOf' is not a sequence.");
+        foreach (var entry in allOf!)
+        {
+            if (entry is Dictionary<object, object> entryMap && entryMap.TryGetValue("properties", out var props))
+            {
+                foreach (var key in AsMap(props).Keys)
+                {
+                    expected.Add(key?.ToString() ?? string.Empty);
+                }
+            }
+        }
+
+        var actual = DtoPropertyNamesCamelCase(typeof(PersonDto));
+
+        Assert.True(
+            expected.SetEquals(actual),
+            $"Schema 'Person' does not match PersonDto: {Diff(expected, actual)}");
     }
 
     [Fact]

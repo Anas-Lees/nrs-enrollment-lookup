@@ -25,7 +25,9 @@ public class PersonRepository(NrsDbContext db) : IPersonRepository
         CancellationToken cancellationToken = default)
     {
         // Read-only query: no change tracking → faster and lower memory.
-        var query = db.Persons.AsNoTracking();
+        // Include the nationality lookup so summary rows can show bilingual names.
+        // Typed as IQueryable so the filters below can reassign it after the Include.
+        IQueryable<Person> query = db.Persons.AsNoTracking().Include(p => p.Nationality);
 
         // CRN: prefix match.
         if (!string.IsNullOrWhiteSpace(criteria.Crn))
@@ -97,6 +99,9 @@ public class PersonRepository(NrsDbContext db) : IPersonRepository
     {
         return await db.Persons
             .AsNoTracking()
+            .Include(p => p.Nationality)
+            .Include(p => p.Address)
+            .Include(p => p.Contact)
             .Include(p => p.IdCards)
             .Include(p => p.Passports)
             .FirstOrDefaultAsync(p => p.CivilNumber == crn, cancellationToken);

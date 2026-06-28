@@ -19,6 +19,8 @@ public static class PersonMappingExtensions
         DateOfBirth = person.DateOfBirth,
         Gender = person.Gender,
         NationalityCode = person.NationalityCode,
+        NationalityNameEn = person.Nationality?.NameEn,
+        NationalityNameAr = person.Nationality?.NameAr,
         Status = person.Status,
     };
 
@@ -32,10 +34,38 @@ public static class PersonMappingExtensions
         DateOfBirth = person.DateOfBirth,
         Gender = person.Gender,
         NationalityCode = person.NationalityCode,
+        NationalityNameEn = person.Nationality?.NameEn,
+        NationalityNameAr = person.Nationality?.NameAr,
         Status = person.Status,
         PhotoPath = person.PhotoPath,
+        PlaceOfBirthEn = person.PlaceOfBirthEn,
+        PlaceOfBirthAr = person.PlaceOfBirthAr,
+        MotherNameEn = person.MotherNameEn,
+        MotherNameAr = person.MotherNameAr,
+        MaritalStatus = person.MaritalStatus,
+        BloodType = person.BloodType,
+        OccupationEn = person.OccupationEn,
+        OccupationAr = person.OccupationAr,
+        Address = person.Address?.ToDto(),
+        Contact = person.Contact?.ToDto(),
         IdCards = person.IdCards.Select(card => card.ToDto()).ToList(),
         Passports = person.Passports.Select(passport => passport.ToDto()).ToList(),
+    };
+
+    public static AddressDto ToDto(this Address address) => new()
+    {
+        Governorate = address.Governorate,
+        Wilayat = address.Wilayat,
+        Village = address.Village,
+        Street = address.Street,
+        BuildingNumber = address.BuildingNumber,
+        PostalCode = address.PostalCode,
+    };
+
+    public static ContactDto ToDto(this Contact contact) => new()
+    {
+        Mobile = contact.Mobile,
+        Email = contact.Email,
     };
 
     public static IdCardDto ToDto(this IdCard card) => new()
