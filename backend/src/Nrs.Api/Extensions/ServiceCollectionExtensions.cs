@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Oracle.EntityFrameworkCore.Infrastructure;
 using Nrs.Application.Interfaces;
 using Nrs.Application.Services;
 using Nrs.Infrastructure.Persistence;
@@ -21,9 +22,26 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddNrsServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Default") ?? "Data Source=nrs.db";
+        // Provider is config-driven: SQLite for local dev (default), Oracle for higher
+        // environments (ADR 0003). The fluent mappings are provider-neutral
+        // (IsUnicode(true) → NVARCHAR2 on Oracle), so only the registration changes.
+        var provider = configuration.GetValue<string>("DatabaseProvider") ?? "Sqlite";
 
-        services.AddDbContext<NrsDbContext>(options => options.UseSqlite(connectionString));
+        services.AddDbContext<NrsDbContext>(options =>
+        {
+            if (provider.Equals("Oracle", StringComparison.OrdinalIgnoreCase))
+            {
+                options.UseOracle(
+                    configuration.GetConnectionString("Default"),
+                    // Target 19c SQL so generated queries avoid 23c-only features (e.g. the
+                    // boolean literals that Oracle XE 21c rejects). Raise for newer servers.
+                    oracle => oracle.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion19));
+            }
+            else
+            {
+                options.UseSqlite(configuration.GetConnectionString("Default") ?? "Data Source=nrs.db");
+            }
+        });
 
         services.AddScoped<IPersonRepository, PersonRepository>();
         services.AddScoped<IPersonLookupService, PersonLookupService>();
