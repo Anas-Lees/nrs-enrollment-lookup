@@ -1,0 +1,17 @@
+<header class="app-header">
+  <a class="app-header__brand" routerLink="/search">
+    <span class="app-header__mark" aria-hidden="true">NRS</span>
+    <span class="app-header__title">{{ appTitle }}</span>
+  </a>
+  <nav class="app-header__nav">
+    <a routerLink="/search" routerLinkActive="is-active">Search</a>
+  </nav>
+</header>
+
+<main class="app-main">
+  <router-outlet />
+</main>
+
+<footer class="app-footer">
+  <small>Royal Oman Police · NRS Modernisation — proof of concept</small>
+</footer>
