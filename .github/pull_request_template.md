@@ -34,7 +34,7 @@ Closes #
 - [ ] Unit / integration / e2e tests added or updated, and passing
 - [ ] Meets the acceptance criteria for the linked story
 - [ ] API change reflected in `docs/api/openapi.yaml` (if applicable)
-- [ ] Swagger / docs / README updated (if applicable)
+- [ ] API reference / docs / README updated (if applicable)
 - [ ] Accessibility (WCAG 2.1 AA) and RTL checked (frontend)
 - [ ] No new critical security findings; no secrets committed
 - [ ] Conventional Commit title; branch named `feature|fix|chore/WSx-short-slug`

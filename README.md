@@ -86,7 +86,7 @@ sequenceDiagram
 | Frontend     | Angular 21 (standalone components, signals, reactive forms, router)  |
 | Backend      | ASP.NET Core (.NET 10) — clean layered architecture                  |
 | Data access  | Entity Framework Core (SQLite for dev, Oracle for prod)              |
-| API docs     | Swagger / OpenAPI (contract-first)                                   |
+| API docs     | OpenAPI (contract-first) rendered with Scalar                        |
 | Identity     | Keycloak (OIDC / JWT) — feature-flagged                              |
 | Quality      | xUnit, Playwright; unit · integration · contract · architecture · e2e |
 | Platform     | Docker, GitHub Actions (CI/CD), OpenShift                            |
@@ -120,7 +120,7 @@ docker compose up --build
 ```
 
 - App: **http://localhost:4200** — redirects to Keycloak to log in (**operator1 / operator1**)
-- API/Swagger: http://localhost:5000/swagger · Keycloak admin: http://localhost:8081 (admin / admin)
+- API docs (Scalar): http://localhost:5000/scalar · Keycloak admin: http://localhost:8081 (admin / admin)
 
 First start takes a few minutes (Oracle initialises; the API waits for it, then creates the
 schema and seeds 100 persons). Auth is enabled for the container SPA via a mounted
@@ -136,7 +136,7 @@ Prerequisites: [.NET 10 SDK](https://dotnet.microsoft.com/), [Node.js 22+](https
 ```bash
 # backend
 cd backend
-dotnet run --project src/Nrs.Api          # https://localhost:7001/swagger
+dotnet run --project src/Nrs.Api          # https://localhost:7001/scalar
 
 # frontend (separate terminal)
 cd frontend
@@ -191,7 +191,7 @@ the JWT on every request (except `/health`) and the SPA guards its routes and at
 - [x] Profile returns biographic data plus related ID cards and passports.
 - [x] Angular form submits and shows paginated results; row click navigates to the profile.
 - [x] Arabic and English names display; Arabic renders right-to-left.
-- [x] Swagger documents all endpoints and they are testable there.
+- [x] OpenAPI documents all endpoints and they are testable in the API reference (Scalar).
 - [x] Database seeded with 50+ persons (100), each with ≥1 ID card and ≥1 passport.
 - [x] Code compiles, runs locally, and follows the layered architecture.
 

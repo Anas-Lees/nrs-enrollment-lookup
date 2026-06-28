@@ -30,7 +30,7 @@ dotnet restore
 dotnet run --project src/Nrs.Api
 ```
 
-- Swagger UI: `https://localhost:7001/swagger`
+- API reference (Scalar): `https://localhost:7001/scalar`
 - The database is created and seeded with 50–100 persons on first run (Development).
 
 ## 4. Run the frontend

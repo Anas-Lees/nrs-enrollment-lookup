@@ -20,7 +20,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'dotnet run --project ../backend/src/Nrs.Api/Nrs.Api.csproj',
-      url: 'http://localhost:5000/swagger/v1/swagger.json',
+      url: 'http://localhost:5000/health',
       reuseExistingServer: true,
       // Generous for CI cold-starts (restore + build + boot).
       timeout: 240_000,

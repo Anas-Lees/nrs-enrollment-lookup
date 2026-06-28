@@ -3,7 +3,7 @@
 #   docker compose up --build
 #   open http://localhost:4200       # the SPA — redirects to Keycloak to log in
 #   login: operator1 / operator1
-#   open http://localhost:5000/swagger
+#   open http://localhost:5000/scalar    # API reference (Scalar)
 #   open http://localhost:8081       # Keycloak admin (admin / admin)
 #
 # This runs the production-shaped stack: Angular SPA (nginx) -> API (.NET) on an
