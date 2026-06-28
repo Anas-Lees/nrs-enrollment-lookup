@@ -31,6 +31,12 @@ public record PersonSummaryDto
     /// <summary>ISO 3166-1 alpha-3 nationality code.</summary>
     public string NationalityCode { get; init; } = null!;
 
+    /// <summary>English nationality name, resolved from the lookup (null if unmatched).</summary>
+    public string? NationalityNameEn { get; init; }
+
+    /// <summary>Arabic nationality name, resolved from the lookup (null if unmatched).</summary>
+    public string? NationalityNameAr { get; init; }
+
     /// <summary>Lifecycle status of the person record.</summary>
     public PersonStatus Status { get; init; }
 }
