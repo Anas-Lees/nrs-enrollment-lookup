@@ -1,20 +1,54 @@
-<header class="app-header">
-  <a class="app-header__brand" routerLink="/search">
-    <span class="app-header__mark" aria-hidden="true">NRS</span>
-    <span class="app-header__title">{{ i18n.t('app.title') }}</span>
-  </a>
-  <nav class="app-header__nav">
-    <a routerLink="/search" routerLinkActive="is-active">{{ i18n.t('nav.search') }}</a>
-    <button type="button" class="lang-toggle" (click)="i18n.toggle()">
-      {{ i18n.t('lang.toggle') }}
-    </button>
-  </nav>
-</header>
+<div class="console">
+  <aside class="sidebar">
+    <a class="sidebar__brand" routerLink="/search">
+      <span class="brand-mark" aria-hidden="true">NRS</span>
+      <span class="brand-text">
+        <span class="brand-text__title">{{ i18n.t('app.brand') }}</span>
+        <span class="brand-text__sub">{{ i18n.t('app.subtitle') }}</span>
+      </span>
+    </a>
 
-<main class="app-main">
-  <router-outlet />
-</main>
+    <nav class="sidebar__nav" aria-label="Primary">
+      <a class="nav-item" routerLink="/search" routerLinkActive="is-active">
+        <span class="nav-item__dot" aria-hidden="true"></span>
+        <span class="nav-item__label">{{ i18n.t('nav.applicantLookup') }}</span>
+      </a>
 
-<footer class="app-footer">
-  <small>{{ i18n.t('footer') }}</small>
-</footer>
+      @for (item of stubNav; track item) {
+        <span class="nav-item is-disabled" aria-disabled="true">
+          <span class="nav-item__dot" aria-hidden="true"></span>
+          <span class="nav-item__label">{{ i18n.t(item) }}</span>
+          <span class="nav-item__tag">{{ i18n.t('nav.soon') }}</span>
+        </span>
+      }
+    </nav>
+
+    <div class="sidebar__footer">
+      <button type="button" class="lang-toggle" (click)="i18n.toggle()">
+        <span aria-hidden="true">🌐</span> {{ i18n.t('lang.toggle') }}
+      </button>
+
+      <div class="site-card">
+        <span class="site-card__label">{{ i18n.t('sidebar.activeSite') }}</span>
+        <span class="site-card__value">{{ i18n.t('sidebar.site') }}</span>
+      </div>
+
+      <div class="operator-card">
+        <span class="operator-card__avatar" aria-hidden="true">OP</span>
+        <span class="operator-card__meta">
+          <span class="operator-card__name">{{ i18n.t('operator.name') }}</span>
+          <span class="operator-card__status">
+            <span class="dot-online" aria-hidden="true"></span>{{ i18n.t('operator.status') }}
+          </span>
+        </span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="flag-accent" aria-hidden="true"></div>
+    <main class="content__main">
+      <router-outlet />
+    </main>
+  </div>
+</div>

@@ -1,6 +1,17 @@
 {
   "app.title": "نظام السجل الوطني — البحث عن المتقدمين",
+  "app.brand": "تسجيل السجل الوطني",
+  "app.subtitle": "شرطة عمان السلطانية",
   "nav.search": "بحث",
+  "nav.applicantLookup": "البحث عن المتقدمين",
+  "nav.newEnrollment": "تسجيل جديد",
+  "nav.myQueue": "قائمتي",
+  "nav.reports": "التقارير",
+  "nav.soon": "قريباً",
+  "sidebar.activeSite": "الموقع الحالي",
+  "sidebar.site": "مقر مسقط · المنفذ 3",
+  "operator.name": "المُشغّل",
+  "operator.status": "متصل · الرمز صالح",
   "lang.toggle": "English",
   "footer": "شرطة عمان السلطانية · تحديث السجل الوطني — نموذج أولي",
 

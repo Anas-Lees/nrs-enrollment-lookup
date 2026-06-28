@@ -1,22 +1,43 @@
-/* Global styles + design tokens */
+/* Global styles + design tokens — Royal Oman Police palette (NRS console) */
 
 :root {
-  /* Palette */
-  --color-primary: #0b3d6b;
-  --color-primary-600: #1f6feb;
-  --color-bg: #f4f6f9;
+  /* ROP greens */
+  --rop-green: #14512f;
+  --rop-green-dark: #0c2718;
+  --rop-green-700: #10331f;
+  --rop-green-600: #1c6b41;
+  --rop-green-500: #2f5a40;
+
+  /* ROP accents */
+  --rop-gold: #a9863f;
+  --rop-gold-soft: #e7d6a8;
+  --rop-red: #8c1d2b;
+
+  /* Neutrals / surfaces */
+  --color-bg: #f3f1ea; /* cream canvas */
   --color-surface: #ffffff;
-  --color-text: #1f2d3d;
-  --color-muted: #5b6b7b;
-  --color-border: #e2e8f0;
-  --color-danger: #c0392b;
+  --color-surface-alt: #eeede6;
+  --color-border: #e4e3dc;
+  --color-text: #1b211e;
+  --color-muted: #5b635e;
+  --color-muted-2: #6b726c;
+
+  /* Semantic aliases (used across components) */
+  --color-primary: var(--rop-green);
+  --color-primary-600: var(--rop-green-600);
+  --color-danger: var(--rop-red);
 
   /* Scale */
-  --radius: 8px;
+  --radius: 10px;
+  --radius-sm: 6px;
   --space: 1rem;
+  --shadow-card: 0 1px 3px rgb(12 39 24 / 8%);
+  --shadow-card-lg: 0 4px 16px rgb(12 39 24 / 10%);
+  --sidebar-w: 256px;
 
   /* Typography — system stack with Arabic coverage */
   --font-sans: 'Segoe UI', Tahoma, 'Noto Sans Arabic', system-ui, -apple-system, Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Mono', Consolas, 'Noto Sans Mono', monospace;
 }
 
 /* Base reset */
@@ -27,6 +48,7 @@
 html,
 body {
   margin: 0;
+  height: 100%;
 }
 
 body {
@@ -34,4 +56,10 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   line-height: 1.5;
+}
+
+/* Monospace for identifiers (CRN, document numbers) */
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.01em;
 }
