@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink } from '@angular/router';
+
+import { TranslationService } from './core/i18n/translation.service';
 
 @Component({
   selector: 'app-root',
@@ -8,5 +10,5 @@ import { RouterOutlet, RouterLink } from '@angular/router';
   styleUrl: './app.scss',
 })
 export class App {
-  protected readonly appTitle = 'NRS Enrollment — Applicant Lookup';
+  protected readonly i18n = inject(TranslationService);
 }

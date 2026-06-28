@@ -1,15 +1,17 @@
 <div class="pagination">
   <button type="button" class="pagination__btn" [disabled]="page() <= 1" (click)="prev()">
-    Previous
+    {{ i18n.t('page.prev') }}
   </button>
 
   <span class="pagination__info">
-    Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ totalCount() }}
+    {{ i18n.t('page.showing') }} {{ rangeStart() }}–{{ rangeEnd() }} / {{ totalCount() }}
   </span>
 
-  <span class="pagination__info">Page {{ page() }} of {{ totalPages() }}</span>
+  <span class="pagination__info">
+    {{ i18n.t('page.page') }} {{ page() }} / {{ totalPages() }}
+  </span>
 
   <button type="button" class="pagination__btn" [disabled]="page() >= totalPages()" (click)="next()">
-    Next
+    {{ i18n.t('page.next') }}
   </button>
 </div>

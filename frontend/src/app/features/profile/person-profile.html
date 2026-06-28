@@ -1,14 +1,14 @@
 <section class="page">
   <div class="topbar">
-    <a routerLink="/search" class="back-link">← Back to search</a>
+    <a routerLink="/search" class="back-link">{{ i18n.t('profile.back') }}</a>
   </div>
 
   @if (loading()) {
-    <p>Loading profile…</p>
+    <p>{{ i18n.t('profile.loading') }}</p>
   } @else if (notFound()) {
-    <p class="error">No person found with that CRN.</p>
+    <p class="error">{{ i18n.t('profile.notFound') }}</p>
   } @else if (error()) {
-    <p class="error">Could not load this profile. Please try again.</p>
+    <p class="error">{{ i18n.t('profile.error') }}</p>
   } @else if (person(); as p) {
     <article class="card">
       <header class="summary">
@@ -21,30 +21,30 @@
 
       <dl class="fields">
         <div class="field">
-          <dt>CRN</dt>
+          <dt>{{ i18n.t('profile.crn') }}</dt>
           <dd>{{ p.civilNumber }}</dd>
         </div>
         <div class="field">
-          <dt>Date of birth</dt>
+          <dt>{{ i18n.t('profile.dob') }}</dt>
           <dd>{{ p.dateOfBirth | date: 'mediumDate' }}</dd>
         </div>
         <div class="field">
-          <dt>Gender</dt>
+          <dt>{{ i18n.t('profile.gender') }}</dt>
           <dd>{{ p.gender }}</dd>
         </div>
         <div class="field">
-          <dt>Nationality</dt>
+          <dt>{{ i18n.t('profile.nationality') }}</dt>
           <dd>{{ p.nationalityCode | nationality }}</dd>
         </div>
         <div class="field">
-          <dt>Status</dt>
+          <dt>{{ i18n.t('profile.status') }}</dt>
           <dd><app-status-badge [status]="p.status" /></dd>
         </div>
       </dl>
     </article>
 
     <section class="documents">
-      <h2>Documents</h2>
+      <h2>{{ i18n.t('profile.documents') }}</h2>
       <app-document-table [idCards]="p.idCards" [passports]="p.passports" />
     </section>
   }

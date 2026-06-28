@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
+import { TranslationService } from '../../core/i18n/translation.service';
 import { PersonService } from '../../core/services/person.service';
 import { PagedResult, PersonSearchCriteria } from '../../core/models/paged-result.model';
 import { PersonSummary } from '../../core/models/person.model';
@@ -23,6 +24,7 @@ interface NationalityOption {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PersonSearch {
+  protected readonly i18n = inject(TranslationService);
   private readonly personService = inject(PersonService);
   private readonly router = inject(Router);
 
@@ -42,7 +44,6 @@ export class PersonSearch {
   readonly pageSize = 10;
 
   readonly nationalityOptions: NationalityOption[] = [
-    { code: '', label: 'Any nationality' },
     { code: 'OMN', label: 'Oman' },
     { code: 'ARE', label: 'United Arab Emirates' },
     { code: 'SAU', label: 'Saudi Arabia' },
@@ -92,7 +93,7 @@ export class PersonSearch {
           this.loading.set(false);
         },
         error: () => {
-          this.error.set('Search failed. Please try again.');
+          this.error.set(this.i18n.t('search.error'));
           this.loading.set(false);
         },
       });

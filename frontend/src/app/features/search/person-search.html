@@ -1,25 +1,31 @@
 <section class="page">
-  <h1>Applicant search</h1>
+  <h1>{{ i18n.t('search.title') }}</h1>
 
   <form class="search-form" [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="search-form__field">
-      <label for="crn">CRN</label>
+      <label for="crn">{{ i18n.t('search.crn') }}</label>
       <input id="crn" type="text" formControlName="crn" />
     </div>
 
     <div class="search-form__field">
-      <label for="name">Name</label>
-      <input id="name" type="text" formControlName="name" placeholder="Arabic or English" />
+      <label for="name">{{ i18n.t('search.name') }}</label>
+      <input
+        id="name"
+        type="text"
+        formControlName="name"
+        [placeholder]="i18n.t('search.namePlaceholder')"
+      />
     </div>
 
     <div class="search-form__field">
-      <label for="dob">Date of birth</label>
+      <label for="dob">{{ i18n.t('search.dob') }}</label>
       <input id="dob" type="date" formControlName="dob" />
     </div>
 
     <div class="search-form__field">
-      <label for="nationality">Nationality</label>
+      <label for="nationality">{{ i18n.t('search.nationality') }}</label>
       <select id="nationality" formControlName="nationality">
+        <option value="">{{ i18n.t('search.nationalityAny') }}</option>
         @for (opt of nationalityOptions; track opt.code) {
           <option [value]="opt.code">{{ opt.label }}</option>
         }
@@ -27,29 +33,29 @@
     </div>
 
     <div class="search-form__actions">
-      <button type="submit">Search</button>
+      <button type="submit">{{ i18n.t('search.button') }}</button>
     </div>
   </form>
 
   <div class="results-area">
     @if (loading()) {
-      <p>Searching…</p>
+      <p>{{ i18n.t('search.loading') }}</p>
     } @else if (error()) {
       <p class="error">{{ error() }}</p>
     } @else if (results(); as r) {
       @if (r.items.length === 0) {
-        <p>No matching persons found.</p>
+        <p>{{ i18n.t('search.empty') }}</p>
       } @else {
         <table class="results">
           <thead>
             <tr>
-              <th>CRN</th>
-              <th>Name (English)</th>
-              <th>Name (Arabic)</th>
-              <th>Date of birth</th>
-              <th>Gender</th>
-              <th>Nationality</th>
-              <th>Status</th>
+              <th>{{ i18n.t('table.crn') }}</th>
+              <th>{{ i18n.t('table.nameEn') }}</th>
+              <th>{{ i18n.t('table.nameAr') }}</th>
+              <th>{{ i18n.t('table.dob') }}</th>
+              <th>{{ i18n.t('table.gender') }}</th>
+              <th>{{ i18n.t('table.nationality') }}</th>
+              <th>{{ i18n.t('table.status') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -81,7 +87,7 @@
         />
       }
     } @else {
-      <p class="hint">Enter search criteria and press Search.</p>
+      <p class="hint">{{ i18n.t('search.hint') }}</p>
     }
   </div>
 </section>

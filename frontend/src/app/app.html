@@ -1,10 +1,13 @@
 <header class="app-header">
   <a class="app-header__brand" routerLink="/search">
     <span class="app-header__mark" aria-hidden="true">NRS</span>
-    <span class="app-header__title">{{ appTitle }}</span>
+    <span class="app-header__title">{{ i18n.t('app.title') }}</span>
   </a>
   <nav class="app-header__nav">
-    <a routerLink="/search" routerLinkActive="is-active">Search</a>
+    <a routerLink="/search" routerLinkActive="is-active">{{ i18n.t('nav.search') }}</a>
+    <button type="button" class="lang-toggle" (click)="i18n.toggle()">
+      {{ i18n.t('lang.toggle') }}
+    </button>
   </nav>
 </header>
 
@@ -13,5 +16,5 @@
 </main>
 
 <footer class="app-footer">
-  <small>Royal Oman Police · NRS Modernisation — proof of concept</small>
+  <small>{{ i18n.t('footer') }}</small>
 </footer>
