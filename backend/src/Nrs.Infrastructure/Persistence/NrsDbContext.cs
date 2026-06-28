@@ -16,6 +16,12 @@ public class NrsDbContext(DbContextOptions<NrsDbContext> options) : DbContext(op
 
     public DbSet<Passport> Passports => Set<Passport>();
 
+    public DbSet<Nationality> Nationalities => Set<Nationality>();
+
+    public DbSet<Address> Addresses => Set<Address>();
+
+    public DbSet<Contact> Contacts => Set<Contact>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Apply every IEntityTypeConfiguration in this assembly (Person/IdCard/Passport).

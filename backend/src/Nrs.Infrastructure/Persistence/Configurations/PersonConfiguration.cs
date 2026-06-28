@@ -67,6 +67,33 @@ public class PersonConfiguration : IEntityTypeConfiguration<Person>
             .HasMaxLength(500)
             .IsUnicode(false);
 
+        // Extended biographic columns (Arabic ones are Unicode → NVARCHAR2 on Oracle).
+        builder.Property(p => p.PlaceOfBirthEn).HasColumnName("PLACE_OF_BIRTH_EN").HasMaxLength(100).IsUnicode(false);
+        builder.Property(p => p.PlaceOfBirthAr).HasColumnName("PLACE_OF_BIRTH_AR").HasMaxLength(100).IsUnicode(true);
+        builder.Property(p => p.MotherNameEn).HasColumnName("MOTHER_NAME_EN").HasMaxLength(100).IsUnicode(false);
+        builder.Property(p => p.MotherNameAr).HasColumnName("MOTHER_NAME_AR").HasMaxLength(100).IsUnicode(true);
+        builder.Property(p => p.MaritalStatus).HasColumnName("MARITAL_STATUS").HasMaxLength(20).IsUnicode(false).HasConversion<string>();
+        builder.Property(p => p.BloodType).HasColumnName("BLOOD_TYPE").HasMaxLength(3).IsUnicode(false);
+        builder.Property(p => p.OccupationEn).HasColumnName("OCCUPATION_EN").HasMaxLength(100).IsUnicode(false);
+        builder.Property(p => p.OccupationAr).HasColumnName("OCCUPATION_AR").HasMaxLength(100).IsUnicode(true);
+
+        // Nationality lookup (FK by code; don't cascade — it's reference data).
+        builder.HasOne(p => p.Nationality)
+            .WithMany(n => n.Persons)
+            .HasForeignKey(p => p.NationalityCode)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // One-to-one address and contact, sharing the CRN; cascade with the person.
+        builder.HasOne(p => p.Address)
+            .WithOne(a => a.Person)
+            .HasForeignKey<Address>(a => a.CivilNumber)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(p => p.Contact)
+            .WithOne(c => c.Person)
+            .HasForeignKey<Contact>(c => c.CivilNumber)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // One PERSON has many ID cards and many passports (cascade delete the documents).
         builder.HasMany(p => p.IdCards)
             .WithOne(c => c.Person)

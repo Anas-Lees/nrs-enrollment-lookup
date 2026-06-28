@@ -30,6 +30,36 @@ public class Person
 
     public string? PhotoPath { get; set; }
 
+    // --- Extended biographic data ---
+
+    public string? PlaceOfBirthEn { get; set; }
+
+    public string? PlaceOfBirthAr { get; set; }
+
+    public string? MotherNameEn { get; set; }
+
+    public string? MotherNameAr { get; set; }
+
+    public MaritalStatus? MaritalStatus { get; set; }
+
+    /// <summary>ABO/Rh blood group, e.g. "O+".</summary>
+    public string? BloodType { get; set; }
+
+    public string? OccupationEn { get; set; }
+
+    public string? OccupationAr { get; set; }
+
+    // --- Relationships ---
+
+    /// <summary>Nationality reference (by <see cref="NationalityCode"/>).</summary>
+    public Nationality? Nationality { get; set; }
+
+    /// <summary>Current residential address (one-to-one).</summary>
+    public Address? Address { get; set; }
+
+    /// <summary>Contact details (one-to-one).</summary>
+    public Contact? Contact { get; set; }
+
     public ICollection<IdCard> IdCards { get; set; } = [];
 
     public ICollection<Passport> Passports { get; set; } = [];

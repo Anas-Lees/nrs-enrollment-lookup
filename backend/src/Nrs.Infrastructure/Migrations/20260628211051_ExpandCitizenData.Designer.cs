@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Nrs.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Nrs.Infrastructure.Persistence;
 namespace Nrs.Infrastructure.Migrations
 {
     [DbContext(typeof(NrsDbContext))]
-    partial class NrsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260628211051_ExpandCitizenData")]
+    partial class ExpandCitizenData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
