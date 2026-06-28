@@ -1,29 +1,21 @@
-<section class="page">
-  <h1>{{ i18n.t('search.title') }}</h1>
+<section class="search-page">
+  <h1 class="sr-only">{{ i18n.t('search.title') }}</h1>
 
-  <form class="search-form" [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div class="search-form__field">
-      <label for="crn">{{ i18n.t('search.crn') }}</label>
-      <input id="crn" type="text" formControlName="crn" />
-    </div>
-
-    <div class="search-form__field">
-      <label for="name">{{ i18n.t('search.name') }}</label>
+  <form class="searchbar" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="searchbar__input">
+      <span class="searchbar__icon" aria-hidden="true">⌕</span>
       <input
-        id="name"
-        type="text"
-        formControlName="name"
-        [placeholder]="i18n.t('search.namePlaceholder')"
+        type="search"
+        formControlName="query"
+        [placeholder]="i18n.t('search.smartPlaceholder')"
+        [attr.aria-label]="i18n.t('search.smartPlaceholder')"
+        autocomplete="off"
       />
+      <span class="searchbar__hint">{{ i18n.t('search.partialHint') }}</span>
     </div>
 
-    <div class="search-form__field">
-      <label for="dob">{{ i18n.t('search.dob') }}</label>
-      <input id="dob" type="date" formControlName="dob" />
-    </div>
-
-    <div class="search-form__field">
-      <label for="nationality">{{ i18n.t('search.nationality') }}</label>
+    <div class="searchbar__nat">
+      <label class="sr-only" for="nationality">{{ i18n.t('search.nationality') }}</label>
       <select id="nationality" formControlName="nationality">
         <option value="">{{ i18n.t('search.nationalityAny') }}</option>
         @for (opt of nationalityOptions; track opt.code) {
@@ -32,52 +24,58 @@
       </select>
     </div>
 
-    <div class="search-form__actions">
-      <button type="submit">{{ i18n.t('search.button') }}</button>
-    </div>
+    <button type="button" class="btn-ghost" (click)="clear()">{{ i18n.t('search.clear') }}</button>
+    <button type="submit" class="btn-primary">{{ i18n.t('search.button') }}</button>
   </form>
 
   <div class="results-area">
     @if (loading()) {
-      <p>{{ i18n.t('search.loading') }}</p>
+      <ul class="cards" aria-hidden="true">
+        @for (s of [1, 2, 3, 4, 5]; track s) {
+          <li class="card card--skeleton">
+            <span class="card__avatar skeleton-box"></span>
+            <span class="card__id">
+              <span class="skeleton-line"></span>
+              <span class="skeleton-line skeleton-line--sm"></span>
+            </span>
+          </li>
+        }
+      </ul>
     } @else if (error()) {
-      <p class="error">{{ error() }}</p>
+      <p class="error" role="alert">{{ error() }}</p>
     } @else if (results(); as r) {
+      <div class="results-meta" aria-live="polite">
+        <span class="results-meta__count">{{ r.totalCount }} {{ i18n.t('search.matches') }}</span>
+        <span class="results-meta__perf">
+          {{ i18n.t('search.page') }} {{ r.page }}/{{ totalPages() }} · {{ elapsedMs() }} ms
+        </span>
+      </div>
+
       @if (r.items.length === 0) {
-        <p>{{ i18n.t('search.empty') }}</p>
+        <p class="empty">{{ i18n.t('search.empty') }}</p>
       } @else {
-        <table class="results">
-          <thead>
-            <tr>
-              <th>{{ i18n.t('table.crn') }}</th>
-              <th>{{ i18n.t('table.nameEn') }}</th>
-              <th>{{ i18n.t('table.nameAr') }}</th>
-              <th>{{ i18n.t('table.dob') }}</th>
-              <th>{{ i18n.t('table.gender') }}</th>
-              <th>{{ i18n.t('table.nationality') }}</th>
-              <th>{{ i18n.t('table.status') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of r.items; track p.civilNumber) {
-              <tr
-                class="results__row"
-                tabindex="0"
-                role="button"
-                (click)="openProfile(p.civilNumber)"
-                (keydown.enter)="openProfile(p.civilNumber)"
-              >
-                <td>{{ p.civilNumber }}</td>
-                <td>{{ p.firstNameEn }} {{ p.familyNameEn }}</td>
-                <td dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</td>
-                <td>{{ p.dateOfBirth | date: 'mediumDate' }}</td>
-                <td>{{ p.gender }}</td>
-                <td>{{ p.nationalityCode | nationality }}</td>
-                <td><app-status-badge [status]="p.status" /></td>
-              </tr>
-            }
-          </tbody>
-        </table>
+        <ul class="cards">
+          @for (p of r.items; track p.civilNumber) {
+            <li>
+              <a class="card" [routerLink]="['/persons', p.civilNumber]">
+                <span class="card__avatar" [style.background]="color(p)">{{ initials(p) }}</span>
+                <span class="card__id">
+                  <span class="card__name">{{ p.firstNameEn }} {{ p.familyNameEn }}</span>
+                  <span class="card__name-ar" dir="rtl"
+                    >{{ p.firstNameAr }} {{ p.familyNameAr }}</span
+                  >
+                </span>
+                <span class="card__meta">
+                  <span class="card__crn mono">{{ p.civilNumber }}</span>
+                  <span class="card__facts">
+                    {{ p.dateOfBirth | date: 'dd MMM yyyy' }} · {{ nationalityName(p) }}
+                  </span>
+                </span>
+                <app-status-badge [status]="p.status" />
+              </a>
+            </li>
+          }
+        </ul>
 
         <app-pagination
           [page]="r.page"

@@ -4,20 +4,20 @@ test.describe('Applicant Lookup — operator journey', () => {
   test('search, open a result, and see the profile with documents', async ({ page }) => {
     await page.goto('/search');
 
-    // The search form is present.
-    await expect(page.locator('form.search-form')).toBeVisible();
+    // The smart search bar is present.
+    await expect(page.locator('form.searchbar')).toBeVisible();
 
     // Run a search with no filters (returns the full, paged list).
     await page.locator('form button[type="submit"]').click();
 
-    // Results table renders with at least one row.
-    const firstRow = page.locator('table.results tbody tr').first();
-    await expect(firstRow).toBeVisible();
+    // Result cards render with at least one card.
+    const firstCard = page.locator('.cards .card').first();
+    await expect(firstCard).toBeVisible();
 
-    // Grab the CRN from the first cell, then open that person's profile.
-    const crn = (await firstRow.locator('td').first().innerText()).trim();
+    // Grab the CRN from the card, then open that person's profile.
+    const crn = (await firstCard.locator('.card__crn').innerText()).trim();
     expect(crn).not.toEqual('');
-    await firstRow.click();
+    await firstCard.click();
 
     // We navigated to the profile route for that CRN.
     await expect(page).toHaveURL(new RegExp(`/persons/${crn}$`));
@@ -28,18 +28,18 @@ test.describe('Applicant Lookup — operator journey', () => {
     await expect(page.locator('.doc-table tbody tr').first()).toBeVisible();
   });
 
-  test('filtering by nationality returns only matching rows', async ({ page }) => {
+  test('filtering by nationality returns only matching cards', async ({ page }) => {
     await page.goto('/search');
     await page.locator('select#nationality').selectOption('OMN');
     await page.locator('form button[type="submit"]').click();
 
-    const rows = page.locator('table.results tbody tr');
-    await expect(rows.first()).toBeVisible();
+    const cards = page.locator('.cards .card');
+    await expect(cards.first()).toBeVisible();
 
-    // Every visible row's nationality cell reads "Oman" (pipe-translated OMN).
-    const count = await rows.count();
+    // Every visible card's facts line names the nationality "Oman".
+    const count = await cards.count();
     for (let i = 0; i < count; i++) {
-      await expect(rows.nth(i).locator('td').nth(5)).toHaveText('Oman');
+      await expect(cards.nth(i).locator('.card__facts')).toContainText('Oman');
     }
   });
 
