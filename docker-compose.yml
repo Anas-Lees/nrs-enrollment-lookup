@@ -47,10 +47,12 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    command: start-dev
+    command: start-dev --import-realm
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./deploy/keycloak/realm-export.json:/opt/keycloak/data/import/realm.json:ro
     ports:
       - "8081:8080"
 
