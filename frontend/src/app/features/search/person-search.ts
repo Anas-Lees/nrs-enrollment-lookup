@@ -85,18 +85,16 @@ export class PersonSearch {
     this.loading.set(true);
     this.error.set(null);
 
-    this.personService
-      .search({ ...this.criteria, page, pageSize: this.pageSize })
-      .subscribe({
-        next: (r) => {
-          this.results.set(r);
-          this.loading.set(false);
-        },
-        error: () => {
-          this.error.set(this.i18n.t('search.error'));
-          this.loading.set(false);
-        },
-      });
+    this.personService.search({ ...this.criteria, page, pageSize: this.pageSize }).subscribe({
+      next: (r) => {
+        this.results.set(r);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set(this.i18n.t('search.error'));
+        this.loading.set(false);
+      },
+    });
   }
 
   onPageChange(page: number): void {
