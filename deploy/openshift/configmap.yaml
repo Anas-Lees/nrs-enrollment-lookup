@@ -1,0 +1,51 @@
+# Non-secret configuration for the API and the SPA's nginx.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nrs-api-config
+  labels:
+    app: nrs
+    component: api
+data:
+  # POC: Development enables auto-migrate + seed against pod-local SQLite.
+  # Production would set Production and point ConnectionStrings__Default at Oracle.
+  ASPNETCORE_ENVIRONMENT: "Development"
+  ASPNETCORE_URLS: "http://+:8080"
+  ConnectionStrings__Default: "Data Source=/app/data/nrs.db"
+---
+# nginx site config for the SPA pod. Overrides the image's baked default.conf so
+# /api proxies to the in-cluster API Service (nrs-api) instead of the compose name.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nrs-spa-nginx
+  labels:
+    app: nrs
+    component: spa
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        location = /healthz {
+            access_log off;
+            add_header Content-Type text/plain;
+            return 200 'ok';
+        }
+
+        location /api/ {
+            proxy_pass http://nrs-api:8080;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
