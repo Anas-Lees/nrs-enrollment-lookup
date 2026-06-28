@@ -1,0 +1,58 @@
+# Local development stack for the NRS Enrollment — Applicant Lookup feature.
+#
+#   docker compose up --build        # start everything
+#   open http://localhost:4200       # the SPA (proxies /api to the API)
+#   open http://localhost:5000/swagger
+#
+# The API runs in Development, so it auto-creates and seeds a SQLite database on
+# startup (see ADR 0003). Oracle XE, Redis and Keycloak are included as the
+# platform services the production module will use; the POC API does not depend
+# on them yet, so the app is fully usable without them.
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+    ports:
+      - "5000:8080"
+
+  spa:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+
+  # --- Platform services (intended production dependencies) ---
+
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    environment:
+      ORACLE_PASSWORD: nrs_dev_password
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8081:8080"
+
+volumes:
+  oracle-data:
