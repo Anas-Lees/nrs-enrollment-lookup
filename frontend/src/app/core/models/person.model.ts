@@ -7,6 +7,7 @@ export type CardStatus = 'ACTIVE' | 'EXPIRED' | 'BLOCKED' | 'LOST';
 export type CardType = 'OMANI' | 'RESIDENT' | 'GCC' | 'INVESTOR';
 export type PassportType = 'ORDINARY' | 'DIPLOMATIC' | 'SERVICE' | 'SPECIAL' | 'ROYAL_DIPLOMATIC';
 export type PassportStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'LOST' | 'STOLEN';
+export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED';
 
 /** One row in the search results table. */
 export interface PersonSummary {
@@ -18,7 +19,23 @@ export interface PersonSummary {
   dateOfBirth: string;
   gender: Gender;
   nationalityCode: string;
+  nationalityNameEn: string | null;
+  nationalityNameAr: string | null;
   status: PersonStatus;
+}
+
+export interface Address {
+  governorate: string;
+  wilayat: string;
+  village: string | null;
+  street: string | null;
+  buildingNumber: string | null;
+  postalCode: string | null;
+}
+
+export interface Contact {
+  mobile: string | null;
+  email: string | null;
 }
 
 export interface IdCard {
@@ -44,6 +61,16 @@ export interface Passport {
 /** Full applicant profile, including related documents. */
 export interface Person extends PersonSummary {
   photoPath: string | null;
+  placeOfBirthEn: string | null;
+  placeOfBirthAr: string | null;
+  motherNameEn: string | null;
+  motherNameAr: string | null;
+  maritalStatus: MaritalStatus | null;
+  bloodType: string | null;
+  occupationEn: string | null;
+  occupationAr: string | null;
+  address: Address | null;
+  contact: Contact | null;
   idCards: IdCard[];
   passports: Passport[];
 }
