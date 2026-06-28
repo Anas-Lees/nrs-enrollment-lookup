@@ -8,13 +8,11 @@ import { PersonService } from '../../core/services/person.service';
 import { Person } from '../../core/models/person.model';
 import { DocumentTable } from '../../shared/components/document-table';
 import { StatusBadge } from '../../shared/components/status-badge';
-import { NationalityPipe } from '../../shared/pipes/nationality.pipe';
-
-const AVATAR_PALETTE = ['#1f6feb', '#0b8457', '#a83279', '#b8860b', '#5b4b8a', '#0b6e75'];
+import { avatarColor, personInitials } from '../../shared/avatar';
 
 @Component({
   selector: 'app-person-profile',
-  imports: [RouterLink, DatePipe, DocumentTable, StatusBadge, NationalityPipe],
+  imports: [RouterLink, DatePipe, DocumentTable, StatusBadge],
   templateUrl: './person-profile.html',
   styleUrl: './person-profile.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,19 +29,12 @@ export class PersonProfile {
 
   readonly initials = computed(() => {
     const p = this.person();
-    if (!p) {
-      return '';
-    }
-    return `${p.firstNameEn.charAt(0)}${p.familyNameEn.charAt(0)}`.toUpperCase();
+    return p ? personInitials(p.firstNameEn, p.familyNameEn) : '';
   });
 
   readonly avatarColor = computed(() => {
     const p = this.person();
-    if (!p) {
-      return AVATAR_PALETTE[0];
-    }
-    const hash = [...p.civilNumber].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-    return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+    return avatarColor(p?.civilNumber ?? '');
   });
 
   constructor() {
@@ -77,5 +68,30 @@ export class PersonProfile {
         }
       },
     });
+  }
+
+  // --- localisation helpers ---
+
+  /** Pick the value for the active language, falling back to the other script. */
+  pick(en: string | null, ar: string | null): string {
+    const v = this.i18n.lang() === 'ar' ? (ar ?? en) : (en ?? ar);
+    return v ?? this.i18n.t('profile.notRecorded');
+  }
+
+  value(v: string | null | undefined): string {
+    return v && v.length > 0 ? v : this.i18n.t('profile.notRecorded');
+  }
+
+  genderLabel(gender: string): string {
+    return this.i18n.t(`gender.${gender}`);
+  }
+
+  maritalLabel(status: string | null): string {
+    return status ? this.i18n.t(`marital.${status}`) : this.i18n.t('profile.notRecorded');
+  }
+
+  nationalityName(p: Person): string {
+    const name = this.i18n.lang() === 'ar' ? p.nationalityNameAr : p.nationalityNameEn;
+    return name ?? p.nationalityCode;
   }
 }
