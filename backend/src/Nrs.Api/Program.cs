@@ -66,7 +66,16 @@ if (app.Environment.IsDevelopment())
     // Create/upgrade the schema and seed sample data on startup (dev convenience).
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<NrsDbContext>();
-    await db.Database.MigrateAsync();
+    // The committed migration is SQLite-specific; for other providers (Oracle) create
+    // the schema from the model. Real Oracle environments would use Oracle migrations.
+    if (db.Database.IsSqlite())
+    {
+        await db.Database.MigrateAsync();
+    }
+    else
+    {
+        await db.Database.EnsureCreatedAsync();
+    }
     await DataSeeder.SeedAsync(db);
 }
 
