@@ -1,0 +1,28 @@
+@if (rows().length === 0) {
+  <p class="doc-table__empty">No documents on file.</p>
+} @else {
+  <table class="doc-table">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Number</th>
+        <th>Sub-type</th>
+        <th>Status</th>
+        <th>Issued</th>
+        <th>Expires</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.number) {
+        <tr>
+          <td>{{ row.kind }}</td>
+          <td>{{ row.number }}</td>
+          <td>{{ row.subType }}</td>
+          <td><app-status-badge [status]="row.status" /></td>
+          <td>{{ row.issueDate ? (row.issueDate | date: 'mediumDate') : '—' }}</td>
+          <td>{{ row.expiryDate ? (row.expiryDate | date: 'mediumDate') : '—' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
