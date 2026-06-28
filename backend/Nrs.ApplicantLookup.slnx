@@ -5,4 +5,7 @@
     <Project Path="src/Nrs.Domain/Nrs.Domain.csproj" />
     <Project Path="src/Nrs.Infrastructure/Nrs.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Nrs.Application.Tests/Nrs.Application.Tests.csproj" />
+  </Folder>
 </Solution>
