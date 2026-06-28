@@ -47,28 +47,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  deploy:
-    name: Deploy to OpenShift
-    runs-on: ubuntu-latest
-    needs: build-push
-    # Runs only when an OpenShift target is configured (repo variable). Skipped otherwise.
-    if: ${{ vars.OPENSHIFT_SERVER != '' }}
-    environment: dev
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install oc
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          oc: latest
-
-      - name: Log in to OpenShift
-        run: oc login "${{ vars.OPENSHIFT_SERVER }}" --token="${{ secrets.OPENSHIFT_TOKEN }}"
-
-      - name: Apply manifests
-        run: oc apply -f deploy/openshift/
-
-      - name: Roll out
-        run: |
-          oc rollout status deployment/nrs-api --timeout=180s
-          oc rollout status deployment/nrs-spa --timeout=180s
+  # Deployment to OpenShift is a documented manual step (no cluster is wired in this
+  # POC) — see deploy/openshift/README.md. Re-add a deploy job here once an
+  # OPENSHIFT_SERVER variable and OPENSHIFT_TOKEN secret are configured.
