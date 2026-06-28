@@ -1,6 +1,17 @@
 {
   "app.title": "NRS Enrollment — Applicant Lookup",
+  "app.brand": "NRS Enrollment",
+  "app.subtitle": "Royal Oman Police",
   "nav.search": "Search",
+  "nav.applicantLookup": "Applicant Lookup",
+  "nav.newEnrollment": "New Enrollment",
+  "nav.myQueue": "My Queue",
+  "nav.reports": "Reports",
+  "nav.soon": "Soon",
+  "sidebar.activeSite": "Active site",
+  "sidebar.site": "Muscat HQ · Counter 3",
+  "operator.name": "Operator",
+  "operator.status": "Online · JWT valid",
   "lang.toggle": "العربية",
   "footer": "Royal Oman Police · NRS Modernisation — proof of concept",
 
