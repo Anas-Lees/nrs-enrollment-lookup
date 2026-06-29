@@ -39,9 +39,15 @@ public static class ServiceCollectionExtensions
             {
                 options.UseOracle(
                     configuration.GetConnectionString("Default"),
-                    // Target 19c SQL so generated queries avoid 23c-only features (e.g. the
-                    // boolean literals that Oracle XE 21c rejects). Raise for newer servers.
-                    oracle => oracle.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion19));
+                    oracle =>
+                    {
+                        // Target 19c SQL so generated queries avoid 23c-only features (e.g. the
+                        // boolean literals that Oracle XE 21c rejects). Raise for newer servers.
+                        oracle.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion19);
+                        // Resilience: cap query time and retry transient connectivity blips.
+                        oracle.CommandTimeout(30);
+                        oracle.ExecutionStrategy(dependencies => new OracleTransientRetryStrategy(dependencies));
+                    });
             }
             else
             {

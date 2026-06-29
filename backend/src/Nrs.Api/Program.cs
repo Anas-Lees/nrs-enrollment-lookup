@@ -1,5 +1,6 @@
 using System.Data.Common;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Nrs.Api.Extensions;
 using Nrs.Api.Middleware;
@@ -22,8 +23,10 @@ builder.Services.AddOpenApi();
 // Application services (DbContext, repository, service).
 builder.Services.AddNrsServices(builder.Configuration);
 
-// Health checks for container/Kubernetes probes.
-builder.Services.AddHealthChecks();
+// Health checks for container/Kubernetes probes. The database check is tagged "ready"
+// so readiness reflects DB connectivity while liveness only reflects the process.
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<NrsDbContext>("database", tags: ["ready"]);
 
 // Optional Keycloak (OIDC/JWT) auth — off unless Auth:Enabled is true.
 var authEnabled = builder.Services.AddNrsAuthentication(builder.Configuration);
@@ -85,7 +88,12 @@ if (authEnabled)
 
 app.MapControllers();
 
-// Liveness/readiness endpoint for probes — always reachable, even when auth is on.
+// Health endpoints for probes — always reachable, even when auth is on.
+//   /health/live  — liveness: the process is up (no dependency checks).
+//   /health/ready — readiness: dependencies (the database) are reachable.
+//   /health       — full check (back-compatible alias).
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") }).AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
