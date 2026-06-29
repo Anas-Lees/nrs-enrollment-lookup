@@ -1,0 +1,162 @@
+:host {
+  display: inline-block;
+  position: relative;
+}
+
+.df {
+  position: relative;
+}
+
+/* The closed control — matches the search-bar control look. */
+.df__input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  min-width: 12rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:focus-visible {
+    outline: 2px solid var(--rop-green-600);
+    outline-offset: 2px;
+  }
+}
+
+.df__icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-muted-2);
+}
+
+.df__value {
+  flex: 1;
+  text-align: start;
+
+  &--placeholder {
+    color: var(--color-muted-2);
+  }
+}
+
+.df__chevron {
+  color: var(--color-muted-2);
+  font-size: 0.8rem;
+}
+
+.df__clear {
+  position: absolute;
+  inset-inline-end: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--color-muted-2);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+
+  &:hover {
+    color: var(--color-text);
+  }
+}
+
+/* The calendar popup. Anchored to the control's left edge (physical) so it always opens
+   on-screen — in RTL an inline-start anchor pushes it off the left viewport edge. */
+.df__pop {
+  position: absolute;
+  left: 0;
+  right: auto;
+  top: calc(100% + 0.4rem);
+  z-index: 30;
+  width: 17rem;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card-lg);
+}
+
+.df__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.df__navbtn {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--rop-green);
+    border-color: var(--rop-green);
+    color: #fff;
+  }
+}
+
+.df__month {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.df__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.15rem;
+}
+
+.df__weekdays {
+  margin-bottom: 0.25rem;
+}
+
+.df__wd {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-muted-2);
+  padding: 0.25rem 0;
+}
+
+.df__cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-surface-alt);
+  }
+
+  &.is-selected {
+    background: var(--rop-green);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  &--empty {
+    cursor: default;
+  }
+}

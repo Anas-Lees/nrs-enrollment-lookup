@@ -47,21 +47,11 @@ test.describe('Applicant Lookup — operator journey', () => {
     }
   });
 
-  test('advanced filters combine (name + nationality) with AND semantics', async ({ page }) => {
+  test('the search console shows data immediately, with no search run', async ({ page }) => {
     await page.goto('/search');
-    await page.getByRole('button', { name: 'Advanced' }).click();
-
-    // Name "Al" + nationality Oman → many Omani matches.
-    await page.locator('#f-name').fill('Al');
-    await page.locator('select#nationality').selectOption('OMN');
-    await page.locator('form button[type="submit"]').click();
+    // No filters typed, no submit — the first page of results loads on its own.
     await expect(page.locator('.cards .card').first()).toBeVisible();
     await expect(page.locator('.results-meta__count')).toContainText('matches');
-
-    // Same name + nationality India → AND filters down to zero (no "Al-" Indians).
-    await page.locator('select#nationality').selectOption('IND');
-    await page.locator('form button[type="submit"]').click();
-    await expect(page.locator('.empty')).toBeVisible();
   });
 
   test('Start New Enrollment from a profile opens the placeholder for that CRN', async ({

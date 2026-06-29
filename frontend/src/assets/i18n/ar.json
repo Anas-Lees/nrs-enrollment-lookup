@@ -144,6 +144,8 @@
   "doc.empty": "لا توجد مستندات مسجلة.",
   "doc.idCard": "بطاقة الهوية",
   "doc.passport": "جواز السفر",
+  "doc.idCards": "بطاقات الهوية",
+  "doc.passports": "جوازات السفر",
 
   "page.prev": "السابق",
   "page.next": "التالي",

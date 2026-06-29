@@ -15,12 +15,16 @@
         {{ initials() }}
       </div>
       <div class="summary-card__id">
-        <h1>{{ p.firstNameEn }} {{ p.familyNameEn }}</h1>
-        <p class="name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
-        <p class="crn mono">{{ p.civilNumber }}</p>
+        <div class="summary-card__names">
+          <h1>{{ p.firstNameEn }} {{ p.familyNameEn }}</h1>
+          <p class="name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
+        </div>
+        <div class="crn-row">
+          <span class="crn mono">{{ p.civilNumber }}</span>
+          <app-status-badge [status]="p.status" />
+        </div>
       </div>
       <div class="summary-card__actions">
-        <app-status-badge [status]="p.status" />
         <a
           class="btn-primary enroll-cta"
           [routerLink]="['/enrollment/new']"
@@ -37,7 +41,7 @@
         <dl class="fields">
           <div class="field">
             <dt>{{ i18n.t('profile.dob') }}</dt>
-            <dd>{{ p.dateOfBirth | date: 'dd MMM yyyy' : undefined : i18n.locale() }}</dd>
+            <dd>{{ p.dateOfBirth | appDate: i18n.lang() }}</dd>
           </div>
           <div class="field">
             <dt>{{ i18n.t('profile.gender') }}</dt>

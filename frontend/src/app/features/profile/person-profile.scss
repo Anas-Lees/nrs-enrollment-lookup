@@ -42,6 +42,29 @@
       font-size: 1.45rem;
     }
   }
+
+  &__names {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+}
+
+/* In Arabic, show the Arabic name on top AND make it the primary heading; the English
+   name moves below as the smaller, muted secondary line. */
+:host-context([dir='rtl']) .summary-card__names {
+  h1 {
+    order: 2;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--color-muted);
+  }
+  .name-ar {
+    order: 1;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
 }
 
 .avatar {
@@ -62,8 +85,15 @@
   color: var(--color-muted);
 }
 
+/* CRN + status side by side (status moved here from the actions column). */
+.crn-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
 .crn {
-  margin: 0.25rem 0 0;
   color: var(--color-muted-2);
   font-size: 0.95rem;
 }

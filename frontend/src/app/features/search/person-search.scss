@@ -3,16 +3,19 @@
 }
 
 /* ---------------- Search bar ---------------- */
+/* All controls share one height so the row lines up cleanly. */
 .searchbar {
+  --ctl-h: 2.75rem;
   display: flex;
   gap: 0.6rem;
-  align-items: stretch;
+  align-items: center;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
 
   &__input {
     position: relative;
-    flex: 1 1 360px;
+    flex: 1 1 340px;
+    height: var(--ctl-h);
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -29,12 +32,13 @@
     input {
       flex: 1;
       min-width: 0;
+      height: 100%;
       border: none;
       outline: none;
       background: transparent;
       font: inherit;
       font-size: 1rem;
-      padding: 0.7rem 0.25rem;
+      padding: 0 0.25rem;
       color: var(--color-text);
 
       &::placeholder {
@@ -55,15 +59,34 @@
   }
 
   &__nat select {
-    height: 100%;
+    height: var(--ctl-h);
+    width: 12.5rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    background: var(--color-surface);
-    padding: 0 0.75rem;
+    background-color: var(--color-surface);
     font: inherit;
     color: var(--color-text);
     box-shadow: var(--shadow-card);
     cursor: pointer;
+    /* Custom chevron tucked against the right edge so it sits near the text,
+       not floating at the far end of a wide native select. */
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%235b6470' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    padding: 0 2rem 0 0.75rem;
+  }
+
+  /* The date-of-birth picker (app-date-field) styles itself; just let it sit in the row. */
+
+  /* Action buttons: same height as the inputs, centred label, comfortable min width. */
+  .btn-primary,
+  .btn-ghost {
+    height: var(--ctl-h);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -75,6 +98,7 @@
   font: inherit;
   font-weight: 600;
   padding: 0 1.5rem;
+  min-width: 7rem;
   cursor: pointer;
 
   &:hover {
@@ -88,7 +112,7 @@
   background: var(--color-surface);
   color: var(--color-muted);
   font: inherit;
-  padding: 0 1.1rem;
+  padding: 0 1.25rem;
   cursor: pointer;
 
   &:hover {
@@ -190,23 +214,20 @@
     color: var(--color-muted);
   }
 
-  &__meta {
-    margin-inline-start: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    text-align: end;
-    gap: 0.15rem;
+  /* Middle column — fills the gap between the name and the right-side details. */
+  &__facts {
+    flex: 1;
+    min-width: 0;
+    padding-inline: 1rem;
+    font-size: 0.85rem;
+    color: var(--color-muted-2);
   }
 
   &__crn {
+    flex: 0 0 auto;
     font-size: 0.9rem;
     color: var(--color-text);
-  }
-
-  &__facts {
-    font-size: 0.8rem;
-    color: var(--color-muted-2);
+    white-space: nowrap;
   }
 }
 
@@ -411,61 +432,49 @@ a.btn-block {
   }
 }
 
-/* ---------------- Advanced filters ---------------- */
-.btn-link {
-  background: none;
-  border: none;
-  color: var(--rop-green-600);
-  font: inherit;
-  cursor: pointer;
-  padding: 0 0.6rem;
-  text-decoration: underline;
-
-  &:hover {
-    color: var(--rop-green);
-  }
-}
-
-.searchbar__advhint {
-  flex: 1 1 320px;
-  display: flex;
-  align-items: center;
-  color: var(--color-muted-2);
-  font-size: 0.9rem;
-  padding: 0 0.25rem;
-}
-
-.adv-filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
-  margin: 0 0 1.5rem;
-}
-
-.adv-field {
+.preview__names {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  align-items: center;
+}
 
-  label {
-    font-size: 0.78rem;
-    font-weight: 600;
+/* ---------------- RTL tweaks ---------------- */
+/* In Arabic, show the Arabic name on top AND give it the primary weight/size;
+   the English name drops to the secondary (smaller, muted) style below. */
+:host-context([dir='rtl']) .card__id {
+  .card__name {
+    order: 2;
+    font-weight: 400;
+    font-size: 0.9rem;
     color: var(--color-muted);
   }
-
-  input {
-    padding: 0.55rem 0.6rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    font: inherit;
-    background: var(--color-surface);
+  .card__name-ar {
+    order: 1;
+    font-weight: 600;
+    font-size: 1rem;
     color: var(--color-text);
-
-    &:focus {
-      outline: none;
-      border-color: var(--rop-green-600);
-    }
   }
+}
+
+:host-context([dir='rtl']) .preview__names {
+  .preview__name {
+    order: 2;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--color-muted);
+  }
+  .preview__name-ar {
+    order: 1;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+}
+
+/* Mirror the nationality chevron to the left edge in RTL. */
+:host-context([dir='rtl']) .searchbar__nat select {
+  background-position: left 0.7rem center;
+  padding: 0 0.75rem 0 2rem;
 }
 
 /* ---------------- States ---------------- */
@@ -473,7 +482,6 @@ a.btn-block {
   color: var(--color-danger);
 }
 
-.hint,
 .empty {
   color: var(--color-muted);
 }

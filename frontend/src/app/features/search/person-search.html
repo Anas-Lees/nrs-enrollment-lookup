@@ -3,22 +3,25 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="searchbar">
-      @if (!advancedOpen()) {
-        <div class="searchbar__input">
-          <span class="searchbar__icon" aria-hidden="true">⌕</span>
-          <input
-            #searchInput
-            type="search"
-            formControlName="query"
-            [placeholder]="i18n.t('search.smartPlaceholder')"
-            [attr.aria-label]="i18n.t('search.smartPlaceholder')"
-            autocomplete="off"
-          />
-          <span class="searchbar__hint">{{ i18n.t('search.partialHint') }}</span>
-        </div>
-      } @else {
-        <div class="searchbar__advhint">{{ i18n.t('search.advancedHint') }}</div>
-      }
+      <div class="searchbar__input">
+        <span class="searchbar__icon" aria-hidden="true">⌕</span>
+        <input
+          #searchInput
+          type="search"
+          formControlName="query"
+          [placeholder]="i18n.t('search.smartPlaceholder')"
+          [attr.aria-label]="i18n.t('search.smartPlaceholder')"
+          autocomplete="off"
+        />
+        <span class="searchbar__hint">{{ i18n.t('search.partialHint') }}</span>
+      </div>
+
+      <app-date-field
+        class="searchbar__date"
+        formControlName="dob"
+        [placeholder]="i18n.t('search.dob')"
+        [ariaLabel]="i18n.t('search.dob')"
+      />
 
       <div class="searchbar__nat">
         <label class="sr-only" for="nationality">{{ i18n.t('search.nationality') }}</label>
@@ -30,48 +33,11 @@
         </select>
       </div>
 
-      <button
-        type="button"
-        class="btn-link"
-        [attr.aria-expanded]="advancedOpen()"
-        (click)="toggleAdvanced()"
-      >
-        {{ advancedOpen() ? i18n.t('search.simple') : i18n.t('search.advanced') }}
-      </button>
       <button type="button" class="btn-ghost" (click)="clear()">
         {{ i18n.t('search.clear') }}
       </button>
       <button type="submit" class="btn-primary">{{ i18n.t('search.button') }}</button>
     </div>
-
-    @if (advancedOpen()) {
-      <div class="adv-filters">
-        <div class="adv-field">
-          <label for="f-crn">{{ i18n.t('search.crn') }}</label>
-          <input
-            id="f-crn"
-            type="text"
-            inputmode="numeric"
-            formControlName="crn"
-            autocomplete="off"
-          />
-        </div>
-        <div class="adv-field">
-          <label for="f-name">{{ i18n.t('search.name') }}</label>
-          <input
-            id="f-name"
-            type="text"
-            formControlName="name"
-            [placeholder]="i18n.t('search.namePlaceholder')"
-            autocomplete="off"
-          />
-        </div>
-        <div class="adv-field">
-          <label for="f-dob">{{ i18n.t('search.dob') }}</label>
-          <input id="f-dob" type="date" formControlName="dob" />
-        </div>
-      </div>
-    }
   </form>
 
   <div class="results-area">
@@ -128,13 +94,10 @@
                         {{ p.firstNameAr }} {{ p.familyNameAr }}
                       </span>
                     </span>
-                    <span class="card__meta">
-                      <span class="card__crn mono">{{ p.civilNumber }}</span>
-                      <span class="card__facts">
-                        {{ p.dateOfBirth | date: 'dd MMM yyyy' : undefined : i18n.locale() }} ·
-                        {{ nationalityName(p) }}
-                      </span>
+                    <span class="card__facts">
+                      {{ p.dateOfBirth | appDate: i18n.lang() }} · {{ nationalityName(p) }}
                     </span>
+                    <span class="card__crn mono">{{ p.civilNumber }}</span>
                     <app-status-badge [status]="p.status" />
                   </button>
                 </li>
@@ -159,15 +122,17 @@
 
             @if (preview(); as p) {
               <div class="preview__photo" aria-hidden="true">{{ i18n.t('preview.photo') }}</div>
-              <h2 class="preview__name">{{ p.firstNameEn }} {{ p.familyNameEn }}</h2>
-              <p class="preview__name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
+              <div class="preview__names">
+                <h2 class="preview__name">{{ p.firstNameEn }} {{ p.familyNameEn }}</h2>
+                <p class="preview__name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
+              </div>
               <p class="preview__crn mono">{{ p.civilNumber }}</p>
               <app-status-badge [status]="p.status" />
 
               <dl class="preview__facts">
                 <div>
                   <dt>{{ i18n.t('preview.dob') }}</dt>
-                  <dd>{{ p.dateOfBirth | date: 'dd MMM yyyy' : undefined : i18n.locale() }}</dd>
+                  <dd>{{ p.dateOfBirth | appDate: i18n.lang() }}</dd>
                 </div>
                 <div>
                   <dt>{{ i18n.t('preview.nationality') }}</dt>
@@ -206,8 +171,6 @@
           </aside>
         </div>
       }
-    } @else {
-      <p class="hint">{{ i18n.t('search.hint') }}</p>
     }
   </div>
 </section>

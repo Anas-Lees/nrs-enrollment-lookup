@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import en from '../../../assets/i18n/en.json';
 import ar from '../../../assets/i18n/ar.json';
 
@@ -10,9 +10,6 @@ const STORAGE_KEY = 'nrs.lang';
 export class TranslationService {
   private readonly dictionaries: Record<Lang, Record<string, string>> = { en, ar };
   readonly lang = signal<Lang>(TranslationService.readStored());
-
-  /** Angular locale id for DatePipe etc. — Arabic gets Arabic month names + digits. */
-  readonly locale = computed<string>(() => (this.lang() === 'ar' ? 'ar' : 'en-US'));
 
   constructor() {
     this.apply(this.lang());

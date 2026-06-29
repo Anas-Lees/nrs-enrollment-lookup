@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,6 +18,8 @@ import { PagedResult, PersonSearchCriteria } from '../../core/models/paged-resul
 import { Person, PersonSummary } from '../../core/models/person.model';
 import { Pagination } from '../../shared/components/pagination';
 import { StatusBadge } from '../../shared/components/status-badge';
+import { DateField } from '../../shared/components/date-field';
+import { AppDatePipe } from '../../shared/app-date.pipe';
 import { avatarColor, personInitials } from '../../shared/avatar';
 
 interface NationalityOption {
@@ -28,7 +29,7 @@ interface NationalityOption {
 
 @Component({
   selector: 'app-person-search',
-  imports: [ReactiveFormsModule, RouterLink, Pagination, StatusBadge, DatePipe],
+  imports: [ReactiveFormsModule, RouterLink, Pagination, StatusBadge, DateField, AppDatePipe],
   templateUrl: './person-search.html',
   styleUrl: './person-search.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,8 +44,6 @@ export class PersonSearch {
 
   readonly form = new FormGroup({
     query: new FormControl('', { nonNullable: true }),
-    crn: new FormControl('', { nonNullable: true }),
-    name: new FormControl('', { nonNullable: true }),
     dob: new FormControl('', { nonNullable: true }),
     nationality: new FormControl('', { nonNullable: true }),
   });
@@ -52,9 +51,7 @@ export class PersonSearch {
   readonly results = signal<PagedResult<PersonSummary> | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
-  readonly searched = signal(false);
   readonly elapsedMs = signal(0);
-  readonly advancedOpen = signal(false);
 
   // Quick-preview state for the right-hand panel.
   readonly selectedCrn = signal<string | null>(null);
@@ -96,57 +93,45 @@ export class PersonSearch {
   ];
 
   constructor() {
-    // The URL query string is the source of truth: drives the search and makes
-    // results shareable/bookmarkable and the back button work.
+    // The URL query string is the source of truth: it drives the search and makes results
+    // shareable/bookmarkable. With no params we still load the first page of everyone, so the
+    // console always shows data instead of an empty state.
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
-      const advanced = pm.get('adv') === '1';
-      this.advancedOpen.set(advanced);
       this.form.setValue(
         {
           query: pm.get('q') ?? '',
-          crn: pm.get('crn') ?? '',
-          name: pm.get('name') ?? '',
           dob: pm.get('dob') ?? '',
           nationality: pm.get('nat') ?? '',
         },
         { emitEvent: false },
       );
-
-      const page = Number(pm.get('page')) || 1;
-      const hasFilters =
-        pm.has('q') || pm.has('crn') || pm.has('name') || pm.has('dob') || pm.has('nat');
-      if (hasFilters || pm.has('page')) {
-        this.criteria = this.buildCriteria();
-        this.searched.set(true);
-        this.load(page);
-      }
+      this.criteria = this.buildCriteria();
+      this.load(Number(pm.get('page')) || 1);
     });
   }
 
   /**
-   * Build the search criteria. In advanced mode the explicit CRN / name / DOB /
-   * nationality fields all combine (AND). In quick mode the single smart box is
-   * classified as a CRN, a date, or a name; nationality still applies.
+   * Build the search criteria from the single smart box: the term is classified as a date,
+   * a CRN, or a name; the nationality filter applies on top. Empty term = match everyone.
    */
   private buildCriteria(): PersonSearchCriteria {
     const v = this.form.getRawValue();
     const criteria: PersonSearchCriteria = {};
 
-    if (this.advancedOpen()) {
-      if (v.crn.trim()) criteria.crn = v.crn.trim();
-      if (v.name.trim()) criteria.name = v.name.trim();
-      if (v.dob.trim()) criteria.dob = v.dob.trim();
-    } else {
-      const q = v.query.trim();
-      if (q) {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(q)) {
-          criteria.dob = q;
-        } else if (/^\d{1,9}$/.test(q)) {
-          criteria.crn = q;
-        } else {
-          criteria.name = q;
-        }
+    const q = v.query.trim();
+    if (q) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(q)) {
+        criteria.dob = q;
+      } else if (/^\d{1,9}$/.test(q)) {
+        criteria.crn = q;
+      } else {
+        criteria.name = q;
       }
+    }
+
+    // Explicit date-of-birth picker (combines with the smart box; wins over a typed date).
+    if (v.dob.trim()) {
+      criteria.dob = v.dob.trim();
     }
 
     if (v.nationality.trim()) {
@@ -155,21 +140,13 @@ export class PersonSearch {
     return criteria;
   }
 
-  toggleAdvanced(): void {
-    this.advancedOpen.update((open) => !open);
-  }
-
   onSubmit(): void {
     this.navigateToSearch(1);
   }
 
   clear(): void {
-    this.form.reset({ query: '', crn: '', name: '', dob: '', nationality: '' });
-    this.criteria = {};
-    this.results.set(null);
-    this.error.set(null);
-    this.searched.set(false);
-    this.clearPreview();
+    this.form.reset({ query: '', dob: '', nationality: '' });
+    // Navigate to a clean URL; the subscription reloads the default (all) results.
     this.router.navigate([], { relativeTo: this.route, queryParams: {} });
   }
 
@@ -177,18 +154,14 @@ export class PersonSearch {
     this.navigateToSearch(page);
   }
 
-  /** Reflect the current form + mode into the URL; the subscription runs the search. */
+  /** Reflect the current form into the URL; the subscription runs the search. */
   private navigateToSearch(page: number): void {
     const v = this.form.getRawValue();
-    const advanced = this.advancedOpen();
     const queryParams: Params = {
       page,
-      adv: advanced ? 1 : null,
+      q: v.query.trim() || null,
+      dob: v.dob.trim() || null,
       nat: v.nationality.trim() || null,
-      q: advanced ? null : v.query.trim() || null,
-      crn: advanced ? v.crn.trim() || null : null,
-      name: advanced ? v.name.trim() || null : null,
-      dob: advanced ? v.dob.trim() || null : null,
     };
     this.router.navigate([], { relativeTo: this.route, queryParams });
   }
@@ -293,7 +266,13 @@ export class PersonSearch {
 
   // --- presentation helpers ---
   initials(p: PersonSummary): string {
-    return personInitials(p.firstNameEn, p.familyNameEn);
+    return personInitials(
+      p.firstNameEn,
+      p.familyNameEn,
+      p.firstNameAr,
+      p.familyNameAr,
+      this.i18n.lang(),
+    );
   }
 
   color(p: PersonSummary): string {
