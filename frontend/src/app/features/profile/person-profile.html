@@ -19,7 +19,16 @@
         <p class="name-ar" dir="rtl">{{ p.firstNameAr }} {{ p.familyNameAr }}</p>
         <p class="crn mono">{{ p.civilNumber }}</p>
       </div>
-      <app-status-badge [status]="p.status" />
+      <div class="summary-card__actions">
+        <app-status-badge [status]="p.status" />
+        <a
+          class="btn-primary enroll-cta"
+          [routerLink]="['/enrollment/new']"
+          [queryParams]="{ crn: p.civilNumber }"
+        >
+          {{ i18n.t('enroll.start') }}
+        </a>
+      </div>
     </article>
 
     <div class="panels">
