@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Nrs.Api.Errors;
 using Nrs.Api.Extensions;
 using Nrs.Api.Middleware;
 using Nrs.Infrastructure.Persistence;
@@ -47,6 +49,21 @@ builder.Services.AddOpenTelemetry()
             metrics.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
         }
     });
+
+// RFC-7807 problem details for every error (validation, not-found, unhandled), each
+// enriched with a traceId/correlationId so a failed call can be tracked.
+builder.Services.AddProblemDetails(options =>
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Instance ??= context.HttpContext.Request.Path;
+        context.ProblemDetails.Extensions["traceId"] =
+            Activity.Current?.Id ?? context.HttpContext.TraceIdentifier;
+        if (context.HttpContext.Response.Headers.TryGetValue(CorrelationIdMiddleware.HeaderName, out var correlationId))
+        {
+            context.ProblemDetails.Extensions["correlationId"] = correlationId.ToString();
+        }
+    });
+builder.Services.AddExceptionHandler<NrsExceptionHandler>();
 
 // Controllers + serialize enums as their string names (matches the OpenAPI contract).
 builder.Services
@@ -100,8 +117,10 @@ builder.Services.AddCors(options => options.AddPolicy(SpaCorsPolicy, policy => p
 
 var app = builder.Build();
 
-// Consistent error responses first in the pipeline, then correlation id for everything after.
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+// Consistent RFC-7807 error responses first in the pipeline (unhandled -> 500 problem;
+// StatusCodePages turns bare 401/403/404/429 into problem bodies too), then correlation id.
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 app.UseMiddleware<CorrelationIdMiddleware>();
 
 // API docs (OpenAPI + Scalar). Exposed in Development, or in other environments only when
