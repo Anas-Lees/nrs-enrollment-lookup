@@ -234,6 +234,13 @@ export class PersonSearch {
       event.preventDefault();
       this.moveSelection(-1);
     } else if (event.key === 'Enter') {
+      // Only the "open selected profile" shortcut, and only when Enter isn't activating a
+      // focused control (a button/link/card handles its own Enter). Without this guard,
+      // pressing Enter on e.g. the Clear or language-toggle button would also navigate away.
+      const target = event.target as HTMLElement | null;
+      if (target && target !== document.body) {
+        return;
+      }
       const crn = this.selectedCrn();
       if (crn) {
         this.router.navigate(['/persons', crn]);

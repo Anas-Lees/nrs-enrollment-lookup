@@ -1,4 +1,5 @@
 <div class="console">
+  <a class="skip-link" href="#main-content">{{ i18n.t('a11y.skipToContent') }}</a>
   <aside class="sidebar">
     <a class="sidebar__brand" routerLink="/search">
       <span class="brand-mark" aria-hidden="true">NRS</span>
@@ -47,7 +48,7 @@
 
   <div class="content">
     <div class="flag-accent" aria-hidden="true"></div>
-    <main class="content__main">
+    <main class="content__main" id="main-content" tabindex="-1">
       <router-outlet />
     </main>
   </div>

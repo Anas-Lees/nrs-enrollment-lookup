@@ -75,6 +75,13 @@
   </form>
 
   <div class="results-area">
+    <!-- Persistent polite status so the in-progress search is announced (the skeleton below
+         is aria-hidden). -->
+    <p class="sr-only" role="status" aria-live="polite">
+      @if (loading()) {
+        {{ i18n.t('search.loading') }}
+      }
+    </p>
     @if (loading()) {
       <ul class="cards" aria-hidden="true">
         @for (s of [1, 2, 3, 4, 5]; track s) {
@@ -141,7 +148,12 @@
             />
           </div>
 
-          <aside class="preview" [attr.aria-label]="i18n.t('preview.title')">
+          <aside
+            class="preview"
+            aria-live="polite"
+            [attr.aria-busy]="previewLoading()"
+            [attr.aria-label]="i18n.t('preview.title')"
+          >
             <span class="preview__label">{{ i18n.t('preview.title') }}</span>
 
             @if (preview(); as p) {

@@ -4,11 +4,11 @@
   </div>
 
   @if (loading()) {
-    <p>{{ i18n.t('profile.loading') }}</p>
+    <p role="status">{{ i18n.t('profile.loading') }}</p>
   } @else if (notFound()) {
-    <p class="error">{{ i18n.t('profile.notFound') }}</p>
+    <p class="error" role="alert">{{ i18n.t('profile.notFound') }}</p>
   } @else if (error()) {
-    <p class="error">{{ i18n.t('profile.error') }}</p>
+    <p class="error" role="alert">{{ i18n.t('profile.error') }}</p>
   } @else if (person(); as p) {
     <article class="summary-card">
       <div class="avatar" [style.background]="avatarColor()" aria-hidden="true">
