@@ -47,5 +47,8 @@ export class TranslationService {
     const el = document.documentElement;
     el.lang = lang;
     el.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    // Keep the browser tab/title in step with the language (read the dict directly —
+    // apply() runs from the constructor, before t() is safe to rely on elsewhere).
+    document.title = this.dictionaries[lang]['app.title'] ?? document.title;
   }
 }

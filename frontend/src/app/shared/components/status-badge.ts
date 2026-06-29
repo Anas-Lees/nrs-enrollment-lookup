@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+
+import { TranslationService } from '../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-status-badge',
@@ -8,7 +10,16 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StatusBadge {
+  protected readonly i18n = inject(TranslationService);
+
   readonly status = input.required<string>();
+
+  /** Localized label, falling back to the raw code for any unmapped status. */
+  readonly label = computed(() => {
+    const key = 'status.' + this.status();
+    const translated = this.i18n.t(key);
+    return translated === key ? this.status() : translated;
+  });
 
   readonly cssClass = computed(() => {
     switch (this.status()) {
