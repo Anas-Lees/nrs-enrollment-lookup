@@ -1,0 +1,19 @@
+# Prometheus config for the local NRS observability stack.
+#
+# Scrapes the OpenTelemetry Collector's Prometheus exporter, where the API's
+# OTel metrics are republished in Prometheus format.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # The collector republishes API (nrs-api) metrics here.
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["otel-collector:8889"]
+
+  # The collector's own internal telemetry (optional but handy for debugging).
+  - job_name: otel-collector-internal
+    static_configs:
+      - targets: ["otel-collector:8888"]
