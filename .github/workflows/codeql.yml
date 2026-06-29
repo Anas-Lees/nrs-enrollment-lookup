@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: read
+  # CodeQL's status reporting calls the Actions API even with upload:false.
+  actions: read
 
 jobs:
   analyze:
