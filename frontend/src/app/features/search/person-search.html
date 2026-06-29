@@ -83,7 +83,8 @@
                     class="card"
                     [class.is-selected]="selectedCrn() === p.civilNumber"
                     [attr.aria-pressed]="selectedCrn() === p.civilNumber"
-                    (click)="select(p)"
+                    [title]="i18n.t('search.cardHint')"
+                    (click)="onCardClick(p)"
                   >
                     <span class="card__avatar" [style.background]="color(p)">{{
                       initials(p)
