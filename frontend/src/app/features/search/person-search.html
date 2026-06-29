@@ -25,7 +25,7 @@
         <select id="nationality" formControlName="nationality">
           <option value="">{{ i18n.t('search.nationalityAny') }}</option>
           @for (opt of nationalityOptions; track opt.code) {
-            <option [value]="opt.code">{{ opt.label }}</option>
+            <option [value]="opt.code">{{ i18n.t('nationality.' + opt.code) }}</option>
           }
         </select>
       </div>

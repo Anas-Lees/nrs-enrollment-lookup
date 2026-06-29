@@ -9,7 +9,7 @@
       </span>
     </a>
 
-    <nav class="sidebar__nav" aria-label="Primary">
+    <nav class="sidebar__nav" [attr.aria-label]="i18n.t('nav.primary')">
       <a class="nav-item" routerLink="/search" routerLinkActive="is-active">
         <span class="nav-item__dot" aria-hidden="true"></span>
         <span class="nav-item__label">{{ i18n.t('nav.applicantLookup') }}</span>
@@ -39,7 +39,10 @@
         <span class="operator-card__meta">
           <span class="operator-card__name">{{ i18n.t('operator.name') }}</span>
           <span class="operator-card__status">
-            <span class="dot-online" aria-hidden="true"></span>{{ i18n.t('operator.status') }}
+            @if (authActive()) {
+              <span class="dot-online" aria-hidden="true"></span>
+            }
+            {{ i18n.t(operatorStatusKey()) }}
           </span>
         </span>
       </div>
