@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Nrs.Api.Filters;
 using Nrs.Application.Dtos;
 using Nrs.Application.Interfaces;
 
@@ -7,10 +8,12 @@ namespace Nrs.Api.Controllers;
 /// <summary>
 /// Applicant lookup endpoints. Thin by design: validate/bind the request, call the
 /// service, and shape the HTTP response. No business logic lives here.
+/// Every action is recorded to the audit trail via <see cref="AuditActionFilter"/>.
 /// </summary>
 [ApiController]
 [Route("api/v1/persons")]
 [Produces("application/json")]
+[ServiceFilter(typeof(AuditActionFilter))]
 public class PersonLookupController(IPersonLookupService service) : ControllerBase
 {
     /// <summary>

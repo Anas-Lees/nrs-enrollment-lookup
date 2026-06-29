@@ -22,6 +22,8 @@ public class NrsDbContext(DbContextOptions<NrsDbContext> options) : DbContext(op
 
     public DbSet<Contact> Contacts => Set<Contact>();
 
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Apply every IEntityTypeConfiguration in this assembly (Person/IdCard/Passport).
