@@ -71,7 +71,10 @@ builder.Services
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // First-party OpenAPI document generation (served at /openapi/v1.json), rendered by Scalar.
-builder.Services.AddOpenApi();
+// The transformer adds API Info + a JWT bearer security scheme (so Scalar gets an Authorize
+// button); /// doc comments flow into the document automatically (GenerateDocumentationFile).
+builder.Services.AddOpenApi(options =>
+    options.AddDocumentTransformer<Nrs.Api.OpenApi.BearerSecuritySchemeTransformer>());
 
 // Application services (DbContext, repository, service).
 builder.Services.AddNrsServices(builder.Configuration);
@@ -134,8 +137,41 @@ var exposeApiDocs = app.Environment.IsDevelopment()
 if (exposeApiDocs)
 {
     app.MapOpenApi().AllowAnonymous();
+
+    // Deep-green / gold "government console" tint over Scalar's Kepler theme.
+    const string scalarCss = """
+        .light-mode, .dark-mode {
+          --scalar-color-accent: #c9a227;          /* gold */
+          --scalar-background-1: #0b1f17;          /* deep forest green */
+          --scalar-background-2: #0f2a1f;
+          --scalar-background-3: #15392b;
+          --scalar-background-accent: #1c4733;
+          --scalar-color-1: #f2efe6;               /* parchment text */
+          --scalar-color-2: #cfe3d6;
+          --scalar-color-3: #9bb5a6;
+          --scalar-border-color: rgba(201, 162, 39, 0.28);
+          --scalar-button-1: #c9a227;
+          --scalar-button-1-color: #0b1f17;
+        }
+        .scalar-app .scalar-api-reference .sidebar { border-right: 1px solid var(--scalar-border-color); }
+        """;
+
     app.MapScalarApiReference(options =>
-        options.WithTitle("NRS Enrollment — Applicant Lookup API")).AllowAnonymous();
+        {
+            options
+                .WithTitle("NRS Enrollment — Applicant Lookup API")
+                .WithTheme(ScalarTheme.Kepler)
+                .ForceDarkMode()
+                .HideDarkModeToggle()
+                .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
+                .SortTagsAlphabetically()
+                // The "Bearer" scheme is declared in the OpenAPI doc (transformer); preselect it
+                // so the Authorize field is front and centre, and keep the token across reloads.
+                .AddPreferredSecuritySchemes("Bearer")
+                .EnablePersistentAuthentication()
+                .WithCustomCss(scalarCss);
+        })
+        .AllowAnonymous();
 }
 
 // Create/upgrade the schema and (optionally) seed sample data on startup. Auto-migrate
