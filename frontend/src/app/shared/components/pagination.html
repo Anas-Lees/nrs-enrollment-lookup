@@ -7,6 +7,19 @@
     {{ i18n.t('page.showing') }} {{ rangeStart() }}–{{ rangeEnd() }} / {{ totalCount() }}
   </span>
 
+  @if (pageSizeOptions().length) {
+    <label class="pagination__size">
+      <span>{{ i18n.t('page.perPage') }}</span>
+      <!-- [selected] per option (not [value] on the select) so the control reflects the
+           active size after a reload, even though the options render asynchronously. -->
+      <select (change)="onPageSizeChange($event)">
+        @for (n of pageSizeOptions(); track n) {
+          <option [value]="n" [selected]="n === pageSize()">{{ n }}</option>
+        }
+      </select>
+    </label>
+  }
+
   <span class="pagination__info">
     {{ i18n.t('page.page') }} {{ page() }} / {{ totalPages() }}
   </span>
@@ -19,15 +32,4 @@
   >
     {{ i18n.t('page.next') }}
   </button>
-
-  @if (pageSizeOptions().length) {
-    <label class="pagination__size">
-      <span>{{ i18n.t('page.perPage') }}</span>
-      <select [value]="pageSize()" (change)="onPageSizeChange($event)">
-        @for (n of pageSizeOptions(); track n) {
-          <option [value]="n">{{ n }}</option>
-        }
-      </select>
-    </label>
-  }
 </div>

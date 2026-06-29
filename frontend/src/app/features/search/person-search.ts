@@ -60,7 +60,7 @@ export class PersonSearch {
 
   private criteria: PersonSearchCriteria = {};
   readonly pageSize = signal(10);
-  readonly pageSizeOptions = [10, 20, 50];
+  readonly pageSizeOptions = [10, 25, 50, 100];
 
   readonly totalPages = computed(() => {
     const r = this.results();
