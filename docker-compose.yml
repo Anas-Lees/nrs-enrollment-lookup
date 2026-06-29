@@ -19,7 +19,12 @@ services:
   oracle:
     image: gvenzl/oracle-xe:21-slim
     environment:
+      # SYS/SYSTEM password (admin only — the app does NOT use this).
       ORACLE_PASSWORD: nrs_dev_password
+      # Least-privilege application account, auto-created in XEPDB1 by the image.
+      # It owns its own schema (connect + create table/sequence + DML) — not a DBA.
+      APP_USER: nrs_app
+      APP_USER_PASSWORD: nrs_app_password
     ports:
       - "1521:1521"
     volumes:
@@ -57,11 +62,14 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       DatabaseProvider: Oracle
-      ConnectionStrings__Default: "User Id=system;Password=nrs_dev_password;Data Source=oracle:1521/XEPDB1"
+      # Connect as the least-privilege app account, not SYSTEM/DBA.
+      ConnectionStrings__Default: "User Id=nrs_app;Password=nrs_app_password;Data Source=oracle:1521/XEPDB1"
       Auth__Enabled: "true"
       Auth__Authority: http://localhost:8081/realms/nrs
       Auth__Audience: nrs-api
       Auth__MetadataAddress: http://keycloak:8080/realms/nrs/.well-known/openid-configuration
+      # Keycloak is reached over internal plain HTTP in this stack.
+      Auth__RequireHttpsMetadata: "false"
     ports:
       - "5000:8080"
     depends_on:
