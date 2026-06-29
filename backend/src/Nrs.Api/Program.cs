@@ -1,4 +1,3 @@
-using System.Data.Common;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -105,40 +104,51 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-if (app.Environment.IsDevelopment())
+// API docs (OpenAPI + Scalar). Exposed in Development, or in other environments only when
+// explicitly enabled via OpenApi:Enabled — and then behind authorization. Never anonymous
+// outside development.
+var exposeApiDocs = app.Environment.IsDevelopment()
+    || builder.Configuration.GetValue<bool>("OpenApi:Enabled");
+if (exposeApiDocs)
 {
-    // OpenAPI doc + Scalar API reference UI (anonymous, like the docs tool it replaces).
-    app.MapOpenApi().AllowAnonymous();
-    app.MapScalarApiReference(options => options.WithTitle("NRS Enrollment — Applicant Lookup API"))
-        .AllowAnonymous();
+    var openApi = app.MapOpenApi();
+    var scalar = app.MapScalarApiReference(options =>
+        options.WithTitle("NRS Enrollment — Applicant Lookup API"));
 
-    // Create/upgrade the schema and seed sample data on startup (dev convenience).
+    if (!app.Environment.IsDevelopment() && authEnabled)
+    {
+        openApi.RequireAuthorization();
+        scalar.RequireAuthorization();
+    }
+    else
+    {
+        openApi.AllowAnonymous();
+        scalar.AllowAnonymous();
+    }
+}
+
+// Create/upgrade the schema and (optionally) seed sample data on startup. Runs in every
+// environment, gated by configuration so real production can disable seeding.
+if (builder.Configuration.GetValue<bool?>("Database:InitializeOnStartup") ?? true)
+{
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<NrsDbContext>();
-    // The committed migration is SQLite-specific; for other providers (Oracle) create
-    // the schema from the model. Real Oracle environments would use Oracle migrations.
+
+    // SQLite (dev/test) applies its EF migrations. Oracle still bootstraps via EnsureCreated
+    // here; a real Oracle migration set replaces this in the follow-up (A8b).
     if (db.Database.IsSqlite())
     {
         await db.Database.MigrateAsync();
     }
     else
     {
-        // Guarded: EnsureCreated's existence check can be unreliable against a persistent
-        // Oracle volume on restart, so if the schema is already there we log and continue
-        // (the seeder below is idempotent).
-        try
-        {
-            await db.Database.EnsureCreatedAsync();
-        }
-        catch (DbException ex)
-        {
-            // Startup-only diagnostic; a LoggerMessage delegate would be overkill here.
-#pragma warning disable CA1848
-            app.Logger.LogWarning(ex, "Schema creation skipped; it appears to already exist.");
-#pragma warning restore CA1848
-        }
+        await db.Database.EnsureCreatedAsync();
     }
-    await DataSeeder.SeedAsync(db);
+
+    if (builder.Configuration.GetValue<bool?>("Database:SeedOnStartup") ?? true)
+    {
+        await DataSeeder.SeedAsync(db);
+    }
 }
 
 app.UseCors(SpaCorsPolicy);
