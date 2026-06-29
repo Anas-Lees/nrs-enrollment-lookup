@@ -2,6 +2,12 @@
 
   <!-- Application layer — services, DTOs, interfaces. Depends on Domain only. -->
 
+  <!-- Emit XML docs so the DTO /// summaries surface as schema descriptions in the OpenAPI doc. -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Nrs.Domain\Nrs.Domain.csproj" />
   </ItemGroup>
