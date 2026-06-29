@@ -70,7 +70,7 @@ jobs:
       - name: Upload Trivy results (artifact)
         if: ${{ hashFiles(format('trivy-{0}.sarif', matrix.name)) != '' }}
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-${{ matrix.name }}
           path: trivy-${{ matrix.name }}.sarif
