@@ -46,7 +46,9 @@ public sealed class CachedPersonLookupService(
     {
         var key = KeyPrefix + crn;
 
-        var cached = await cache.GetStringAsync(key, cancellationToken);
+        // The cache is an accelerator, not a hard dependency: if Redis is unavailable, fall
+        // through to the database rather than failing the request.
+        var cached = await TryGetAsync(key, cancellationToken);
         if (cached is not null)
         {
             return JsonSerializer.Deserialize<PersonDto>(cached, Json);
@@ -58,9 +60,41 @@ public sealed class CachedPersonLookupService(
         // and we don't want a negative result pinned for the whole TTL.
         if (person is not null)
         {
-            await cache.SetStringAsync(key, JsonSerializer.Serialize(person, Json), ProfileTtl, cancellationToken);
+            await TrySetAsync(key, JsonSerializer.Serialize(person, Json), cancellationToken);
         }
 
         return person;
+    }
+
+    private async Task<string?> TryGetAsync(string key, CancellationToken ct)
+    {
+        try
+        {
+            return await cache.GetStringAsync(key, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null; // cache miss on any cache error
+        }
+    }
+
+    private async Task TrySetAsync(string key, string value, CancellationToken ct)
+    {
+        try
+        {
+            await cache.SetStringAsync(key, value, ProfileTtl, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Best-effort cache write; a failure to populate must not fail the lookup.
+        }
     }
 }

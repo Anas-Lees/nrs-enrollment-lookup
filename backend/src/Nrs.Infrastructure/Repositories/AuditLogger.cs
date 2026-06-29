@@ -19,19 +19,24 @@ public class AuditLogger(NrsDbContext db) : IAuditLogger
         int? resultCount,
         CancellationToken cancellationToken = default)
     {
+        // Defensive: clamp to the AUDIT_ENTRY column widths so a hostile/over-long input can
+        // never make the audit INSERT overflow a column (ORA-12899) and turn into a 500.
         db.AuditEntries.Add(new AuditEntry
         {
             TimestampUtc = DateTimeOffset.UtcNow,
-            Actor = actor,
+            Actor = Clamp(actor, 100)!,
             Action = action,
-            TargetCrn = targetCrn,
-            Criteria = criteria,
+            TargetCrn = Clamp(targetCrn, 9),
+            Criteria = Clamp(criteria, 400),
             ResultCount = resultCount,
-            SourceIp = sourceIp,
+            SourceIp = Clamp(sourceIp, 45),
         });
 
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    private static string? Clamp(string? value, int max) =>
+        value is { Length: > 0 } && value.Length > max ? value[..max] : value;
 
     public async Task<IReadOnlyList<AuditEntryDto>> GetRecentAsync(
         int take,
