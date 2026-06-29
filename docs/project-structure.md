@@ -27,7 +27,6 @@ nrs-enrollment-lookup/            # Git repository root — the whole solution l
 ├── .editorconfig          [WS1]  # Shared formatting rules (C# + TS) — enforced in CI
 ├── .gitattributes                # Line-ending normalisation
 ├── LICENSE                       # Licence / usage terms
-├── CODEOWNERS             [WS1]  # Auto-requests the right reviewers per folder
 ├── docker-compose.yml     [WS1]  # Local Oracle XE + Keycloak + Redis for development
 ├── .github/               [WS1]  # CI/CD automation & repo policy
 │   ├── workflows/         [WS1]
