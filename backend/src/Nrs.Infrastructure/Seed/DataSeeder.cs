@@ -28,6 +28,11 @@ public static class DataSeeder
     private const int DefaultCount = 100;
     private const int Seed = 20260628;
 
+    // Bogus's Randomizer.Seed is global/static, so concurrent generation (e.g. parallel
+    // integration-test factories each seeding their own database) would race and produce
+    // non-deterministic data. Serialize generation to keep it reproducible and thread-safe.
+    private static readonly object GenerationLock = new();
+
     // Roughly 85% of the population is Omani; the rest are expats. The threshold is
     // applied against a per-person dice roll so the split is deterministic.
     private const double OmaniShare = 0.85;
@@ -382,6 +387,15 @@ public static class DataSeeder
     /// address and contact. Exposed so tests can generate data without a database.
     /// </summary>
     public static IReadOnlyList<Person> GeneratePersons(int count = DefaultCount)
+    {
+        // Serialize: Randomizer.Seed is static, so parallel callers must not interleave.
+        lock (GenerationLock)
+        {
+            return GeneratePersonsCore(count);
+        }
+    }
+
+    private static List<Person> GeneratePersonsCore(int count)
     {
         Randomizer.Seed = new Random(Seed);
         var faker = new Faker();

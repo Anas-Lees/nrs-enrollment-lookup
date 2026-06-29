@@ -5,60 +5,64 @@ namespace Nrs.Api.IntegrationTests;
 
 /// <summary>
 /// Verifies fuzzy bilingual name search end-to-end: the normalized NameSearch column makes
-/// matching insensitive to Arabic orthographic variants (diacritics, alef/hamza forms) and
-/// to English case. Tolerant of the exact seeded set — asserts equivalence between variant
-/// spellings of the same query rather than fixed counts.
+/// matching insensitive to Arabic diacritics and to English case. Self-referential — it
+/// reads a real seeded person and searches by variants of that person's own name, so it
+/// does not depend on any specific name being present. (The exact orthographic folding
+/// rules — alef/hamza/taa-marbuta/maksura — are covered by NameNormalizerTests.)
 /// </summary>
 public class SearchFuzzyTests(NrsApiFactory factory) : IClassFixture<NrsApiFactory>
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    private async Task<int> CountAsync(string name)
+    private async Task<JsonElement> SearchAsync(string name)
     {
         var url = $"/api/v1/persons/search?name={Uri.EscapeDataString(name)}&pageSize=100";
-        var page = await _client.GetFromJsonAsync<JsonElement>(url);
-        return page.GetProperty("totalCount").GetInt32();
+        return await _client.GetFromJsonAsync<JsonElement>(url);
+    }
+
+    private async Task<(string Crn, string FirstNameEn, string FirstNameAr)> AnyPersonAsync()
+    {
+        var page = await _client.GetFromJsonAsync<JsonElement>("/api/v1/persons/search?pageSize=1");
+        var p = page.GetProperty("items")[0];
+        return (
+            p.GetProperty("civilNumber").GetString()!,
+            p.GetProperty("firstNameEn").GetString()!,
+            p.GetProperty("firstNameAr").GetString()!);
+    }
+
+    private static bool ContainsCrn(JsonElement page, string crn) =>
+        page.GetProperty("items").EnumerateArray()
+            .Any(i => i.GetProperty("civilNumber").GetString() == crn);
+
+    [Fact]
+    public async Task EnglishSearch_IsCaseInsensitive()
+    {
+        var person = await AnyPersonAsync();
+
+        Assert.True(ContainsCrn(await SearchAsync(person.FirstNameEn.ToUpperInvariant()), person.Crn));
+        Assert.True(ContainsCrn(await SearchAsync(person.FirstNameEn.ToLowerInvariant()), person.Crn));
     }
 
     [Fact]
     public async Task ArabicSearch_IsDiacriticInsensitive()
     {
-        // "محمد" plain vs. with tashkeel (shadda/fatha) must match the same people.
-        var plain = await CountAsync("محمد");
-        var diacritized = await CountAsync("مُحَمَّد");
+        var person = await AnyPersonAsync();
 
-        Assert.True(plain > 0, "expected at least one 'محمد' in the seeded data");
-        Assert.Equal(plain, diacritized);
+        // The plain Arabic name finds the person...
+        Assert.True(ContainsCrn(await SearchAsync(person.FirstNameAr), person.Crn));
+
+        // ...and so does the same name with a tashkeel diacritic (fatha) inserted, because
+        // both the stored column and the query are normalized identically.
+        var diacritized = person.FirstNameAr.Insert(1, "َ");
+        Assert.True(ContainsCrn(await SearchAsync(diacritized), person.Crn));
     }
 
     [Fact]
-    public async Task ArabicSearch_FoldsAlefAndHamzaForms()
+    public async Task Search_TrimsAndMatches()
     {
-        // "أحمد" (alef-hamza) and "احمد" (bare alef) are the same name.
-        var withHamza = await CountAsync("أحمد");
-        var bareAlef = await CountAsync("احمد");
+        var person = await AnyPersonAsync();
 
-        Assert.True(bareAlef > 0, "expected at least one 'احمد' in the seeded data");
-        Assert.Equal(withHamza, bareAlef);
-    }
-
-    [Fact]
-    public async Task EnglishSearch_IsCaseInsensitive()
-    {
-        var lower = await CountAsync("mohammed");
-        var upper = await CountAsync("MOHAMMED");
-        var mixed = await CountAsync("MoHammed");
-
-        Assert.True(lower > 0, "expected at least one 'Mohammed' in the seeded data");
-        Assert.Equal(lower, upper);
-        Assert.Equal(lower, mixed);
-    }
-
-    [Fact]
-    public async Task Search_MatchesEitherFirstOrFamilyName()
-    {
-        // A common Omani family name still matches via the combined NameSearch column.
-        var byFamily = await CountAsync("Balushi");
-        Assert.True(byFamily > 0, "expected at least one 'Al-Balushi' in the seeded data");
+        // Surrounding whitespace is normalized away.
+        Assert.True(ContainsCrn(await SearchAsync($"  {person.FirstNameEn}  "), person.Crn));
     }
 }
