@@ -19,6 +19,10 @@ with tests, containers, CI/CD and OpenShift manifests.
 
 ## Screenshots
 
+**Sign in — Keycloak login themed to match the console**
+
+![NRS-themed Keycloak login page](docs/screenshots/login-en.png)
+
 **Smart search — card results with the live quick-preview panel (English)**
 
 ![Operator console: smart search with card results and quick-preview, English](docs/screenshots/search-en.png)
