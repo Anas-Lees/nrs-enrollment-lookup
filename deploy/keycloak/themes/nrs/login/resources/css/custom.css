@@ -1,0 +1,250 @@
+/* NRS / Royal Oman Police login branding — matches the app's deep-green console theme.
+   CSS-only enhancement over the stock Keycloak login (classic theme markup):
+   adds the NRS logo + a bilingual subtitle, and restyles the card, inputs and button. */
+
+:root {
+  --rop-green: #1c6b41;
+  --rop-green-dark: #14512f;
+  --rop-green-900: #0f3d24;
+  --rop-gold: #b8860b;
+}
+
+/* Deep-green background instead of Keycloak's default image. */
+html,
+body.login-pf,
+.login-pf body {
+  background: radial-gradient(1200px 600px at 50% -10%, #1f7a4a 0%, var(--rop-green-900) 70%) !important;
+  background-attachment: fixed !important;
+}
+
+.login-pf-page {
+  padding-top: 5vh;
+}
+
+/* Brand block: NRS logo, the realm display name ("NRS Enrollment"), and a bilingual subtitle. */
+#kc-header,
+#kc-header-wrapper {
+  color: #ffffff;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  padding: 0 1rem 1.4rem;
+  line-height: 1.3;
+}
+
+#kc-header-wrapper::before {
+  content: '';
+  display: block;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 0.7rem;
+  background: url('../img/nrs-logo.png') center / contain no-repeat;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+}
+
+#kc-header-wrapper::after {
+  /* Literal UTF-8 so the spaces between the Arabic words actually render (a space after a
+     \xxxx escape is consumed as the escape terminator, which ran the words together). */
+  content: 'Royal Oman Police · شرطة عُمان السلطانية';
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* The login card. */
+.login-pf-page .card-pf {
+  max-width: 440px;
+  margin: 0 auto;
+  border: none;
+  border-top: 4px solid var(--rop-gold);
+  border-radius: 16px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.4);
+  padding: 2rem 2.25rem 2.25rem;
+}
+
+#kc-form-wrapper {
+  margin-top: 0.5rem;
+}
+
+/* Field labels + inputs. */
+.login-pf-page .control-label,
+label {
+  font-weight: 600;
+  color: #243b30;
+}
+
+.form-control,
+input[type='text'],
+input[type='email'],
+input[type='password'],
+.pf-c-form-control {
+  height: 2.9rem;
+  border-radius: 9px !important;
+  border: 1px solid #cdd6d0 !important;
+}
+
+.form-control:focus,
+input[type='text']:focus,
+input[type='password']:focus,
+.pf-c-form-control:focus {
+  border-color: var(--rop-green) !important;
+  box-shadow: 0 0 0 3px rgba(28, 107, 65, 0.22) !important;
+}
+
+/* Password field: merge the show/hide eye INTO the input so it reads as one rounded
+   control (Keycloak wraps the password input + toggle button in a .pf-c-input-group,
+   which otherwise renders the eye as a separate bordered square). */
+.pf-c-input-group {
+  display: flex;
+  align-items: stretch;
+  height: 2.9rem;
+  border: 1px solid #cdd6d0;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.pf-c-input-group:focus-within {
+  border-color: var(--rop-green);
+  box-shadow: 0 0 0 3px rgba(28, 107, 65, 0.22);
+}
+
+.pf-c-input-group .pf-c-form-control {
+  flex: 1;
+  height: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.pf-c-input-group .pf-c-button.pf-m-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.9rem;
+  padding: 0;
+  border: none !important;
+  background: transparent !important;
+  color: #5b6470 !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+/* PatternFly draws the control button's border/divider via ::after — remove it so the
+   eye sits flush inside the field with no box or vertical divider line. */
+.pf-c-input-group .pf-c-button.pf-m-control::after {
+  display: none !important;
+  border: none !important;
+}
+
+.pf-c-input-group .pf-c-button.pf-m-control:hover {
+  color: var(--rop-green) !important;
+  background: transparent !important;
+}
+
+/* Primary button (Sign in) — full-width ROP green, both classic + PatternFly markup. */
+.btn-primary,
+input.btn-primary,
+#kc-login,
+.pf-c-button.pf-m-primary,
+.pf-v5-c-button.pf-m-primary {
+  width: 100%;
+  height: 3rem;
+  background-color: var(--rop-green) !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 10px;
+  margin-top: 0.4rem;
+  transition: background-color 0.12s ease;
+}
+
+.btn-primary:hover,
+input.btn-primary:hover,
+#kc-login:hover,
+.pf-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:hover {
+  background-color: var(--rop-green-dark) !important;
+}
+
+/* Links + checkbox accent. */
+a,
+#kc-registration a,
+#kc-info-message a {
+  color: var(--rop-green);
+}
+a:hover {
+  color: var(--rop-green-dark);
+}
+input[type='checkbox'] {
+  accent-color: var(--rop-green);
+}
+
+/* Language picker — renders on the WHITE login card, so text must be dark (not white) and
+   the toggle needs a visible caret. */
+#kc-locale {
+  text-align: end;
+}
+
+/* Keep the dropdown MENU anchored directly under the toggle on the same side. PatternFly
+   pins it to the physical right (pf-m-align-right), which detaches it from the toggle in
+   Arabic/RTL (toggle on the left, menu floating on the right). Anchoring to the inline-end
+   of an inline-block wrapper keeps them together in both directions. */
+#kc-locale-wrapper,
+#kc-locale-dropdown {
+  position: relative;
+  display: inline-block;
+  text-align: start;
+}
+
+#kc-locale-dropdown ul.pf-c-dropdown__menu {
+  left: auto !important;
+  right: auto !important;
+  inset-inline-end: 0 !important;
+}
+
+#kc-current-locale-link {
+  background: transparent;
+  border: none;
+  color: #243b30;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+}
+
+/* Dropdown caret on the toggle. */
+#kc-current-locale-link::after {
+  content: '▾';
+  margin-inline-start: 0.35rem;
+  font-size: 0.8em;
+  color: #5b6470;
+}
+
+/* The dropdown menu items were inheriting white text (invisible on the white menu). */
+#kc-locale-dropdown ul {
+  list-style: none;
+  background: #fff;
+  border: 1px solid #cdd6d0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 0.25rem;
+}
+
+#kc-locale a,
+#kc-locale .pf-c-dropdown__menu-item {
+  display: block;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  color: #243b30 !important;
+  text-decoration: none;
+}
+
+#kc-locale a:hover,
+#kc-locale .pf-c-dropdown__menu-item:hover {
+  background: #f0f4f1;
+  color: var(--rop-green) !important;
+}
