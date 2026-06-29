@@ -7,8 +7,8 @@
 #   open http://localhost:8081       # Keycloak admin (admin / admin)
 #
 # This runs the production-shaped stack: Angular SPA (nginx) -> API (.NET) on an
-# Oracle database, with Keycloak (OIDC/JWT) enforcing login. Redis is included as
-# the platform cache placeholder.
+# Oracle database, with Keycloak (OIDC/JWT) enforcing login and Redis caching hot
+# profile reads (the API falls back to an in-memory cache when Redis is absent).
 #
 # Keycloak split-horizon: the browser reaches Keycloak at localhost:8081 while the
 # API reaches it at keycloak:8080. KC_HOSTNAME fixes the token issuer to
@@ -67,6 +67,8 @@ services:
       DatabaseProvider: Oracle
       # Connect as the least-privilege app account, not SYSTEM/DBA.
       ConnectionStrings__Default: "User Id=nrs_app;Password=nrs_app_password;Data Source=oracle:1521/XEPDB1"
+      # Distributed cache for hot profile reads (cache-aside; audit still fires per request).
+      ConnectionStrings__Redis: "redis:6379"
       Auth__Enabled: "true"
       Auth__Authority: http://localhost:8081/realms/nrs
       Auth__Audience: nrs-api
@@ -78,6 +80,8 @@ services:
     depends_on:
       oracle:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   spa:
     build:
