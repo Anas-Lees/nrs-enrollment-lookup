@@ -1,6 +1,8 @@
 using System.Data.Common;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Nrs.Api.Extensions;
 using Nrs.Api.Middleware;
@@ -30,6 +32,31 @@ builder.Services.AddHealthChecks()
 
 // Optional Keycloak (OIDC/JWT) auth — off unless Auth:Enabled is true.
 var authEnabled = builder.Services.AddNrsAuthentication(builder.Configuration);
+
+// Rate limiting on lookups — throttle per operator (or per IP when anonymous) to blunt
+// population enumeration / scraping. Sliding window; configurable for tuning and tests.
+var permitLimit = builder.Configuration.GetValue<int?>("RateLimiting:PermitLimit") ?? 60;
+var windowSeconds = builder.Configuration.GetValue<int?>("RateLimiting:WindowSeconds") ?? 60;
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("lookup", httpContext =>
+    {
+        var partitionKey =
+            httpContext.User.Identity?.Name
+            ?? httpContext.User.FindFirst("preferred_username")?.Value
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "anonymous";
+
+        return RateLimitPartition.GetSlidingWindowLimiter(partitionKey, _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromSeconds(windowSeconds),
+            SegmentsPerWindow = 6,
+            QueueLimit = 0,
+        });
+    });
+});
 
 // Allow the Angular dev server to call the API.
 builder.Services.AddCors(options => options.AddPolicy(SpaCorsPolicy, policy => policy
@@ -85,6 +112,9 @@ if (authEnabled)
     app.UseAuthentication();
     app.UseAuthorization();
 }
+
+// After auth so the limiter can partition by the authenticated operator.
+app.UseRateLimiter();
 
 app.MapControllers();
 
