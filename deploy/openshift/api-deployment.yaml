@@ -45,9 +45,55 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          # Non-secret config (env, URLs, provider toggle, POC SQLite path) comes
+          # from the ConfigMap. Credentials are injected key-by-key from the
+          # nrs-secrets Secret below — never via envFrom of the whole Secret, and
+          # never from the ConfigMap.
           envFrom:
             - configMapRef:
                 name: nrs-api-config
+          env:
+            # --- Secrets from nrs-secrets (see secret.yaml) ---
+            # Injected per-key via secretKeyRef so the pod spec lists exactly which
+            # secret values it consumes. optional:true keeps the POC bootable when
+            # the Secret is absent (the demo runs on pod-local SQLite + auth off);
+            # for production, populate nrs-secrets and flip optional to false.
+            #
+            # Keycloak/OIDC confidential-client secret. Only meaningful if a
+            # confidential-client flow is enabled; harmless to inject otherwise.
+            - name: Auth__ClientSecret
+              valueFrom:
+                secretKeyRef:
+                  name: nrs-secrets
+                  key: Auth__ClientSecret
+                  optional: true
+            # Standalone DB password (rotation / tooling convenience).
+            - name: Database__Password
+              valueFrom:
+                secretKeyRef:
+                  name: nrs-secrets
+                  key: Database__Password
+                  optional: true
+            # Optional Redis connection string (may carry a password).
+            - name: ConnectionStrings__Redis
+              valueFrom:
+                secretKeyRef:
+                  name: nrs-secrets
+                  key: ConnectionStrings__Redis
+                  optional: true
+            # --- PRODUCTION (Oracle) OVERRIDE ---
+            # Uncomment to source the real, credential-bearing Oracle connection
+            # string from the Secret. An explicit env entry takes precedence over
+            # the same key supplied by envFrom (the ConfigMap's POC SQLite value),
+            # so this cleanly replaces it. Also set DatabaseProvider=Oracle in the
+            # ConfigMap. Use optional:false in production so a missing Secret fails
+            # fast instead of silently falling back.
+            # - name: ConnectionStrings__Default
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: nrs-secrets
+            #       key: ConnectionStrings__Default
+            #       optional: false
           # startupProbe decouples slow cold starts (migrate + seed) from liveness, so a
           # slow boot can't trip a restart loop.
           startupProbe:
