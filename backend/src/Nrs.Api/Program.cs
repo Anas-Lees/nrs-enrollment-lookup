@@ -12,7 +12,9 @@ using Nrs.Infrastructure.Seed;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using RedisRateLimiting;
 using Scalar.AspNetCore;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,30 +94,63 @@ var authEnabled = builder.Services.AddNrsAuthentication(builder.Configuration);
 
 // Rate limiting on lookups — throttle per operator (or per IP when anonymous) to blunt
 // population enumeration / scraping. Sliding window; configurable for tuning and tests.
-// NOTE: this limiter is in-memory/per-instance, so with N replicas the effective limit is
-// N x PermitLimit. For a multi-replica production deployment, back it with a shared store
-// (Redis) so the window holds across pods — see docs/PRODUCTION_CHECKLIST.md.
+//
+// Distributed by default: when a Redis connection string is configured the window lives in
+// Redis (key rl:sw:{partition}), so the limit holds ACROSS replicas — N pods share one
+// counter per operator/IP instead of each enforcing its own (which made the effective limit
+// N x PermitLimit). When Redis is NOT configured we fall back to the in-memory/per-instance
+// limiter so local dev and the integration tests run with no external dependency.
 var permitLimit = builder.Configuration.GetValue<int?>("RateLimiting:PermitLimit") ?? 60;
 var windowSeconds = builder.Configuration.GetValue<int?>("RateLimiting:WindowSeconds") ?? 60;
+var rateLimitWindow = TimeSpan.FromSeconds(windowSeconds);
+
+// Same partitioning either way: the authenticated operator when present, else the caller IP.
+static string ResolveRateLimitPartition(HttpContext httpContext) =>
+    httpContext.User.Identity?.Name
+    ?? httpContext.User.FindFirst("preferred_username")?.Value
+    ?? httpContext.Connection.RemoteIpAddress?.ToString()
+    ?? "anonymous";
+
+// Reuse the cache's Redis connection string. Build a single shared multiplexer (thread-safe,
+// meant to be long-lived) only when Redis is actually configured.
+var rateLimitRedis = builder.Configuration.GetConnectionString("Redis");
+ConnectionMultiplexer? rateLimitMultiplexer = null;
+if (!string.IsNullOrWhiteSpace(rateLimitRedis))
+{
+    rateLimitMultiplexer = ConnectionMultiplexer.Connect(rateLimitRedis);
+}
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy("lookup", httpContext =>
-    {
-        var partitionKey =
-            httpContext.User.Identity?.Name
-            ?? httpContext.User.FindFirst("preferred_username")?.Value
-            ?? httpContext.Connection.RemoteIpAddress?.ToString()
-            ?? "anonymous";
 
-        return RateLimitPartition.GetSlidingWindowLimiter(partitionKey, _ => new SlidingWindowRateLimiterOptions
-        {
-            PermitLimit = permitLimit,
-            Window = TimeSpan.FromSeconds(windowSeconds),
-            SegmentsPerWindow = 6,
-            QueueLimit = 0,
-        });
-    });
+    if (rateLimitMultiplexer is not null)
+    {
+        // Redis-backed sliding window — shared across all API replicas.
+        options.AddPolicy("lookup", httpContext =>
+            RedisRateLimitPartition.GetSlidingWindowRateLimiter(
+                ResolveRateLimitPartition(httpContext),
+                _ => new RedisSlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = permitLimit,
+                    Window = rateLimitWindow,
+                    ConnectionMultiplexerFactory = () => rateLimitMultiplexer,
+                }));
+    }
+    else
+    {
+        // In-memory fallback — per-instance, for dev/tests without Redis.
+        options.AddPolicy("lookup", httpContext =>
+            RateLimitPartition.GetSlidingWindowLimiter(
+                ResolveRateLimitPartition(httpContext),
+                _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = permitLimit,
+                    Window = rateLimitWindow,
+                    SegmentsPerWindow = 6,
+                    QueueLimit = 0,
+                }));
+    }
 });
 
 // Allowed browser origins are environment-configurable (Cors:AllowedOrigins). In the
