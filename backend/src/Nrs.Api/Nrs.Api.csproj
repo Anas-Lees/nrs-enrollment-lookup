@@ -8,6 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Nrs.Application\Nrs.Application.csproj" />
     <ProjectReference Include="..\Nrs.Infrastructure\Nrs.Infrastructure.csproj" />
+    <!-- Carries the Oracle migration set so it is available at runtime for MigrateAsync. -->
+    <ProjectReference Include="..\Nrs.Infrastructure.Migrations.Oracle\Nrs.Infrastructure.Migrations.Oracle.csproj" />
   </ItemGroup>
 
   <ItemGroup>

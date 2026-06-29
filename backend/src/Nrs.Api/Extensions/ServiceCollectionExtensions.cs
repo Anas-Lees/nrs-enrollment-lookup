@@ -44,6 +44,8 @@ public static class ServiceCollectionExtensions
                         // Target 19c SQL so generated queries avoid 23c-only features (e.g. the
                         // boolean literals that Oracle XE 21c rejects). Raise for newer servers.
                         oracle.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion19);
+                        // Oracle migrations live in their own assembly (see ADR/A8).
+                        oracle.MigrationsAssembly(NrsDbContextFactory.OracleMigrationsAssembly);
                         // Resilience: cap query time and retry transient connectivity blips.
                         oracle.CommandTimeout(30);
                         oracle.ExecutionStrategy(dependencies => new OracleTransientRetryStrategy(dependencies));

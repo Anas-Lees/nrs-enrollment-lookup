@@ -134,16 +134,9 @@ if (builder.Configuration.GetValue<bool?>("Database:InitializeOnStartup") ?? tru
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<NrsDbContext>();
 
-    // SQLite (dev/test) applies its EF migrations. Oracle still bootstraps via EnsureCreated
-    // here; a real Oracle migration set replaces this in the follow-up (A8b).
-    if (db.Database.IsSqlite())
-    {
-        await db.Database.MigrateAsync();
-    }
-    else
-    {
-        await db.Database.EnsureCreatedAsync();
-    }
+    // Both providers apply real EF migrations on startup. SQLite's set lives in
+    // Nrs.Infrastructure; Oracle's lives in Nrs.Infrastructure.Migrations.Oracle.
+    await db.Database.MigrateAsync();
 
     if (builder.Configuration.GetValue<bool?>("Database:SeedOnStartup") ?? true)
     {

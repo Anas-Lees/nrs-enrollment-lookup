@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Oracle-specific EF Core migration set, kept in its own assembly so it can coexist with
+    the SQLite migrations in Nrs.Infrastructure (a context loads one migration set per
+    assembly). The runtime selects this assembly via MigrationsAssembly when on Oracle.
+  -->
+
+  <PropertyGroup>
+    <!-- Generated migration code: silence the array/seed-data analyzer noise. -->
+    <NoWarn>$(NoWarn);CA1814;CA1861</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nrs.Infrastructure\Nrs.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
