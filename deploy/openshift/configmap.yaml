@@ -7,11 +7,14 @@ metadata:
     app: nrs
     component: api
 data:
-  # POC: Development enables auto-migrate + seed against pod-local SQLite.
-  # Production would set Production and point ConnectionStrings__Default at Oracle.
-  ASPNETCORE_ENVIRONMENT: "Development"
+  # Run production-shaped (no developer exception page / no anonymous API docs). Seeding
+  # defaults OFF under Production, so this demo opts in explicitly via Database__SeedOnStartup
+  # — exactly as the docker-compose stack does. A real deployment would set this false and
+  # point ConnectionStrings__Default at Oracle (DatabaseProvider=Oracle).
+  ASPNETCORE_ENVIRONMENT: "Production"
   ASPNETCORE_URLS: "http://+:8080"
   ConnectionStrings__Default: "Data Source=/app/data/nrs.db"
+  Database__SeedOnStartup: "true"
 ---
 # nginx site config for the SPA pod. Overrides the image's baked default.conf so
 # /api proxies to the in-cluster API Service (nrs-api) instead of the compose name.
