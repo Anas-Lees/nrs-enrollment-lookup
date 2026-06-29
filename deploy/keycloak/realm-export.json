@@ -16,6 +16,7 @@
   "maxFailureWaitSeconds": 900,
   "quickLoginCheckMilliSeconds": 1000,
   "minimumQuickLoginWaitSeconds": 60,
+  "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and digits(1) and notUsername",
   "roles": {
     "realm": [
       {
@@ -31,9 +32,9 @@
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
-      "redirectUris": ["http://localhost:4200/*", "https://*"],
-      "webOrigins": ["http://localhost:4200", "+"],
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:4200/*"],
+      "webOrigins": ["http://localhost:4200"],
       "attributes": {
         "pkce.code.challenge.method": "S256"
       },
