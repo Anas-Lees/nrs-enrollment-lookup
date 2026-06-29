@@ -46,6 +46,8 @@ services:
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     volumes:
       - ./deploy/keycloak/realm-export.json:/opt/keycloak/data/import/realm.json:ro
+      # Custom ROP-branded login theme (referenced by the realm's loginTheme=nrs).
+      - ./deploy/keycloak/themes:/opt/keycloak/themes:ro
     ports:
       - "8081:8080"
 
