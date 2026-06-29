@@ -21,19 +21,23 @@ with tests, containers, CI/CD and OpenShift manifests.
 
 **Sign in — Keycloak login themed to match the console**
 
-![NRS-themed Keycloak login page](docs/screenshots/login-en.png)
+![NRS-themed Keycloak login page](docs/screenshots/login.png)
 
 **Smart search — card results with the live quick-preview panel (English)**
 
 ![Operator console: smart search with card results and quick-preview, English](docs/screenshots/search-en.png)
 
-**Applicant profile — summary, biographic details & documents**
-
-![Applicant profile page, English](docs/screenshots/profile-en.png)
-
 **Full Arabic UI — mirrored right-to-left, Arabic-Indic dates**
 
 ![Operator console in Arabic, right-to-left](docs/screenshots/search-ar.png)
+
+**Applicant profile — summary, biographic details & documents**
+
+![Applicant profile page](docs/screenshots/profile.png)
+
+**API reference (Scalar) — every endpoint documented from the OpenAPI contract**
+
+![Scalar API reference rendered from the OpenAPI contract](docs/screenshots/scalar.png)
 
 > Data is synthetic (100 generated persons). Photos are initials-avatar placeholders — no real
 > people are depicted.
@@ -42,17 +46,47 @@ with tests, containers, CI/CD and OpenShift manifests.
 
 ## Architecture
 
+How the pieces talk to each other at runtime:
+
 ```mermaid
 flowchart LR
-  browser["Operator's browser"] --> spa["Angular SPA<br/>(nginx)"]
-  spa -->|/api| api["ASP.NET Core API<br/>(thin controllers)"]
-  api --> app["Application<br/>service + DTOs"]
-  app --> repo["Repository<br/>(EF Core)"]
-  app -.->|cache-aside| cache[("Redis<br/>hot profiles")]
-  repo --> db[("SQLite (dev)<br/>Oracle (prod)")]
-  kc["Keycloak<br/>OIDC / JWT (optional)"] -.-> spa
-  kc -.-> api
+  browser["Operator browser"]
+
+  subgraph SPA["Angular SPA (served by nginx)"]
+    app["Application layer: services and DTOs"]
+  end
+
+  subgraph API["ASP.NET Core API (.NET 10)"]
+    ctrl["Thin controllers"]
+    svc["PersonLookupService"]
+    repo["Repository (EF Core)"]
+  end
+
+  oracle[("Oracle")]
+  redis[("Redis cache")]
+  kc["Keycloak (OIDC)"]
+  otel["OTel collector"]
+
+  browser --> SPA
+  SPA -->|"/api proxy: HTTP and JSON with bearer token"| ctrl
+  ctrl --> svc
+  svc --> repo
+  repo -->|"SQL"| oracle
+  svc -.->|"cache-aside: hot profiles"| redis
+  SPA -.->|"login via Authorization Code and PKCE"| kc
+  API -.->|"validate JWT: issuer, audience, signing key"| kc
+  API -.->|"traces and metrics (optional)"| otel
 ```
+
+- The SPA is served by nginx, which also reverse-proxies `/api` to the backend, so the browser
+  talks to a single origin (no CORS in the container stack).
+- The SPA logs the operator in directly against **Keycloak** using Authorization Code + PKCE
+  and attaches the resulting bearer token to every API call.
+- The API **validates** each JWT against Keycloak (issuer, audience, lifetime, signing key) and
+  reads from **Oracle** through EF Core, with **Redis** as a best-effort cache-aside in front of
+  hot profile reads.
+- OpenTelemetry is instrumented in the API; when an OTLP endpoint is configured it exports
+  traces and metrics to a collector (otherwise it is a no-op).
 
 Clean, layered architecture with dependencies pointing **inward**
 (`Api → Application → Domain`; `Infrastructure` wired at the composition root) — see
@@ -70,16 +104,16 @@ sequenceDiagram
   participant V as PersonLookupService
   participant R as PersonRepository
   participant DB as Database
-  O->>S: enter filters, click Search
-  S->>A: GET /api/v1/persons/search?…
+  O->>S: Enter filters, click Search
+  S->>A: GET /api/v1/persons/search
   A->>V: SearchAsync(criteria)
-  V->>R: SearchAsync (normalised paging)
-  R->>DB: SELECT … WHERE … OFFSET/LIMIT
-  DB-->>R: rows + count
-  R-->>V: entities + total
-  V-->>A: PagedResult&lt;PersonSummaryDto&gt;
+  V->>R: SearchAsync with normalised paging
+  R->>DB: SELECT with WHERE, OFFSET and LIMIT
+  DB-->>R: Rows and total count
+  R-->>V: Entities and total
+  V-->>A: PagedResult of PersonSummary
   A-->>S: 200 application/json
-  S-->>O: paginated result cards
+  S-->>O: Paginated result cards
 ```
 
 ---
@@ -191,6 +225,16 @@ Off by default so the POC runs open. To enable: set `Auth:Enabled=true` (API) an
 `environment.auth.enabled=true` (SPA) with a running Keycloak using
 [`deploy/keycloak/realm-export.json`](deploy/keycloak/realm-export.json). The API then validates
 the JWT on every request (except `/health`) and the SPA guards its routes and attaches the token.
+
+---
+
+## Production readiness
+
+The application code is built secure-by-default, but the Docker Compose and OpenShift samples
+deliberately use convenient demo values (inline passwords, open API docs, SQLite). Before any
+real deployment, work through [`docs/PRODUCTION_CHECKLIST.md`](docs/PRODUCTION_CHECKLIST.md) — it
+covers the blockers (durable database, secrets, TLS, observability backend, distributed rate
+limiting) alongside what is already hardened.
 
 ---
 
