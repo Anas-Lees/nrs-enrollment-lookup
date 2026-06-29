@@ -462,6 +462,12 @@ namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
                         .HasColumnType("VARCHAR2(100)")
                         .HasColumnName("MOTHER_NAME_EN");
 
+                    b.Property<string>("NameSearch")
+                        .HasMaxLength(420)
+                        .IsUnicode(true)
+                        .HasColumnType("NVARCHAR2(420)")
+                        .HasColumnName("NAME_SEARCH");
+
                     b.Property<string>("NationalityCode")
                         .IsRequired()
                         .HasMaxLength(3)
@@ -516,6 +522,9 @@ namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
 
                     b.HasIndex("FamilyNameEn")
                         .HasDatabaseName("IX_PERSON_FAMILY_NAME_EN");
+
+                    b.HasIndex("NameSearch")
+                        .HasDatabaseName("IX_PERSON_NAME_SEARCH");
 
                     b.HasIndex("NationalityCode")
                         .HasDatabaseName("IX_PERSON_NATIONALITY_CODE");

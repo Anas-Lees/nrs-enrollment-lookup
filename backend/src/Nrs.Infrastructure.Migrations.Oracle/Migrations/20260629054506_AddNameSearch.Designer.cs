@@ -2,65 +2,73 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Nrs.Infrastructure.Persistence;
+using Oracle.EntityFrameworkCore.Metadata;
 
 #nullable disable
 
-namespace Nrs.Infrastructure.Migrations
+namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
 {
     [DbContext(typeof(NrsDbContext))]
-    partial class NrsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260629054506_AddNameSearch")]
+    partial class AddNameSearch
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            OracleModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("Nrs.Domain.Entities.Address", b =>
                 {
                     b.Property<string>("CivilNumber")
                         .HasMaxLength(9)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(9)")
                         .HasColumnName("CIVIL_NUMBER");
 
                     b.Property<string>("BuildingNumber")
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("BUILDING_NO");
 
                     b.Property<string>("Governorate")
                         .IsRequired()
                         .HasMaxLength(50)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(50)")
                         .HasColumnName("GOVERNORATE");
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(10)")
                         .HasColumnName("POSTAL_CODE");
 
                     b.Property<string>("Street")
                         .HasMaxLength(120)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(120)")
                         .HasColumnName("STREET");
 
                     b.Property<string>("Village")
                         .HasMaxLength(80)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(80)")
                         .HasColumnName("VILLAGE");
 
                     b.Property<string>("Wilayat")
                         .IsRequired()
                         .HasMaxLength(50)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(50)")
                         .HasColumnName("WILAYAT");
 
                     b.HasKey("CivilNumber");
@@ -72,47 +80,49 @@ namespace Nrs.Infrastructure.Migrations
                 {
                     b.Property<long>("AuditId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("NUMBER(19)")
                         .HasColumnName("AUDIT_ID");
+
+                    OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AuditId"));
 
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("ACTION");
 
                     b.Property<string>("Actor")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(100)")
                         .HasColumnName("ACTOR");
 
                     b.Property<string>("Criteria")
                         .HasMaxLength(400)
                         .IsUnicode(true)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("NVARCHAR2(400)")
                         .HasColumnName("CRITERIA");
 
                     b.Property<int?>("ResultCount")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("NUMBER(10)")
                         .HasColumnName("RESULT_COUNT");
 
                     b.Property<string>("SourceIp")
                         .HasMaxLength(45)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(45)")
                         .HasColumnName("SOURCE_IP");
 
                     b.Property<string>("TargetCrn")
                         .HasMaxLength(9)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(9)")
                         .HasColumnName("TARGET_CRN");
 
                     b.Property<DateTimeOffset>("TimestampUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("TIMESTAMP(7) WITH TIME ZONE")
                         .HasColumnName("TIMESTAMP_UTC");
 
                     b.HasKey("AuditId");
@@ -131,19 +141,19 @@ namespace Nrs.Infrastructure.Migrations
                     b.Property<string>("CivilNumber")
                         .HasMaxLength(9)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(9)")
                         .HasColumnName("CIVIL_NUMBER");
 
                     b.Property<string>("Email")
                         .HasMaxLength(120)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(120)")
                         .HasColumnName("EMAIL");
 
                     b.Property<string>("Mobile")
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("MOBILE");
 
                     b.HasKey("CivilNumber");
@@ -155,43 +165,45 @@ namespace Nrs.Infrastructure.Migrations
                 {
                     b.Property<long>("IdCardId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("NUMBER(19)")
                         .HasColumnName("ID_CARD_ID");
+
+                    OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("IdCardId"));
 
                     b.Property<string>("CardNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("CARD_NUMBER");
 
                     b.Property<string>("CardType")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("CARD_TYPE");
 
                     b.Property<string>("CivilNumber")
                         .IsRequired()
                         .HasMaxLength(9)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(9)")
                         .HasColumnName("CIVIL_NUMBER");
 
-                    b.Property<DateOnly?>("ExpiryDate")
-                        .HasColumnType("TEXT")
+                    b.Property<string>("ExpiryDate")
+                        .HasColumnType("NVARCHAR2(10)")
                         .HasColumnName("EXPIRY_DATE");
 
-                    b.Property<DateOnly?>("IssueDate")
-                        .HasColumnType("TEXT")
+                    b.Property<string>("IssueDate")
+                        .HasColumnType("NVARCHAR2(10)")
                         .HasColumnName("ISSUE_DATE");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("STATUS");
 
                     b.HasKey("IdCardId");
@@ -207,21 +219,21 @@ namespace Nrs.Infrastructure.Migrations
                     b.Property<string>("Code")
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(3)")
                         .HasColumnName("CODE");
 
                     b.Property<string>("NameAr")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(true)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("NVARCHAR2(100)")
                         .HasColumnName("NAME_AR");
 
                     b.Property<string>("NameEn")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(100)")
                         .HasColumnName("NAME_EN");
 
                     b.HasKey("Code");
@@ -331,43 +343,45 @@ namespace Nrs.Infrastructure.Migrations
                 {
                     b.Property<long>("PassportId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("NUMBER(19)")
                         .HasColumnName("PASSPORT_ID");
+
+                    OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PassportId"));
 
                     b.Property<string>("CivilNumber")
                         .IsRequired()
                         .HasMaxLength(9)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(9)")
                         .HasColumnName("CIVIL_NUMBER");
 
-                    b.Property<DateOnly?>("ExpiryDate")
-                        .HasColumnType("TEXT")
+                    b.Property<string>("ExpiryDate")
+                        .HasColumnType("NVARCHAR2(10)")
                         .HasColumnName("EXPIRY_DATE");
 
-                    b.Property<DateOnly?>("IssueDate")
-                        .HasColumnType("TEXT")
+                    b.Property<string>("IssueDate")
+                        .HasColumnType("NVARCHAR2(10)")
                         .HasColumnName("ISSUE_DATE");
 
                     b.Property<string>("PassportNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("PASSPORT_NUMBER");
 
                     b.Property<string>("PassportType")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("PASSPORT_TYPE");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("STATUS");
 
                     b.HasKey("PassportId");
@@ -383,121 +397,122 @@ namespace Nrs.Infrastructure.Migrations
                     b.Property<string>("CivilNumber")
                         .HasMaxLength(9)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(9)")
                         .HasColumnName("CIVIL_NUMBER");
 
                     b.Property<string>("BloodType")
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(3)")
                         .HasColumnName("BLOOD_TYPE");
 
-                    b.Property<DateOnly>("DateOfBirth")
-                        .HasColumnType("TEXT")
+                    b.Property<string>("DateOfBirth")
+                        .IsRequired()
+                        .HasColumnType("NVARCHAR2(10)")
                         .HasColumnName("DATE_OF_BIRTH");
 
                     b.Property<string>("FamilyNameAr")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(true)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("NVARCHAR2(100)")
                         .HasColumnName("FAMILY_NAME_AR");
 
                     b.Property<string>("FamilyNameEn")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(100)")
                         .HasColumnName("FAMILY_NAME_EN");
 
                     b.Property<string>("FirstNameAr")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(true)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("NVARCHAR2(100)")
                         .HasColumnName("FIRST_NAME_AR");
 
                     b.Property<string>("FirstNameEn")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(100)")
                         .HasColumnName("FIRST_NAME_EN");
 
                     b.Property<string>("Gender")
                         .IsRequired()
                         .HasMaxLength(1)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("CHAR(1)")
                         .HasColumnName("GENDER")
                         .IsFixedLength();
 
                     b.Property<string>("MaritalStatus")
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("MARITAL_STATUS");
 
                     b.Property<string>("MotherNameAr")
                         .HasMaxLength(100)
                         .IsUnicode(true)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("NVARCHAR2(100)")
                         .HasColumnName("MOTHER_NAME_AR");
 
                     b.Property<string>("MotherNameEn")
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(100)")
                         .HasColumnName("MOTHER_NAME_EN");
 
                     b.Property<string>("NameSearch")
                         .HasMaxLength(420)
                         .IsUnicode(true)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("NVARCHAR2(420)")
                         .HasColumnName("NAME_SEARCH");
 
                     b.Property<string>("NationalityCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(3)")
                         .HasColumnName("NATIONALITY_CODE");
 
                     b.Property<string>("OccupationAr")
                         .HasMaxLength(100)
                         .IsUnicode(true)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("NVARCHAR2(100)")
                         .HasColumnName("OCCUPATION_AR");
 
                     b.Property<string>("OccupationEn")
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(100)")
                         .HasColumnName("OCCUPATION_EN");
 
                     b.Property<string>("PhotoPath")
                         .HasMaxLength(500)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(500)")
                         .HasColumnName("PHOTO_PATH");
 
                     b.Property<string>("PlaceOfBirthAr")
                         .HasMaxLength(100)
                         .IsUnicode(true)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("NVARCHAR2(100)")
                         .HasColumnName("PLACE_OF_BIRTH_AR");
 
                     b.Property<string>("PlaceOfBirthEn")
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(100)")
                         .HasColumnName("PLACE_OF_BIRTH_EN");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("VARCHAR2(20)")
                         .HasColumnName("STATUS");
 
                     b.HasKey("CivilNumber");

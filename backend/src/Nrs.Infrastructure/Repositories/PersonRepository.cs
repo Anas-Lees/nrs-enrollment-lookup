@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Nrs.Application.Dtos;
 using Nrs.Application.Interfaces;
+using Nrs.Application.Search;
 using Nrs.Domain.Entities;
 using Nrs.Infrastructure.Persistence;
 
@@ -36,25 +37,18 @@ public class PersonRepository(NrsDbContext db) : IPersonRepository
             query = query.Where(p => p.CivilNumber.StartsWith(crn));
         }
 
-        // Name: partial, case-insensitive, across both English and Arabic names.
+        // Name: partial, fuzzy match across both English and Arabic names. The query is
+        // normalized the same way the stored NameSearch column is (diacritics/tatweel
+        // stripped, alef/yaa/taa-marbuta/hamza folded, accents removed, lower-cased), so
+        // "أحمد", "احمد" and "AHMED" all match. EF translates Contains() to a SQL LIKE that
+        // runs in the database against the indexed NameSearch column.
         if (!string.IsNullOrWhiteSpace(criteria.Name))
         {
-            var name = criteria.Name.Trim();
-            var lowered = name.ToLowerInvariant();
-
-            // EF Core translates string.ToLower() to SQL LOWER() and string.Contains() to
-            // LIKE, so the predicate runs IN THE DATABASE (not client-side). The suppressed
-            // analyzers all suggest culture/StringComparison overloads that EF cannot
-            // translate to SQL — using them would either fail translation (as ToLowerInvariant
-            // on a column does) or force in-memory evaluation. Lower-casing both sides keeps
-            // English matching case-insensitive; Arabic has no case, so a plain Contains.
-#pragma warning disable CA1304, CA1311, CA1862
-            query = query.Where(p =>
-                p.FirstNameEn.ToLower().Contains(lowered) ||
-                p.FamilyNameEn.ToLower().Contains(lowered) ||
-                p.FirstNameAr.Contains(name) ||
-                p.FamilyNameAr.Contains(name));
-#pragma warning restore CA1304, CA1311, CA1862
+            var normalized = NameNormalizer.Normalize(criteria.Name);
+            if (normalized.Length > 0)
+            {
+                query = query.Where(p => p.NameSearch != null && p.NameSearch.Contains(normalized));
+            }
         }
 
         // Date of birth: exact match.

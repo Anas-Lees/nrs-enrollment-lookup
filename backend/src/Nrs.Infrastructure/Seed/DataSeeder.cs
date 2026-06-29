@@ -1,6 +1,7 @@
 using System.Globalization;
 using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Nrs.Application.Search;
 using Nrs.Domain.Entities;
 using Nrs.Domain.Enums;
 using Nrs.Infrastructure.Persistence;
@@ -325,17 +326,55 @@ public static class DataSeeder
         ["Muscat", "Muscat", "Muscat", "Al Batinah North", "Al Batinah South", "Dhofar"];
 
     /// <summary>
-    /// Seeds the database if it is empty. Idempotent: a no-op when persons already exist.
+    /// Seeds the database if it is empty (idempotent), then backfills the normalized
+    /// <see cref="Person.NameSearch"/> column for any rows missing it — so both fresh seeds
+    /// and databases seeded before the column existed end up searchable.
     /// </summary>
     public static async Task SeedAsync(NrsDbContext db, CancellationToken cancellationToken = default)
     {
-        if (await db.Persons.AnyAsync(cancellationToken))
+        if (!await db.Persons.AnyAsync(cancellationToken))
+        {
+            db.Persons.AddRange(GeneratePersons(DefaultCount));
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        await BackfillNameSearchAsync(db, cancellationToken);
+    }
+
+    /// <summary>
+    /// Populates <see cref="Person.NameSearch"/> for any rows where it is missing. Cheap and
+    /// idempotent: once every row is populated the lookup returns nothing and this is a no-op.
+    /// </summary>
+    private static async Task BackfillNameSearchAsync(NrsDbContext db, CancellationToken cancellationToken)
+    {
+        var stale = await db.Persons
+            .Where(p => p.NameSearch == null || p.NameSearch == "")
+            .ToListAsync(cancellationToken);
+
+        if (stale.Count == 0)
         {
             return;
         }
 
-        db.Persons.AddRange(GeneratePersons(DefaultCount));
+        foreach (var p in stale)
+        {
+            p.NameSearch = BuildNameSearch(p.FirstNameAr, p.FamilyNameAr, p.FirstNameEn, p.FamilyNameEn);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>Normalized, space-joined concatenation of the four name parts (for search).</summary>
+    public static string BuildNameSearch(string firstAr, string familyAr, string firstEn, string familyEn)
+    {
+        var parts = new[]
+        {
+            NameNormalizer.Normalize(firstAr),
+            NameNormalizer.Normalize(familyAr),
+            NameNormalizer.Normalize(firstEn),
+            NameNormalizer.Normalize(familyEn),
+        };
+        return string.Join(' ', parts.Where(s => s.Length > 0));
     }
 
     /// <summary>
@@ -446,6 +485,7 @@ public static class DataSeeder
             FamilyNameEn = family.En,
             FirstNameAr = given.Ar,
             FamilyNameAr = family.Ar,
+            NameSearch = BuildNameSearch(given.Ar, family.Ar, given.En, family.En),
             DateOfBirth = dob,
             Gender = isMale ? "M" : "F",
             NationalityCode = nationality,

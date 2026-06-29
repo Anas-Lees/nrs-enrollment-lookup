@@ -18,6 +18,15 @@ public class Person
 
     public string FamilyNameEn { get; set; } = null!;
 
+    /// <summary>
+    /// Normalized, searchable concatenation of all four name parts (see NameNormalizer):
+    /// diacritics/tatweel stripped, alef/yaa/taa-marbuta/hamza folded, accents removed,
+    /// lower-cased. Populated on write; matched (LIKE) for fuzzy bilingual name search.
+    /// Nullable: Oracle stores an empty string as NULL, and a nullable column also adds
+    /// cleanly to an existing table (the seeder then backfills it).
+    /// </summary>
+    public string? NameSearch { get; set; }
+
     public DateOnly DateOfBirth { get; set; }
 
     /// <summary>Single character: "M" or "F".</summary>
