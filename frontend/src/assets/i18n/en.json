@@ -144,6 +144,8 @@
   "doc.empty": "No documents on file.",
   "doc.idCard": "ID Card",
   "doc.passport": "Passport",
+  "doc.idCards": "ID Cards",
+  "doc.passports": "Passports",
 
   "page.prev": "Previous",
   "page.next": "Next",

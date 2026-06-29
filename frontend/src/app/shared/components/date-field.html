@@ -1,0 +1,92 @@
+<div class="df">
+  <button
+    type="button"
+    class="df__input"
+    [disabled]="disabled()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-expanded]="open()"
+    (click)="toggle()"
+  >
+    <span class="df__icon" aria-hidden="true">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        focusable="false"
+      >
+        <rect x="2" y="3" width="12" height="11" rx="1.5" />
+        <line x1="2" y1="6.5" x2="14" y2="6.5" />
+        <line x1="5" y1="1.75" x2="5" y2="4" />
+        <line x1="11" y1="1.75" x2="11" y2="4" />
+      </svg>
+    </span>
+    <span class="df__value" [class.df__value--placeholder]="!value()">
+      {{ value() ? display() : placeholder() }}
+    </span>
+    <span class="df__chevron" aria-hidden="true">▾</span>
+  </button>
+
+  @if (value()) {
+    <button
+      type="button"
+      class="df__clear"
+      [attr.aria-label]="i18n.t('search.clear')"
+      (click)="clear($event)"
+    >
+      ×
+    </button>
+  }
+
+  @if (open()) {
+    <div class="df__pop" role="dialog" [attr.aria-label]="ariaLabel()">
+      <div class="df__nav">
+        <button type="button" class="df__navbtn" aria-label="previous year" (click)="shiftYear(-1)">
+          «
+        </button>
+        <button
+          type="button"
+          class="df__navbtn"
+          aria-label="previous month"
+          (click)="shiftMonth(-1)"
+        >
+          ‹
+        </button>
+        <span class="df__month">{{ monthLabel() }}</span>
+        <button type="button" class="df__navbtn" aria-label="next month" (click)="shiftMonth(1)">
+          ›
+        </button>
+        <button type="button" class="df__navbtn" aria-label="next year" (click)="shiftYear(1)">
+          »
+        </button>
+      </div>
+
+      <div class="df__grid df__weekdays">
+        @for (w of weekdays(); track w) {
+          <span class="df__wd">{{ w }}</span>
+        }
+      </div>
+
+      <div class="df__grid">
+        @for (c of cells(); track $index) {
+          @if (c === null) {
+            <span class="df__cell df__cell--empty"></span>
+          } @else {
+            <button
+              type="button"
+              class="df__cell"
+              [class.is-selected]="c === selectedDay()"
+              (click)="pick(c)"
+            >
+              {{ c }}
+            </button>
+          }
+        }
+      </div>
+    </div>
+  }
+</div>

@@ -1,38 +1,61 @@
-@if (rows().length === 0) {
-  <p class="doc-table__empty">{{ i18n.t('doc.empty') }}</p>
-} @else {
-  <table class="doc-table">
-    <thead>
-      <tr>
-        <th scope="col">{{ i18n.t('doc.type') }}</th>
-        <th scope="col">{{ i18n.t('doc.number') }}</th>
-        <th scope="col">{{ i18n.t('doc.subType') }}</th>
-        <th scope="col">{{ i18n.t('doc.status') }}</th>
-        <th scope="col">{{ i18n.t('doc.issued') }}</th>
-        <th scope="col">{{ i18n.t('doc.expires') }}</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (row of rows(); track row.number) {
-        <tr>
-          <td>{{ i18n.t(row.kind === 'ID Card' ? 'doc.idCard' : 'doc.passport') }}</td>
-          <td>{{ row.number }}</td>
-          <td>{{ row.subType }}</td>
-          <td><app-status-badge [status]="row.status" /></td>
-          <td>
-            {{
-              row.issueDate ? (row.issueDate | date: 'mediumDate' : undefined : i18n.locale()) : '—'
-            }}
-          </td>
-          <td>
-            {{
-              row.expiryDate
-                ? (row.expiryDate | date: 'mediumDate' : undefined : i18n.locale())
-                : '—'
-            }}
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
-}
+<div class="doc-split">
+  <section class="doc-group">
+    <h3 class="doc-group__title">{{ i18n.t('doc.idCards') }}</h3>
+    @if (idCardRows().length === 0) {
+      <p class="doc-table__empty">{{ i18n.t('doc.empty') }}</p>
+    } @else {
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th scope="col">{{ i18n.t('doc.number') }}</th>
+            <th scope="col">{{ i18n.t('doc.subType') }}</th>
+            <th scope="col">{{ i18n.t('doc.status') }}</th>
+            <th scope="col">{{ i18n.t('doc.issued') }}</th>
+            <th scope="col">{{ i18n.t('doc.expires') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of idCardRows(); track row.number) {
+            <tr>
+              <td class="mono">{{ row.number }}</td>
+              <td>{{ row.subType }}</td>
+              <td><app-status-badge [status]="row.status" /></td>
+              <td>{{ row.issueDate ? (row.issueDate | appDate: i18n.lang()) : '—' }}</td>
+              <td>{{ row.expiryDate ? (row.expiryDate | appDate: i18n.lang()) : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+
+  <section class="doc-group">
+    <h3 class="doc-group__title">{{ i18n.t('doc.passports') }}</h3>
+    @if (passportRows().length === 0) {
+      <p class="doc-table__empty">{{ i18n.t('doc.empty') }}</p>
+    } @else {
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th scope="col">{{ i18n.t('doc.number') }}</th>
+            <th scope="col">{{ i18n.t('doc.subType') }}</th>
+            <th scope="col">{{ i18n.t('doc.status') }}</th>
+            <th scope="col">{{ i18n.t('doc.issued') }}</th>
+            <th scope="col">{{ i18n.t('doc.expires') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of passportRows(); track row.number) {
+            <tr>
+              <td class="mono">{{ row.number }}</td>
+              <td>{{ row.subType }}</td>
+              <td><app-status-badge [status]="row.status" /></td>
+              <td>{{ row.issueDate ? (row.issueDate | appDate: i18n.lang()) : '—' }}</td>
+              <td>{{ row.expiryDate ? (row.expiryDate | appDate: i18n.lang()) : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+</div>

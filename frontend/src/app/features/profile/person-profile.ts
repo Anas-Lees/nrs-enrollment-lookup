@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -8,11 +7,12 @@ import { PersonService } from '../../core/services/person.service';
 import { Person } from '../../core/models/person.model';
 import { DocumentTable } from '../../shared/components/document-table';
 import { StatusBadge } from '../../shared/components/status-badge';
+import { AppDatePipe } from '../../shared/app-date.pipe';
 import { avatarColor, personInitials } from '../../shared/avatar';
 
 @Component({
   selector: 'app-person-profile',
-  imports: [RouterLink, DatePipe, DocumentTable, StatusBadge],
+  imports: [RouterLink, DocumentTable, StatusBadge, AppDatePipe],
   templateUrl: './person-profile.html',
   styleUrl: './person-profile.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,7 +29,16 @@ export class PersonProfile {
 
   readonly initials = computed(() => {
     const p = this.person();
-    return p ? personInitials(p.firstNameEn, p.familyNameEn) : '';
+    // Reading i18n.lang() makes this recompute (to the right script) on a language toggle.
+    return p
+      ? personInitials(
+          p.firstNameEn,
+          p.familyNameEn,
+          p.firstNameAr,
+          p.familyNameAr,
+          this.i18n.lang(),
+        )
+      : '';
   });
 
   readonly avatarColor = computed(() => {
