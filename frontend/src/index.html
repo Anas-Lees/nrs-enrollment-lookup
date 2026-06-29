@@ -12,6 +12,18 @@
     <meta name="theme-color" content="#14512f" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="alternate icon" href="favicon.ico" />
+    <!-- Apply the saved language/direction before Angular boots, so an Arabic-preference
+         operator doesn't see a flash of left-to-right layout on first paint. -->
+    <script>
+      try {
+        if (localStorage.getItem('nrs.lang') === 'ar') {
+          document.documentElement.lang = 'ar';
+          document.documentElement.dir = 'rtl';
+        }
+      } catch (e) {
+        /* localStorage unavailable (e.g. private mode) — fall back to the default. */
+      }
+    </script>
   </head>
   <body>
     <app-root></app-root>

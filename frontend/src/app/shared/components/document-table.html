@@ -19,8 +19,18 @@
           <td>{{ row.number }}</td>
           <td>{{ row.subType }}</td>
           <td><app-status-badge [status]="row.status" /></td>
-          <td>{{ row.issueDate ? (row.issueDate | date: 'mediumDate') : '—' }}</td>
-          <td>{{ row.expiryDate ? (row.expiryDate | date: 'mediumDate') : '—' }}</td>
+          <td>
+            {{
+              row.issueDate ? (row.issueDate | date: 'mediumDate' : undefined : i18n.locale()) : '—'
+            }}
+          </td>
+          <td>
+            {{
+              row.expiryDate
+                ? (row.expiryDate | date: 'mediumDate' : undefined : i18n.locale())
+                : '—'
+            }}
+          </td>
         </tr>
       }
     </tbody>
