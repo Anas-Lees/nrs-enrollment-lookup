@@ -70,20 +70,18 @@ public class PersonRepository(NrsDbContext db) : IPersonRepository
             query = query.Where(p => p.NationalityCode == nat);
         }
 
-        // Defensive paging clamps: keep Skip/Take valid regardless of caller input.
-        var page = criteria.Page < 1 ? 1 : criteria.Page;
-        var pageSize = criteria.PageSize is < 1 or > 100 ? 20 : criteria.PageSize;
-
         // Total count of all matches, before paging is applied.
         var totalCount = await query.CountAsync(cancellationToken);
 
-        // Stable ordering is required before Skip/Take so pages are deterministic.
+        // Paging is validated at the API boundary and normalised by the service, so the
+        // values are trusted here (no second clamp). Stable ordering before Skip/Take keeps
+        // pages deterministic.
         var items = await query
             .OrderBy(p => p.FamilyNameEn)
             .ThenBy(p => p.FirstNameEn)
             .ThenBy(p => p.CivilNumber)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((criteria.Page - 1) * criteria.PageSize)
+            .Take(criteria.PageSize)
             .ToListAsync(cancellationToken);
 
         return (items, totalCount);

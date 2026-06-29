@@ -58,14 +58,12 @@ public class PersonLookupEndpointsTests : IClassFixture<NrsApiFactory>
     }
 
     [Fact]
-    public async Task Search_ClampsLargePageSize()
+    public async Task Search_RejectsOutOfRangePageSize_With400()
     {
-        var page = await _client.GetFromJsonAsync<PagedResult<PersonSummary>>(
-            "/api/v1/persons/search?pageSize=9999", JsonOptions);
+        // pageSize is documented (and now validated) as 1..100; out of range is a 400.
+        var response = await _client.GetAsync("/api/v1/persons/search?pageSize=9999");
 
-        Assert.NotNull(page);
-        Assert.Equal(20, page!.PageSize);
-        Assert.True(page.Items.Count <= 20, "Items returned should not exceed the clamped page size of 20.");
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
