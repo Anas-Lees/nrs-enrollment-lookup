@@ -76,3 +76,32 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/* Skip-to-content link: off-screen until focused, then revealed (WCAG 2.4.1). */
+.skip-link {
+  position: absolute;
+  inset-inline-start: 0.5rem;
+  top: 0.5rem;
+  z-index: 1000;
+  padding: 0.5rem 1rem;
+  background: var(--rop-green-600, #1c6b41);
+  color: #fff;
+  border-radius: 6px;
+  transform: translateY(-150%);
+  transition: transform 0.15s ease;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Consistent, visible keyboard focus for all interactive elements (WCAG 2.4.7).
+   Uses :focus-visible so it only shows for keyboard/AT, not mouse clicks. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--rop-green-600, #1c6b41);
+  outline-offset: 2px;
+}
