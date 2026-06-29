@@ -19,4 +19,15 @@
   >
     {{ i18n.t('page.next') }}
   </button>
+
+  @if (pageSizeOptions().length) {
+    <label class="pagination__size">
+      <span>{{ i18n.t('page.perPage') }}</span>
+      <select [value]="pageSize()" (change)="onPageSizeChange($event)">
+        @for (n of pageSizeOptions(); track n) {
+          <option [value]="n">{{ n }}</option>
+        }
+      </select>
+    </label>
+  }
 </div>

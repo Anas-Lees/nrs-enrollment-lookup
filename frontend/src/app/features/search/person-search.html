@@ -109,7 +109,9 @@
               [page]="r.page"
               [pageSize]="r.pageSize"
               [totalCount]="r.totalCount"
+              [pageSizeOptions]="pageSizeOptions"
               (pageChange)="onPageChange($event)"
+              (pageSizeChange)="onPageSizeChange($event)"
             />
           </div>
 

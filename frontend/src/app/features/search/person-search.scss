@@ -2,6 +2,19 @@
   display: block;
 }
 
+/* The search form is a sticky header: it stays pinned to the top while the results scroll.
+   Negative margins make it full-bleed across the content padding so cards pass cleanly
+   underneath it. */
+.search-page > form {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: -1.5rem -2rem 1.25rem;
+  padding: 1.25rem 2rem 1rem;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
 /* ---------------- Search bar ---------------- */
 /* All controls share one height so the row lines up cleanly. */
 .searchbar {
@@ -9,7 +22,7 @@
   display: flex;
   gap: 0.6rem;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
   flex-wrap: wrap;
 
   &__input {
@@ -288,8 +301,13 @@
 }
 
 .preview {
+  /* Sticky so the mini-profile stays in view while the list scrolls. It sits below the
+     sticky search header; in Arabic the grid order flips, so it pins to the left instead
+     of the right automatically. */
   position: sticky;
-  top: 1rem;
+  top: 5.75rem;
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;

@@ -59,7 +59,8 @@ export class PersonSearch {
   readonly previewLoading = signal(false);
 
   private criteria: PersonSearchCriteria = {};
-  readonly pageSize = 10;
+  readonly pageSize = signal(10);
+  readonly pageSizeOptions = [10, 20, 50];
 
   readonly totalPages = computed(() => {
     const r = this.results();
@@ -105,6 +106,8 @@ export class PersonSearch {
         },
         { emitEvent: false },
       );
+      const size = Number(pm.get('size'));
+      this.pageSize.set(this.pageSizeOptions.includes(size) ? size : 10);
       this.criteria = this.buildCriteria();
       this.load(Number(pm.get('page')) || 1);
     });
@@ -154,6 +157,12 @@ export class PersonSearch {
     this.navigateToSearch(page);
   }
 
+  /** Change how many results show per page; resets to the first page. */
+  onPageSizeChange(size: number): void {
+    this.pageSize.set(size);
+    this.navigateToSearch(1);
+  }
+
   /** Reflect the current form into the URL; the subscription runs the search. */
   private navigateToSearch(page: number): void {
     const v = this.form.getRawValue();
@@ -162,6 +171,7 @@ export class PersonSearch {
       q: v.query.trim() || null,
       dob: v.dob.trim() || null,
       nat: v.nationality.trim() || null,
+      size: this.pageSize() === 10 ? null : this.pageSize(),
     };
     this.router.navigate([], { relativeTo: this.route, queryParams });
   }
@@ -171,7 +181,7 @@ export class PersonSearch {
     this.error.set(null);
     const startedAt = performance.now();
 
-    this.personService.search({ ...this.criteria, page, pageSize: this.pageSize }).subscribe({
+    this.personService.search({ ...this.criteria, page, pageSize: this.pageSize() }).subscribe({
       next: (r) => {
         this.elapsedMs.set(Math.round(performance.now() - startedAt));
         this.results.set(r);
