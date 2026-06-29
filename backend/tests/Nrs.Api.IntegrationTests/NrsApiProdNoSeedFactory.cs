@@ -8,15 +8,15 @@ using Nrs.Infrastructure.Persistence;
 namespace Nrs.Api.IntegrationTests;
 
 /// <summary>
-/// Runs the app in the Production environment (still on in-memory SQLite) to verify the
-/// production-shaped behaviour: startup migrate+seed runs (not gated to Development), and
-/// the API docs are not exposed anonymously.
+/// Runs the app in Production with NO seed opt-in (the shipped default), to prove the
+/// safety guarantee: the schema is migrated but the synthetic Bogus data is NOT seeded —
+/// a real registry is never auto-filled with fake citizens.
 /// </summary>
-public class NrsApiProdFactory : WebApplicationFactory<Program>
+public class NrsApiProdNoSeedFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection;
 
-    public NrsApiProdFactory()
+    public NrsApiProdNoSeedFactory()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
@@ -24,10 +24,9 @@ public class NrsApiProdFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Production, and deliberately NOT setting Database:SeedOnStartup — so the
+        // Production default (no seeding) applies.
         builder.UseEnvironment("Production");
-        // Seeding defaults OFF under Production; opt in explicitly, exactly as the
-        // docker-compose demo stack does, so this factory exercises that real path.
-        builder.UseSetting("Database:SeedOnStartup", "true");
 
         builder.ConfigureServices(services =>
         {
