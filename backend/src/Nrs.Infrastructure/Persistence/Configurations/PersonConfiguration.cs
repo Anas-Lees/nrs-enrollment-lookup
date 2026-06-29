@@ -42,6 +42,16 @@ public class PersonConfiguration : IEntityTypeConfiguration<Person>
             .HasMaxLength(100)
             .IsUnicode(false);
 
+        // Normalized search column across all four name parts. Unicode (→ NVARCHAR2 on
+        // Oracle) because it holds folded Arabic; long enough for 4×100 + separators.
+        // Nullable so it adds cleanly to an existing table (then the seeder backfills it),
+        // and because Oracle represents an empty string as NULL anyway.
+        builder.Property(p => p.NameSearch)
+            .HasColumnName("NAME_SEARCH")
+            .HasMaxLength(420)
+            .IsUnicode(true)
+            .IsRequired(false);
+
         builder.Property(p => p.DateOfBirth)
             .HasColumnName("DATE_OF_BIRTH");
 
@@ -108,6 +118,7 @@ public class PersonConfiguration : IEntityTypeConfiguration<Person>
         // Indexes on the search columns (CRN is already indexed as the primary key).
         builder.HasIndex(p => p.FamilyNameEn).HasDatabaseName("IX_PERSON_FAMILY_NAME_EN");
         builder.HasIndex(p => p.FamilyNameAr).HasDatabaseName("IX_PERSON_FAMILY_NAME_AR");
+        builder.HasIndex(p => p.NameSearch).HasDatabaseName("IX_PERSON_NAME_SEARCH");
         builder.HasIndex(p => p.DateOfBirth).HasDatabaseName("IX_PERSON_DATE_OF_BIRTH");
         builder.HasIndex(p => p.NationalityCode).HasDatabaseName("IX_PERSON_NATIONALITY_CODE");
     }
