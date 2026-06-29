@@ -1,0 +1,65 @@
+# Network isolation: enforce "the API is only reachable via the SPA proxy" at the network
+# layer, instead of relying only on the absence of a public Route.
+#
+# NOTE: the allow-from-router policy below uses the standard OpenShift ingress namespace
+# label. Confirm your cluster's router namespace/label before applying — if it differs,
+# the default-deny will black-hole the public Route until the selector matches.
+---
+# Default-deny all ingress in the namespace; specific allows are added below.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nrs-default-deny-ingress
+  labels:
+    app: nrs
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# Allow the API to receive traffic ONLY from the SPA pods (which proxy /api).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nrs-api-allow-from-spa
+  labels:
+    app: nrs
+spec:
+  podSelector:
+    matchLabels:
+      app: nrs
+      component: api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: nrs
+              component: spa
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Allow the OpenShift router to reach the SPA so the public Route works under default-deny.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nrs-spa-allow-from-router
+  labels:
+    app: nrs
+spec:
+  podSelector:
+    matchLabels:
+      app: nrs
+      component: spa
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              policy-group.network.openshift.io/ingress: ""
+      ports:
+        - protocol: TCP
+          port: 8080
