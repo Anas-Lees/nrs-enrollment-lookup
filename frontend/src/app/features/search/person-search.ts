@@ -43,37 +43,23 @@ export class PersonSearch {
 
   readonly form = new FormGroup({
     query: new FormControl('', { nonNullable: true }),
+    crn: new FormControl('', { nonNullable: true }),
+    name: new FormControl('', { nonNullable: true }),
+    dob: new FormControl('', { nonNullable: true }),
     nationality: new FormControl('', { nonNullable: true }),
   });
-
-  constructor() {
-    // The URL query string is the source of truth: drives the search and makes
-    // results shareable/bookmarkable and the back button work.
-    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
-      const q = pm.get('q') ?? '';
-      const nat = pm.get('nat') ?? '';
-      const page = Number(pm.get('page')) || 1;
-      this.form.setValue({ query: q, nationality: nat }, { emitEvent: false });
-
-      if (q || nat || pm.has('page')) {
-        this.criteria = this.buildCriteria(q, nat);
-        this.searched.set(true);
-        this.load(page);
-      }
-    });
-  }
 
   readonly results = signal<PagedResult<PersonSummary> | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly searched = signal(false);
   readonly elapsedMs = signal(0);
+  readonly advancedOpen = signal(false);
 
   // Quick-preview state for the right-hand panel.
   readonly selectedCrn = signal<string | null>(null);
   readonly preview = signal<Person | null>(null);
   readonly previewLoading = signal(false);
-  readonly enrollNote = signal(false);
 
   private criteria: PersonSearchCriteria = {};
   readonly pageSize = 10;
@@ -109,32 +95,76 @@ export class PersonSearch {
     { code: 'USA', label: 'United States' },
   ];
 
-  /** One smart box: detect whether the term is a CRN, a date, or a name. */
-  private buildCriteria(query: string, nationality: string): PersonSearchCriteria {
+  constructor() {
+    // The URL query string is the source of truth: drives the search and makes
+    // results shareable/bookmarkable and the back button work.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
+      const advanced = pm.get('adv') === '1';
+      this.advancedOpen.set(advanced);
+      this.form.setValue(
+        {
+          query: pm.get('q') ?? '',
+          crn: pm.get('crn') ?? '',
+          name: pm.get('name') ?? '',
+          dob: pm.get('dob') ?? '',
+          nationality: pm.get('nat') ?? '',
+        },
+        { emitEvent: false },
+      );
+
+      const page = Number(pm.get('page')) || 1;
+      const hasFilters =
+        pm.has('q') || pm.has('crn') || pm.has('name') || pm.has('dob') || pm.has('nat');
+      if (hasFilters || pm.has('page')) {
+        this.criteria = this.buildCriteria();
+        this.searched.set(true);
+        this.load(page);
+      }
+    });
+  }
+
+  /**
+   * Build the search criteria. In advanced mode the explicit CRN / name / DOB /
+   * nationality fields all combine (AND). In quick mode the single smart box is
+   * classified as a CRN, a date, or a name; nationality still applies.
+   */
+  private buildCriteria(): PersonSearchCriteria {
+    const v = this.form.getRawValue();
     const criteria: PersonSearchCriteria = {};
-    const q = query.trim();
-    if (q) {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(q)) {
-        criteria.dob = q;
-      } else if (/^\d{1,9}$/.test(q)) {
-        criteria.crn = q;
-      } else {
-        criteria.name = q;
+
+    if (this.advancedOpen()) {
+      if (v.crn.trim()) criteria.crn = v.crn.trim();
+      if (v.name.trim()) criteria.name = v.name.trim();
+      if (v.dob.trim()) criteria.dob = v.dob.trim();
+    } else {
+      const q = v.query.trim();
+      if (q) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(q)) {
+          criteria.dob = q;
+        } else if (/^\d{1,9}$/.test(q)) {
+          criteria.crn = q;
+        } else {
+          criteria.name = q;
+        }
       }
     }
-    if (nationality.trim()) {
-      criteria.nationality = nationality.trim();
+
+    if (v.nationality.trim()) {
+      criteria.nationality = v.nationality.trim();
     }
     return criteria;
   }
 
+  toggleAdvanced(): void {
+    this.advancedOpen.update((open) => !open);
+  }
+
   onSubmit(): void {
-    const { query, nationality } = this.form.getRawValue();
-    this.navigateToSearch(query, nationality, 1);
+    this.navigateToSearch(1);
   }
 
   clear(): void {
-    this.form.reset({ query: '', nationality: '' });
+    this.form.reset({ query: '', crn: '', name: '', dob: '', nationality: '' });
     this.criteria = {};
     this.results.set(null);
     this.error.set(null);
@@ -143,13 +173,47 @@ export class PersonSearch {
     this.router.navigate([], { relativeTo: this.route, queryParams: {} });
   }
 
-  private navigateToSearch(query: string, nationality: string, page: number): void {
+  onPageChange(page: number): void {
+    this.navigateToSearch(page);
+  }
+
+  /** Reflect the current form + mode into the URL; the subscription runs the search. */
+  private navigateToSearch(page: number): void {
+    const v = this.form.getRawValue();
+    const advanced = this.advancedOpen();
     const queryParams: Params = {
-      q: query.trim() || null,
-      nat: nationality.trim() || null,
       page,
+      adv: advanced ? 1 : null,
+      nat: v.nationality.trim() || null,
+      q: advanced ? null : v.query.trim() || null,
+      crn: advanced ? v.crn.trim() || null : null,
+      name: advanced ? v.name.trim() || null : null,
+      dob: advanced ? v.dob.trim() || null : null,
     };
     this.router.navigate([], { relativeTo: this.route, queryParams });
+  }
+
+  load(page: number): void {
+    this.loading.set(true);
+    this.error.set(null);
+    const startedAt = performance.now();
+
+    this.personService.search({ ...this.criteria, page, pageSize: this.pageSize }).subscribe({
+      next: (r) => {
+        this.elapsedMs.set(Math.round(performance.now() - startedAt));
+        this.results.set(r);
+        this.loading.set(false);
+        if (r.items.length > 0) {
+          this.select(r.items[0]);
+        } else {
+          this.clearPreview();
+        }
+      },
+      error: () => {
+        this.error.set(this.i18n.t('search.error'));
+        this.loading.set(false);
+      },
+    });
   }
 
   // --- keyboard navigation: '/' focuses search, arrows move selection, Enter opens ---
@@ -195,37 +259,8 @@ export class PersonSearch {
     );
   }
 
-  load(page: number): void {
-    this.loading.set(true);
-    this.error.set(null);
-    const startedAt = performance.now();
-
-    this.personService.search({ ...this.criteria, page, pageSize: this.pageSize }).subscribe({
-      next: (r) => {
-        this.elapsedMs.set(Math.round(performance.now() - startedAt));
-        this.results.set(r);
-        this.loading.set(false);
-        // Auto-select the first result so the preview is never empty.
-        if (r.items.length > 0) {
-          this.select(r.items[0]);
-        } else {
-          this.clearPreview();
-        }
-      },
-      error: () => {
-        this.error.set(this.i18n.t('search.error'));
-        this.loading.set(false);
-      },
-    });
-  }
-
-  onPageChange(page: number): void {
-    this.load(page);
-  }
-
   /** Select a row → load the full record into the quick-preview panel. */
   select(p: PersonSummary): void {
-    this.enrollNote.set(false);
     if (this.selectedCrn() === p.civilNumber && this.preview()) {
       return;
     }
@@ -234,7 +269,6 @@ export class PersonSearch {
     this.previewLoading.set(true);
     this.personService.getByCrn(p.civilNumber).subscribe({
       next: (full) => {
-        // Ignore a stale response if the selection changed meanwhile.
         if (this.selectedCrn() === full.civilNumber) {
           this.preview.set(full);
           this.previewLoading.set(false);
@@ -248,12 +282,6 @@ export class PersonSearch {
     this.selectedCrn.set(null);
     this.preview.set(null);
     this.previewLoading.set(false);
-    this.enrollNote.set(false);
-  }
-
-  startEnrollment(): void {
-    // New enrollment is outside the Applicant Lookup POC; show an honest note.
-    this.enrollNote.set(true);
   }
 
   // --- presentation helpers ---

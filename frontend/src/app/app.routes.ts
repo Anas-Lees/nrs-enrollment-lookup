@@ -16,5 +16,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/profile/person-profile').then((m) => m.PersonProfile),
   },
+  {
+    path: 'enrollment/new',
+    title: 'New enrollment · NRS',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enrollment/enrollment-placeholder').then((m) => m.EnrollmentPlaceholder),
+  },
   { path: '**', redirectTo: 'search' },
 ];

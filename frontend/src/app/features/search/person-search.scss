@@ -381,7 +381,7 @@
   margin-top: 0.5rem;
 }
 
-a.btn-primary.btn-block {
+a.btn-block {
   text-decoration: none;
 }
 
@@ -408,6 +408,63 @@ a.btn-primary.btn-block {
 
   .preview {
     position: static;
+  }
+}
+
+/* ---------------- Advanced filters ---------------- */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--rop-green-600);
+  font: inherit;
+  cursor: pointer;
+  padding: 0 0.6rem;
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--rop-green);
+  }
+}
+
+.searchbar__advhint {
+  flex: 1 1 320px;
+  display: flex;
+  align-items: center;
+  color: var(--color-muted-2);
+  font-size: 0.9rem;
+  padding: 0 0.25rem;
+}
+
+.adv-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+}
+
+.adv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
+  input {
+    padding: 0.55rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    background: var(--color-surface);
+    color: var(--color-text);
+
+    &:focus {
+      outline: none;
+      border-color: var(--rop-green-600);
+    }
   }
 }
 

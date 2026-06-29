@@ -1,0 +1,93 @@
+.topbar {
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  color: var(--color-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+
+  &:hover {
+    color: var(--rop-green-600);
+    text-decoration: underline;
+  }
+}
+
+.muted {
+  color: var(--color-muted-2);
+}
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 1.75rem 2rem;
+}
+
+.enroll {
+  max-width: 640px;
+
+  &__badge {
+    display: inline-block;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rop-gold);
+    border: 1px solid var(--rop-gold);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+  }
+
+  h1 {
+    margin: 0.75rem 0 0.5rem;
+    font-size: 1.5rem;
+  }
+
+  &__for {
+    margin: 0 0 1rem;
+    font-weight: 600;
+  }
+
+  &__note {
+    margin: 0 0 1.5rem;
+    color: var(--color-muted);
+  }
+
+  &__steps-title {
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
+  }
+
+  &__steps {
+    margin: 0 0 1.75rem;
+    padding-inline-start: 1.25rem;
+    color: var(--color-text);
+
+    li {
+      margin: 0.3rem 0;
+    }
+  }
+
+  &__cta-note {
+    font-weight: 400;
+    opacity: 0.85;
+    font-size: 0.85em;
+  }
+}
+
+.btn-primary {
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--rop-green);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 1.25rem;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

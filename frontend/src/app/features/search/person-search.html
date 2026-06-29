@@ -1,32 +1,77 @@
 <section class="search-page">
   <h1 class="sr-only">{{ i18n.t('search.title') }}</h1>
 
-  <form class="searchbar" [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div class="searchbar__input">
-      <span class="searchbar__icon" aria-hidden="true">⌕</span>
-      <input
-        #searchInput
-        type="search"
-        formControlName="query"
-        [placeholder]="i18n.t('search.smartPlaceholder')"
-        [attr.aria-label]="i18n.t('search.smartPlaceholder')"
-        autocomplete="off"
-      />
-      <span class="searchbar__hint">{{ i18n.t('search.partialHint') }}</span>
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="searchbar">
+      @if (!advancedOpen()) {
+        <div class="searchbar__input">
+          <span class="searchbar__icon" aria-hidden="true">⌕</span>
+          <input
+            #searchInput
+            type="search"
+            formControlName="query"
+            [placeholder]="i18n.t('search.smartPlaceholder')"
+            [attr.aria-label]="i18n.t('search.smartPlaceholder')"
+            autocomplete="off"
+          />
+          <span class="searchbar__hint">{{ i18n.t('search.partialHint') }}</span>
+        </div>
+      } @else {
+        <div class="searchbar__advhint">{{ i18n.t('search.advancedHint') }}</div>
+      }
+
+      <div class="searchbar__nat">
+        <label class="sr-only" for="nationality">{{ i18n.t('search.nationality') }}</label>
+        <select id="nationality" formControlName="nationality">
+          <option value="">{{ i18n.t('search.nationalityAny') }}</option>
+          @for (opt of nationalityOptions; track opt.code) {
+            <option [value]="opt.code">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+
+      <button
+        type="button"
+        class="btn-link"
+        [attr.aria-expanded]="advancedOpen()"
+        (click)="toggleAdvanced()"
+      >
+        {{ advancedOpen() ? i18n.t('search.simple') : i18n.t('search.advanced') }}
+      </button>
+      <button type="button" class="btn-ghost" (click)="clear()">
+        {{ i18n.t('search.clear') }}
+      </button>
+      <button type="submit" class="btn-primary">{{ i18n.t('search.button') }}</button>
     </div>
 
-    <div class="searchbar__nat">
-      <label class="sr-only" for="nationality">{{ i18n.t('search.nationality') }}</label>
-      <select id="nationality" formControlName="nationality">
-        <option value="">{{ i18n.t('search.nationalityAny') }}</option>
-        @for (opt of nationalityOptions; track opt.code) {
-          <option [value]="opt.code">{{ opt.label }}</option>
-        }
-      </select>
-    </div>
-
-    <button type="button" class="btn-ghost" (click)="clear()">{{ i18n.t('search.clear') }}</button>
-    <button type="submit" class="btn-primary">{{ i18n.t('search.button') }}</button>
+    @if (advancedOpen()) {
+      <div class="adv-filters">
+        <div class="adv-field">
+          <label for="f-crn">{{ i18n.t('search.crn') }}</label>
+          <input
+            id="f-crn"
+            type="text"
+            inputmode="numeric"
+            formControlName="crn"
+            autocomplete="off"
+          />
+        </div>
+        <div class="adv-field">
+          <label for="f-name">{{ i18n.t('search.name') }}</label>
+          <input
+            id="f-name"
+            type="text"
+            formControlName="name"
+            [placeholder]="i18n.t('search.namePlaceholder')"
+            autocomplete="off"
+          />
+        </div>
+        <div class="adv-field">
+          <label for="f-dob">{{ i18n.t('search.dob') }}</label>
+          <input id="f-dob" type="date" formControlName="dob" />
+        </div>
+      </div>
+    }
   </form>
 
   <div class="results-area">
@@ -131,12 +176,13 @@
               <a class="btn-primary btn-block" [routerLink]="['/persons', p.civilNumber]">
                 {{ i18n.t('preview.openProfile') }}
               </a>
-              <button type="button" class="btn-outline btn-block" (click)="startEnrollment()">
+              <a
+                class="btn-outline btn-block"
+                [routerLink]="['/enrollment/new']"
+                [queryParams]="{ crn: p.civilNumber }"
+              >
                 {{ i18n.t('preview.startEnrollment') }}
-              </button>
-              @if (enrollNote()) {
-                <p class="preview__note" role="status">{{ i18n.t('preview.enrollNote') }}</p>
-              }
+              </a>
             } @else if (previewLoading()) {
               <div class="preview__photo skeleton-box-lg"></div>
               <span class="skeleton-line"></span>

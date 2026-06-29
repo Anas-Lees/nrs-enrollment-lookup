@@ -5,7 +5,7 @@ test.describe('Applicant Lookup — operator journey', () => {
     await page.goto('/search');
 
     // The smart search bar is present.
-    await expect(page.locator('form.searchbar')).toBeVisible();
+    await expect(page.locator('.searchbar')).toBeVisible();
 
     // Run a search with no filters (returns the full, paged list).
     await page.locator('form button[type="submit"]').click();
@@ -45,6 +45,33 @@ test.describe('Applicant Lookup — operator journey', () => {
     for (let i = 0; i < count; i++) {
       await expect(cards.nth(i).locator('.card__facts')).toContainText('Oman');
     }
+  });
+
+  test('advanced filters combine (name + nationality) with AND semantics', async ({ page }) => {
+    await page.goto('/search');
+    await page.getByRole('button', { name: 'Advanced' }).click();
+
+    // Name "Al" + nationality Oman → many Omani matches.
+    await page.locator('#f-name').fill('Al');
+    await page.locator('select#nationality').selectOption('OMN');
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.locator('.cards .card').first()).toBeVisible();
+    await expect(page.locator('.results-meta__count')).toContainText('matches');
+
+    // Same name + nationality India → AND filters down to zero (no "Al-" Indians).
+    await page.locator('select#nationality').selectOption('IND');
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.locator('.empty')).toBeVisible();
+  });
+
+  test('Start New Enrollment from a profile opens the placeholder for that CRN', async ({
+    page,
+  }) => {
+    await page.goto('/persons/63498452');
+    await expect(page.locator('.summary-card h1')).toBeVisible();
+    await page.locator('.enroll-cta').click();
+    await expect(page).toHaveURL(/\/enrollment\/new\?crn=63498452$/);
+    await expect(page.locator('.enroll__for')).toContainText('63498452');
   });
 
   test('language toggle switches the UI to Arabic and flips to RTL', async ({ page }) => {

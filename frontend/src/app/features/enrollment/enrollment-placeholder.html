@@ -1,0 +1,32 @@
+<section class="page">
+  <div class="topbar">
+    <a routerLink="/search" class="back-link">{{ i18n.t('profile.back') }}</a>
+  </div>
+
+  <article class="panel enroll">
+    <span class="enroll__badge">{{ i18n.t('enroll.placeholder') }}</span>
+    <h1>{{ i18n.t('enroll.title') }}</h1>
+
+    @if (crn(); as c) {
+      <p class="enroll__for">
+        {{ i18n.t('enroll.continuing') }} <span class="mono">{{ c }}</span>
+      </p>
+    } @else {
+      <p class="enroll__for muted">{{ i18n.t('enroll.fresh') }}</p>
+    }
+
+    <p class="enroll__note">{{ i18n.t('enroll.note') }}</p>
+
+    <h2 class="enroll__steps-title">{{ i18n.t('enroll.steps') }}</h2>
+    <ol class="enroll__steps">
+      @for (step of steps; track step) {
+        <li>{{ i18n.t(step) }}</li>
+      }
+    </ol>
+
+    <button type="button" class="btn-primary" disabled>
+      {{ i18n.t('enroll.cta') }}
+      <span class="enroll__cta-note">{{ i18n.t('enroll.disabled') }}</span>
+    </button>
+  </article>
+</section>

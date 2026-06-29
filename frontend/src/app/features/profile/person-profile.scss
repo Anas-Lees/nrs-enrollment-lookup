@@ -68,9 +68,29 @@
   font-size: 0.95rem;
 }
 
-.summary-card app-status-badge {
+.summary-card__actions {
   margin-inline-start: auto;
-  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.enroll-cta {
+  display: inline-block;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--rop-green);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--rop-green-700);
+  }
 }
 
 /* ---------------- Panels ---------------- */
