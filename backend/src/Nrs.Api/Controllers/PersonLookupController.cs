@@ -44,6 +44,11 @@ public class PersonLookupController(IPersonLookupService service) : ControllerBa
     public async Task<ActionResult<PersonDto>> GetByCrn(string crn, CancellationToken cancellationToken)
     {
         var person = await service.GetByCrnAsync(crn, cancellationToken);
-        return person is null ? NotFound() : Ok(person);
+        return person is null
+            ? Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Person not found",
+                detail: $"No person exists with CRN '{crn}'.")
+            : Ok(person);
     }
 }
