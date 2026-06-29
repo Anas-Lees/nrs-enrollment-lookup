@@ -124,26 +124,18 @@ app.UseStatusCodePages();
 app.UseMiddleware<CorrelationIdMiddleware>();
 
 // API docs (OpenAPI + Scalar). Exposed in Development, or in other environments only when
-// explicitly enabled via OpenApi:Enabled — and then behind authorization. Never anonymous
-// outside development.
+// explicitly enabled via OpenApi:Enabled (which defaults to false — a real Production
+// deployment therefore serves no docs at all, and the integration test asserts the 404).
+// When the docs ARE exposed, they're anonymous on purpose: a browser navigating to /scalar
+// can't present a Bearer token, so RequireAuthorization() would make the docs UI unviewable
+// (401). The security control here is exposure itself, not auth on the docs route.
 var exposeApiDocs = app.Environment.IsDevelopment()
     || builder.Configuration.GetValue<bool>("OpenApi:Enabled");
 if (exposeApiDocs)
 {
-    var openApi = app.MapOpenApi();
-    var scalar = app.MapScalarApiReference(options =>
-        options.WithTitle("NRS Enrollment — Applicant Lookup API"));
-
-    if (!app.Environment.IsDevelopment() && authEnabled)
-    {
-        openApi.RequireAuthorization();
-        scalar.RequireAuthorization();
-    }
-    else
-    {
-        openApi.AllowAnonymous();
-        scalar.AllowAnonymous();
-    }
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference(options =>
+        options.WithTitle("NRS Enrollment — Applicant Lookup API")).AllowAnonymous();
 }
 
 // Create/upgrade the schema and (optionally) seed sample data on startup. Auto-migrate
