@@ -1,4 +1,9 @@
 # Non-secret configuration for the API and the SPA's nginx.
+#
+# SECRETS DO NOT BELONG HERE. Anything credential-shaped (the Oracle connection
+# string with its embedded password, Redis password, Keycloak client secret)
+# lives in the nrs-secrets Secret (see secret.yaml) and is injected into the API
+# via env.valueFrom.secretKeyRef in api-deployment.yaml.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,12 +14,23 @@ metadata:
 data:
   # Run production-shaped (no developer exception page / no anonymous API docs). Seeding
   # defaults OFF under Production, so this demo opts in explicitly via Database__SeedOnStartup
-  # — exactly as the docker-compose stack does. A real deployment would set this false and
-  # point ConnectionStrings__Default at Oracle (DatabaseProvider=Oracle).
+  # — exactly as the docker-compose stack does.
   ASPNETCORE_ENVIRONMENT: "Production"
   ASPNETCORE_URLS: "http://+:8080"
-  ConnectionStrings__Default: "Data Source=/app/data/nrs.db"
   Database__SeedOnStartup: "true"
+
+  # Database provider selector (non-secret). "Sqlite" is the POC default; each
+  # replica uses its own pod-local SQLite below. For a real registry set this to
+  # "Oracle" AND switch the Deployment to inject ConnectionStrings__Default from
+  # the nrs-secrets Secret (the credential-bearing Oracle string) — see the
+  # commented secretKeyRef block in api-deployment.yaml.
+  DatabaseProvider: "Sqlite"
+
+  # POC-only connection string: a local SQLite *file path*, not a credential, so
+  # it is safe to keep in the ConfigMap. NOTE: only used while DatabaseProvider
+  # is "Sqlite". For Oracle this key is supplied by the Secret instead — do NOT
+  # add an Oracle/credentialed connection string here.
+  ConnectionStrings__Default: "Data Source=/app/data/nrs.db"
 ---
 # nginx site config for the SPA pod. Overrides the image's baked default.conf so
 # /api proxies to the in-cluster API Service (nrs-api) instead of the compose name.
