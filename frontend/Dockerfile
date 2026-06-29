@@ -11,7 +11,7 @@ RUN npm run build
 # ---- Runtime stage (non-root nginx serves the static SPA) ----
 # Unprivileged image: runs as a non-root user and listens on 8080, so it works
 # both in Docker and under OpenShift's arbitrary-UID model (can't bind :80).
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS final
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS final
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 # Make the non-root user explicit (the base image defaults to it) so an accidental
