@@ -24,6 +24,10 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.9" />
+    <!-- Distributed (Redis-backed) rate limiting so the "lookup" limiter holds across
+         replicas — the in-memory limiter is per-instance (N replicas => N x PermitLimit).
+         net10.0-targeted; depends on StackExchange.Redis 2.8 (aligned with the cache above). -->
+    <PackageReference Include="RedisRateLimiting.AspNetCore" Version="1.2.1" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.16.6" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
