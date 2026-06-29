@@ -12,4 +12,16 @@
     <!-- CS1591: missing XML doc comment — too noisy for a POC. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+
+  <!--
+    Accepted-risk suppressions: two MODERATE advisories in the OpenTelemetry telemetry
+    stack with no fixed release at time of writing. They affect the telemetry exporter
+    path (not the request/auth path) and are documented here for audit. Re-review when a
+    patched OpenTelemetry release is available. Applied solution-wide because test
+    projects pull OpenTelemetry transitively via the API project.
+  -->
+  <ItemGroup>
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-g94r-2vxg-569j" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-4625-4j76-fww9" />
+  </ItemGroup>
 </Project>
