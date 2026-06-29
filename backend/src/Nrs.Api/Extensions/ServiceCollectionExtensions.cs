@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Oracle.EntityFrameworkCore.Infrastructure;
 using Nrs.Api.Auth;
+using Nrs.Api.Filters;
 using Nrs.Application.Interfaces;
 using Nrs.Application.Services;
 using Nrs.Infrastructure.Persistence;
@@ -50,6 +51,10 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IPersonRepository, PersonRepository>();
         services.AddScoped<IPersonLookupService, PersonLookupService>();
+
+        // Audit trail: the logger persists records; the MVC filter captures every lookup.
+        services.AddScoped<IAuditLogger, AuditLogger>();
+        services.AddScoped<AuditActionFilter>();
 
         return services;
     }
