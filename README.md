@@ -52,30 +52,39 @@ How the pieces talk to each other at runtime:
 flowchart LR
   browser["Operator browser"]
 
-  subgraph SPA["Angular SPA (served by nginx)"]
-    app["Application layer: services and DTOs"]
+  subgraph SPA["Angular SPA · nginx"]
+    app["UI · services · DTOs"]
   end
 
-  subgraph API["ASP.NET Core API (.NET 10)"]
+  subgraph API["ASP.NET Core API · .NET 10"]
     ctrl["Thin controllers"]
     svc["PersonLookupService"]
-    repo["Repository (EF Core)"]
+    repo["Repository · EF Core"]
   end
 
   oracle[("Oracle")]
   redis[("Redis cache")]
-  kc["Keycloak (OIDC)"]
+  kc["Keycloak · OIDC"]
   otel["OTel collector"]
 
   browser --> SPA
-  SPA -->|"/api proxy: HTTP and JSON with bearer token"| ctrl
+  SPA -->|"/api proxy · bearer JWT"| ctrl
   ctrl --> svc
   svc --> repo
   repo -->|"SQL"| oracle
-  svc -.->|"cache-aside: hot profiles"| redis
-  SPA -.->|"login via Authorization Code and PKCE"| kc
-  API -.->|"validate JWT: issuer, audience, signing key"| kc
-  API -.->|"traces and metrics (optional)"| otel
+  svc -.->|"cache-aside"| redis
+  SPA -.->|"login · OIDC + PKCE"| kc
+  API -.->|"validate JWT"| kc
+  API -.->|"telemetry"| otel
+
+  classDef client fill:#1f6feb,stroke:#0b3d91,color:#fff;
+  classDef api fill:#1c6b41,stroke:#0f3d24,color:#fff;
+  classDef store fill:#b8860b,stroke:#7a5a08,color:#fff;
+  classDef ext fill:#6f42c1,stroke:#3f2384,color:#fff;
+  class browser,app client;
+  class ctrl,svc,repo api;
+  class oracle,redis store;
+  class kc,otel ext;
 ```
 
 - The SPA is served by nginx, which also reverse-proxies `/api` to the backend, so the browser
@@ -97,7 +106,9 @@ tests so code and spec can't drift.
 ### A search request, end to end
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"actorBkg":"#1c6b41","actorBorder":"#0f3d24","actorTextColor":"#ffffff","actorLineColor":"#9bb5a6"}}}%%
 sequenceDiagram
+  autonumber
   actor O as Operator
   participant S as Angular SPA
   participant A as API controller
