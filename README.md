@@ -19,17 +19,17 @@ with tests, containers, CI/CD and OpenShift manifests.
 
 ## Screenshots
 
-**Search — results table (English)**
+**Smart search — card results with the live quick-preview panel (English)**
 
-![Search results, English](docs/screenshots/search-en.png)
+![Operator console: smart search with card results and quick-preview, English](docs/screenshots/search-en.png)
 
-**Profile — summary card + documents**
+**Applicant profile — summary, biographic details & documents**
 
-![Profile, English](docs/screenshots/profile-en.png)
+![Applicant profile page, English](docs/screenshots/profile-en.png)
 
-**Search — full Arabic UI, right-to-left**
+**Full Arabic UI — mirrored right-to-left, Arabic-Indic dates**
 
-![Search results, Arabic RTL](docs/screenshots/search-ar.png)
+![Operator console in Arabic, right-to-left](docs/screenshots/search-ar.png)
 
 > Data is synthetic (100 generated persons). Photos are initials-avatar placeholders — no real
 > people are depicted.
@@ -44,6 +44,7 @@ flowchart LR
   spa -->|/api| api["ASP.NET Core API<br/>(thin controllers)"]
   api --> app["Application<br/>service + DTOs"]
   app --> repo["Repository<br/>(EF Core)"]
+  app -.->|cache-aside| cache[("Redis<br/>hot profiles")]
   repo --> db[("SQLite (dev)<br/>Oracle (prod)")]
   kc["Keycloak<br/>OIDC / JWT (optional)"] -.-> spa
   kc -.-> api
@@ -74,7 +75,7 @@ sequenceDiagram
   R-->>V: entities + total
   V-->>A: PagedResult&lt;PersonSummaryDto&gt;
   A-->>S: 200 application/json
-  S-->>O: paginated results table
+  S-->>O: paginated result cards
 ```
 
 ---
@@ -153,7 +154,8 @@ on first run in Development.
 | ------------- | ------- |
 | `GET /api/v1/persons/search?crn&name&dob&nationality&page&pageSize` | Paged, multi-filter search (partial bilingual name match) |
 | `GET /api/v1/persons/{crn}` | Full profile incl. ID cards + passports |
-| `GET /health` | Liveness/readiness probe |
+| `GET /api/v1/audit/recent` | Recent audit-trail entries (operator-only) |
+| `GET /health/live` · `/health/ready` · `/health` | Liveness · readiness (DB) · full health |
 
 ---
 
