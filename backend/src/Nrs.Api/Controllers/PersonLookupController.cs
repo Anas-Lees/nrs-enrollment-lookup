@@ -38,7 +38,10 @@ public class PersonLookupController(IPersonLookupService service) : ControllerBa
     /// Returns a person's full profile — biographic data plus their ID cards and
     /// passports — or 404 if no person has the supplied CRN.
     /// </summary>
-    [HttpGet("{crn}")]
+    // CRN is a civil-registration number: digits only, at most 9 (the AUDIT_ENTRY.TARGET_CRN
+    // column width). The route constraint rejects malformed/over-long values with a 404 before
+    // they reach the audit insert (an over-long value previously surfaced as a 500).
+    [HttpGet("{crn:regex(^\\d{{1,9}}$)}")]
     [ProducesResponseType(typeof(PersonDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PersonDto>> GetByCrn(string crn, CancellationToken cancellationToken)

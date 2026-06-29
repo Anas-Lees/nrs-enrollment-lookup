@@ -18,6 +18,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 const string SpaCorsPolicy = "spa";
 
+// Don't advertise the server implementation (drops the "Server: Kestrel" header).
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
 // Structured (JSON) logging with scopes outside development so logs are machine-parseable
 // and carry the correlation id; the readable console stays in dev.
 if (!builder.Environment.IsDevelopment())
@@ -89,6 +92,9 @@ var authEnabled = builder.Services.AddNrsAuthentication(builder.Configuration);
 
 // Rate limiting on lookups — throttle per operator (or per IP when anonymous) to blunt
 // population enumeration / scraping. Sliding window; configurable for tuning and tests.
+// NOTE: this limiter is in-memory/per-instance, so with N replicas the effective limit is
+// N x PermitLimit. For a multi-replica production deployment, back it with a shared store
+// (Redis) so the window holds across pods — see docs/PRODUCTION_CHECKLIST.md.
 var permitLimit = builder.Configuration.GetValue<int?>("RateLimiting:PermitLimit") ?? 60;
 var windowSeconds = builder.Configuration.GetValue<int?>("RateLimiting:WindowSeconds") ?? 60;
 builder.Services.AddRateLimiter(options =>
@@ -112,9 +118,13 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-// Allow the Angular dev server to call the API.
+// Allowed browser origins are environment-configurable (Cors:AllowedOrigins). In the
+// OpenShift topology the SPA calls the API same-origin via the nginx /api proxy, so this
+// mainly matters for the dev server; pin it to the real SPA origin(s) in any other setup.
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:4200"];
 builder.Services.AddCors(options => options.AddPolicy(SpaCorsPolicy, policy => policy
-    .WithOrigins("http://localhost:4200")
+    .WithOrigins(corsOrigins)
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
@@ -124,6 +134,7 @@ var app = builder.Build();
 // StatusCodePages turns bare 401/403/404/429 into problem bodies too), then correlation id.
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
 
 // API docs (OpenAPI + Scalar). Exposed in Development, or in other environments only when
