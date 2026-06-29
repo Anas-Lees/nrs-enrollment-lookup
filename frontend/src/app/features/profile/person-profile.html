@@ -37,7 +37,7 @@
         <dl class="fields">
           <div class="field">
             <dt>{{ i18n.t('profile.dob') }}</dt>
-            <dd>{{ p.dateOfBirth | date: 'dd MMM yyyy' }}</dd>
+            <dd>{{ p.dateOfBirth | date: 'dd MMM yyyy' : undefined : i18n.locale() }}</dd>
           </div>
           <div class="field">
             <dt>{{ i18n.t('profile.gender') }}</dt>
