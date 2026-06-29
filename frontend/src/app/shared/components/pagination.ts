@@ -15,8 +15,10 @@ export class Pagination {
   readonly page = input.required<number>();
   readonly pageSize = input.required<number>();
   readonly totalCount = input.required<number>();
+  readonly pageSizeOptions = input<number[]>([]);
 
   readonly pageChange = output<number>();
+  readonly pageSizeChange = output<number>();
 
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalCount() / this.pageSize())));
 
@@ -36,5 +38,9 @@ export class Pagination {
     if (this.page() < this.totalPages()) {
       this.pageChange.emit(this.page() + 1);
     }
+  }
+
+  onPageSizeChange(event: Event): void {
+    this.pageSizeChange.emit(Number((event.target as HTMLSelectElement).value));
   }
 }

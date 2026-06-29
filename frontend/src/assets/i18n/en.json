@@ -150,6 +150,7 @@
 
   "page.prev": "Previous",
   "page.next": "Next",
+  "page.perPage": "Per page",
   "page.showing": "Showing",
   "page.page": "Page"
 }
