@@ -27,7 +27,7 @@ with tests, containers, CI/CD and OpenShift manifests.
 
 ![Operator console: smart search with card results and quick-preview, English](docs/screenshots/search-en.png)
 
-**Full Arabic UI — mirrored right-to-left, Arabic-Indic dates**
+**Full Arabic UI — mirrored right-to-left, Arabic name shown first**
 
 ![Operator console in Arabic, right-to-left](docs/screenshots/search-ar.png)
 
@@ -38,6 +38,10 @@ with tests, containers, CI/CD and OpenShift manifests.
 **API reference (Scalar) — every endpoint documented from the OpenAPI contract**
 
 ![Scalar API reference rendered from the OpenAPI contract](docs/screenshots/scalar.png)
+
+**Architecture at a glance — how the pieces communicate**
+
+![NRS architecture: Angular SPA, .NET API, Oracle, Redis, Keycloak and OpenTelemetry](docs/screenshots/architecture.png)
 
 > Data is synthetic (100 generated persons). Photos are initials-avatar placeholders — no real
 > people are depicted.
