@@ -1,28 +1,31 @@
-<div class="pagination">
+<nav class="pagination" [attr.aria-label]="i18n.t('page.page')">
   <button type="button" class="pagination__btn" [disabled]="page() <= 1" (click)="prev()">
-    {{ i18n.t('page.prev') }}
+    <span aria-hidden="true">‹</span> {{ i18n.t('page.prev') }}
   </button>
 
-  <span class="pagination__info">
-    {{ i18n.t('page.showing') }} {{ rangeStart() }}–{{ rangeEnd() }} / {{ totalCount() }}
-  </span>
+  <div class="pagination__mid">
+    <span class="pagination__range">
+      {{ rangeStart() }}–{{ rangeEnd() }} {{ i18n.t('page.of') }} {{ totalCount() }}
+    </span>
 
-  @if (pageSizeOptions().length) {
-    <label class="pagination__size">
-      <span>{{ i18n.t('page.perPage') }}</span>
-      <!-- [selected] per option (not [value] on the select) so the control reflects the
-           active size after a reload, even though the options render asynchronously. -->
-      <select (change)="onPageSizeChange($event)">
-        @for (n of pageSizeOptions(); track n) {
-          <option [value]="n" [selected]="n === pageSize()">{{ n }}</option>
-        }
-      </select>
-    </label>
-  }
-
-  <span class="pagination__info">
-    {{ i18n.t('page.page') }} {{ page() }} / {{ totalPages() }}
-  </span>
+    @if (pageSizeOptions().length) {
+      <label class="pagination__size">
+        <span>{{ i18n.t('page.perPage') }}</span>
+        <span class="pagination__select">
+          <!-- [selected] per option (not [value] on the select) so it reflects the active
+               size after a reload, even though options render asynchronously. -->
+          <select (change)="onPageSizeChange($event)">
+            @for (n of pageSizeOptions(); track n) {
+              <option [value]="n" [selected]="n === pageSize()">{{ n }}</option>
+            }
+          </select>
+          <svg class="pagination__chevron" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+        </span>
+      </label>
+    }
+  </div>
 
   <button
     type="button"
@@ -30,6 +33,6 @@
     [disabled]="page() >= totalPages()"
     (click)="next()"
   >
-    {{ i18n.t('page.next') }}
+    {{ i18n.t('page.next') }} <span aria-hidden="true">›</span>
   </button>
-</div>
+</nav>

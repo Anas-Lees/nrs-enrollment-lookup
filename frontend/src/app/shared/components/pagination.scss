@@ -1,16 +1,63 @@
 .pagination {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
+  justify-content: space-between;
+  gap: 1rem;
   flex-wrap: wrap;
-  margin-top: 1.75rem;
-  padding: 0.75rem 0;
+  margin-top: 1.5rem;
+  padding: 0.5rem 0;
 }
 
-.pagination__info {
-  font-size: 0.95rem;
+/* The middle group (range + per-page) stays centred between the Prev/Next buttons. */
+.pagination__mid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.pagination__range {
+  font-size: 0.9rem;
   color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  padding: 0 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--rop-green);
+    border-color: var(--rop-green);
+    color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rop-green-600);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 }
 
 .pagination__size {
@@ -19,53 +66,40 @@
   gap: 0.5rem;
   font-size: 0.9rem;
   color: var(--color-muted);
+}
+
+/* Custom dropdown: native arrow removed, a tight chevron tucked next to the value
+   (the native arrow floated far to the right of the number). */
+.pagination__select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 
   select {
-    height: 2.9rem;
-    padding: 0 0.6rem;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 2.5rem;
+    padding-block: 0;
+    padding-inline: 0.75rem 1.9rem;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: 8px;
     background: var(--color-surface);
     color: var(--color-text);
     font: inherit;
     cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--rop-green-600);
+      outline-offset: 2px;
+    }
   }
 }
 
-.pagination__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 8rem;
-  height: 2.9rem;
-  padding: 0 1.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  box-shadow: var(--shadow-card);
-  cursor: pointer;
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    color 0.12s ease;
-}
-
-.pagination__btn:hover:not(:disabled) {
-  background: var(--rop-green);
-  border-color: var(--rop-green);
-  color: #fff;
-}
-
-.pagination__btn:focus-visible {
-  outline: 2px solid var(--rop-green-600);
-  outline-offset: 2px;
-}
-
-.pagination__btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.pagination__chevron {
+  position: absolute;
+  inset-inline-end: 0.65rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  color: var(--color-muted-2);
+  pointer-events: none;
 }
