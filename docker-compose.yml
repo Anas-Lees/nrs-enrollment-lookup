@@ -59,8 +59,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      # Run the production-shaped configuration (JSON logs, no anonymous API docs).
+      ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
+      # Expose the Scalar/OpenAPI docs in this demo stack, but behind operator auth.
+      OpenApi__Enabled: "true"
       DatabaseProvider: Oracle
       # Connect as the least-privilege app account, not SYSTEM/DBA.
       ConnectionStrings__Default: "User Id=nrs_app;Password=nrs_app_password;Data Source=oracle:1521/XEPDB1"
