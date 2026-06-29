@@ -239,6 +239,18 @@ export class PersonSearch {
     );
   }
 
+  /**
+   * Card click: the first click selects the row (loads the quick-preview); clicking the
+   * already-selected row again opens its full profile. Mirrors the Enter-key shortcut.
+   */
+  onCardClick(p: PersonSummary): void {
+    if (this.selectedCrn() === p.civilNumber) {
+      this.router.navigate(['/persons', p.civilNumber]);
+      return;
+    }
+    this.select(p);
+  }
+
   /** Select a row → load the full record into the quick-preview panel. */
   select(p: PersonSummary): void {
     if (this.selectedCrn() === p.civilNumber && this.preview()) {

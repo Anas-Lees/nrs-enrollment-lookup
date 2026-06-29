@@ -51,6 +51,7 @@
   "search.nationalityAny": "كل الجنسيات",
   "search.clear": "مسح",
   "search.button": "بحث",
+  "search.cardHint": "انقر للمعاينة · انقر مرة أخرى لفتح الملف الكامل",
   "search.advanced": "بحث متقدم",
   "search.simple": "بحث بسيط",
   "search.advancedHint": "اجمع بين عوامل التصفية أدناه — يتم مطابقتها معًا.",

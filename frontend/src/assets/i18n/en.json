@@ -51,6 +51,7 @@
   "search.nationalityAny": "Any nationality",
   "search.clear": "Clear",
   "search.button": "Search",
+  "search.cardHint": "Click to preview · click again to open the full profile",
   "search.advanced": "Advanced",
   "search.simple": "Simple",
   "search.advancedHint": "Combine the filters below — all are matched together (AND).",
