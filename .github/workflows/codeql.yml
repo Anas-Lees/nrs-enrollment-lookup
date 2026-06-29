@@ -11,7 +11,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   analyze:
@@ -34,7 +33,21 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
+      # Code scanning (Security tab) needs GitHub Advanced Security, which isn't
+      # available on this private repo. So we run the analysis and publish the SARIF
+      # as an artifact instead of uploading it. To light up the Security tab once the
+      # repo is public (or GHAS is enabled), drop `upload: false` and the artifact step.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: '/language:${{ matrix.language }}'
+          upload: false
+          output: codeql-results-${{ matrix.language }}
+
+      - name: Upload CodeQL SARIF (artifact)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-${{ matrix.language }}
+          path: codeql-results-${{ matrix.language }}
+          retention-days: 7

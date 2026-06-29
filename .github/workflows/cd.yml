@@ -8,7 +8,6 @@ on:
 permissions:
   contents: read
   packages: write
-  security-events: write
 
 jobs:
   build-push:
@@ -48,27 +47,40 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+      # GHCR image names must be lowercase; github.repository may contain uppercase.
+      - name: Resolve lowercase image ref
+        id: img
+        run: echo "ref=ghcr.io/${GITHUB_REPOSITORY,,}-${{ matrix.name }}:latest" >> "$GITHUB_OUTPUT"
+
+      # Image scanning + SBOM are advisory: the images are already pushed above, so a
+      # scanner hiccup must never block delivery (continue-on-error).
       - name: Trivy image scan
+        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ghcr.io/${{ github.repository }}-${{ matrix.name }}:latest
+          image-ref: ${{ steps.img.outputs.ref }}
           format: sarif
           output: trivy-${{ matrix.name }}.sarif
           severity: CRITICAL,HIGH
-          # Report (don't fail the build) for this POC; raise to 1 to enforce.
           exit-code: '0'
 
-      - name: Upload Trivy results to Security tab
-        if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@v3
+      # Security tab needs GHAS (unavailable on this private repo), so publish the
+      # Trivy SARIF as an artifact. Switch to github/codeql-action/upload-sarif once
+      # the repo is public or GHAS is enabled.
+      - name: Upload Trivy results (artifact)
+        if: ${{ hashFiles(format('trivy-{0}.sarif', matrix.name)) != '' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: trivy-${{ matrix.name }}.sarif
-          category: trivy-${{ matrix.name }}
+          name: trivy-${{ matrix.name }}
+          path: trivy-${{ matrix.name }}.sarif
+          retention-days: 7
 
       - name: Generate + upload SBOM (SPDX)
+        continue-on-error: true
         uses: anchore/sbom-action@v0.24.0
         with:
-          image: ghcr.io/${{ github.repository }}-${{ matrix.name }}:latest
+          image: ${{ steps.img.outputs.ref }}
           format: spdx-json
           artifact-name: sbom-${{ matrix.name }}.spdx.json
 
