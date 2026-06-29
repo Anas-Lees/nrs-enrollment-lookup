@@ -46,3 +46,11 @@ An **Architecture.Tests** suite guards the layering (Domain references nothing; 
 ## Alternatives considered
 - **Single-project MVC** — Rejected. Does not scale to 185+ tables and mixes HTTP, logic, and data-access concerns.
 - **Vertical-slice / CQRS** — Rejected for now. More ceremony than this POC needs, though noted as a possible future evolution as the module grows.
+
+## Update (2026-06-29) — correction
+Entity-to-DTO mapping is done with **hand-written extension methods**
+(`Nrs.Application/Mapping/PersonMappingExtensions.cs`), **not AutoMapper**. AutoMapper was named
+in the Conventions, trade-offs, and follow-ups above in error — it was never added. Explicit
+mapping was chosen deliberately to stay dependency-free and AOT/trim-friendly (and to avoid
+AutoMapper's licensing/CVE history). Read every "AutoMapper" reference above as "explicit mapping
+extension methods". The layered-architecture decision itself stands unchanged.

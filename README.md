@@ -100,7 +100,7 @@ nrs-enrollment-lookup/
 ├── backend/      ASP.NET Core solution (Api · Application · Domain · Infrastructure + tests)
 ├── frontend/     Angular 21 single-page app (+ Playwright e2e)
 ├── deploy/       OpenShift manifests + Keycloak realm
-├── docs/         ADRs, the frozen OpenAPI contract, diagrams, screenshots, onboarding
+├── docs/         ADRs, the frozen OpenAPI contract, diagram source, screenshots, onboarding
 └── .github/      CI/CD workflows and repo policy
 ```
 
@@ -160,19 +160,22 @@ on first run in Development.
 ## Testing
 
 ```bash
-cd backend  && dotnet test     # 31 tests: unit · integration · contract · architecture
-cd frontend && npm run e2e     # 3 Playwright tests: the operator journey + RTL
+cd backend  && dotnet test     # 80+ tests across unit · integration · contract · architecture
+cd frontend && npm run e2e     # 5 Playwright tests: operator journey, filters, Arabic/RTL
 ```
 
 | Suite | Count | Covers |
 | ----- | ----- | ------ |
-| Unit (`Nrs.Application.Tests`) | 8 | service orchestration, paging clamps, mapping |
-| Integration (`Nrs.Api.IntegrationTests`) | 9 | real HTTP → EF Core → SQLite; seed verification |
-| Contract (`Nrs.Contract.Tests`) | 10 | code matches `openapi.yaml` (paths, enums, DTOs) |
+| Unit (`Nrs.Application.Tests`) | 12 | service orchestration, paging clamps, mapping, audit-safe cache decorator |
+| Integration (`Nrs.Api.IntegrationTests`) | 51 | real HTTP → EF Core → SQLite; auth/JWT, audit trail, rate limiting, correlation id, error contract, production-mode & seed-safety (1 live-Oracle test skipped without a DB) |
+| Contract (`Nrs.Contract.Tests`) | 14 | code matches `openapi.yaml` (paths, enums, DTOs) |
 | Architecture (`Nrs.Architecture.Tests`) | 4 | layering rules enforced |
-| E2E (Playwright) | 3 | search → profile journey; nationality filter; Arabic/RTL |
+| E2E (Playwright) | 5 | search → profile; nationality filter; advanced AND filters; Start New Enrollment; Arabic/RTL |
 
-CI runs all of these on every push/PR; CD builds and publishes container images to GHCR.
+CI runs all of these on every push/PR (plus code coverage and a vulnerable-package gate);
+a separate CodeQL workflow runs SAST. CD builds and publishes container images to GHCR with a
+Trivy image scan and an SPDX SBOM. (On this private repo, scan results are uploaded as build
+artifacts; they would surface in the Security tab once GitHub Advanced Security is enabled.)
 
 ---
 

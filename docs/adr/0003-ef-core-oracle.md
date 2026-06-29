@@ -42,3 +42,14 @@ The Oracle provider is swapped in late. Specifics:
 ## Alternatives considered
 - **Dapper / raw SQL** — Rejected. Less productive for this team, and the brief prefers EF Core.
 - **Oracle-only local via Docker** — Rejected. Heavy local setup, and Docker availability is not assumed across developer machines.
+
+## Update (2026-06-29)
+The Oracle provider is now **implemented**, not deferred. The provider is selected at runtime by
+the `DatabaseProvider` config value: `UseOracle` with 19c SQL compatibility, a command timeout, and
+a custom transient-retry execution strategy (`OracleTransientRetryStrategy`). Because a DbContext
+can hold only one migration set per assembly, the **Oracle migrations live in a separate assembly**
+(`Nrs.Infrastructure.Migrations.Oracle`, with a real `InitialCreate` using NVARCHAR2/VARCHAR2 and
+Oracle identity keys). The "run integration tests against the real Oracle provider" follow-up is
+done: `OracleProviderTests` (skipped unless `ORACLE_TEST_CONNSTRING` is set) and `ProductionModeTests`
+exist, and the docker-compose stack runs the API on Oracle XE. The SQLite-for-dev / Oracle-for-prod
+decision is unchanged.
