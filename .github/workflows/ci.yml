@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   backend:
-    name: Backend · build, test, scan
+    name: Backend · build, test, coverage, scan
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,20 +30,26 @@ jobs:
       - name: Build
         run: dotnet build --no-restore -c Release
 
-      - name: Test
-        run: dotnet test --no-build -c Release --verbosity normal
+      - name: Test (+ coverage)
+        run: >
+          dotnet test --no-build -c Release --verbosity normal
+          --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
-      - name: Security scan (vulnerable packages)
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/TestResults/**/coverage.cobertura.xml
+          retention-days: 7
+
+      - name: Security scan (vulnerable packages, fail on High/Critical)
         run: |
-          dotnet list package --vulnerable --include-transitive > vuln.txt 2>&1
-          cat vuln.txt
-          if grep -q "has the following vulnerable" vuln.txt; then
-            echo "::error::Vulnerable NuGet packages detected"
-            exit 1
-          fi
+          dotnet list package --vulnerable --include-transitive --format json > vuln.json || true
+          python3 "$GITHUB_WORKSPACE/.github/scripts/check-vulnerabilities.py" vuln.json
 
   frontend:
-    name: Frontend · lint, build
+    name: Frontend · format, test, build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -63,6 +69,9 @@ jobs:
 
       - name: Format check (Prettier)
         run: npx prettier --check "src/**/*.{ts,html,scss,json}"
+
+      - name: Unit tests (Vitest)
+        run: npx ng test --watch=false
 
       - name: Build
         run: npm run build

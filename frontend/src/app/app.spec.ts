@@ -16,10 +16,11 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render the application title in the header', async () => {
+  it('should render the brand and an active Applicant Lookup nav item', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.app-header__title')?.textContent).toContain('Applicant Lookup');
+    expect(compiled.querySelector('.brand-text__title')?.textContent).toContain('NRS');
+    expect(compiled.querySelector('.sidebar__nav')?.textContent).toContain('Applicant Lookup');
   });
 });
