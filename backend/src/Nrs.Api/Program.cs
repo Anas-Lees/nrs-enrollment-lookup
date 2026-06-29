@@ -146,8 +146,10 @@ if (exposeApiDocs)
     }
 }
 
-// Create/upgrade the schema and (optionally) seed sample data on startup. Runs in every
-// environment, gated by configuration so real production can disable seeding.
+// Create/upgrade the schema and (optionally) seed sample data on startup. Auto-migrate
+// runs in every environment (the demo stacks rely on it). Seeding the synthetic Bogus
+// data, however, defaults ON outside Production and OFF in Production — so a real registry
+// is never auto-filled with fake citizens. Demo stacks opt in via Database:SeedOnStartup.
 if (builder.Configuration.GetValue<bool?>("Database:InitializeOnStartup") ?? true)
 {
     using var scope = app.Services.CreateScope();
@@ -157,7 +159,7 @@ if (builder.Configuration.GetValue<bool?>("Database:InitializeOnStartup") ?? tru
     // Nrs.Infrastructure; Oracle's lives in Nrs.Infrastructure.Migrations.Oracle.
     await db.Database.MigrateAsync();
 
-    if (builder.Configuration.GetValue<bool?>("Database:SeedOnStartup") ?? true)
+    if (builder.Configuration.GetValue<bool?>("Database:SeedOnStartup") ?? !app.Environment.IsProduction())
     {
         await DataSeeder.SeedAsync(db);
     }

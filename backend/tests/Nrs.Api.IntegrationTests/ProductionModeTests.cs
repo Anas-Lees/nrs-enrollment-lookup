@@ -1,22 +1,26 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Nrs.Api.IntegrationTests;
 
 /// <summary>
-/// Verifies production-shaped behaviour: the database is migrated and seeded on startup
-/// (so search works) even outside Development, and the API docs are not exposed by default.
+/// Verifies production-shaped behaviour: under Production the schema is migrated on startup
+/// and — when seeding is explicitly opted in (as the demo stacks do, since seeding defaults
+/// OFF in Production) — the synthetic population is seeded, while the API docs stay hidden.
 /// </summary>
 public class ProductionModeTests(NrsApiProdFactory factory) : IClassFixture<NrsApiProdFactory>
 {
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Startup_MigratesAndSeeds_InProduction()
+    public async Task Startup_MigratesAndSeeds_InProduction_WhenOptedIn()
     {
-        // Seed ran outside Development → search returns the seeded population.
-        var response = await _client.GetAsync("/api/v1/persons/search?pageSize=1");
+        // The prod factory opts in to seeding; the migrated schema + seed mean search
+        // returns the seeded population (not just a 200 on an empty table).
+        var page = await _client.GetFromJsonAsync<JsonElement>("/api/v1/persons/search?pageSize=1");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(page.GetProperty("totalCount").GetInt32() > 0);
     }
 
     [Fact]
@@ -27,5 +31,23 @@ public class ProductionModeTests(NrsApiProdFactory factory) : IClassFixture<NrsA
 
         Assert.Equal(HttpStatusCode.NotFound, scalar.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, openApi.StatusCode);
+    }
+}
+
+/// <summary>
+/// The safety guarantee: under Production with no explicit opt-in (the shipped default),
+/// the schema is migrated but the synthetic Bogus data is NOT seeded.
+/// </summary>
+public class ProductionSeedSafetyTests(NrsApiProdNoSeedFactory factory) : IClassFixture<NrsApiProdNoSeedFactory>
+{
+    private readonly HttpClient _client = factory.CreateClient();
+
+    [Fact]
+    public async Task Production_DoesNotAutoSeed_FakeData_ByDefault()
+    {
+        // Schema migrated (search succeeds) but empty — no fake citizens were written.
+        var page = await _client.GetFromJsonAsync<JsonElement>("/api/v1/persons/search?pageSize=1");
+
+        Assert.Equal(0, page.GetProperty("totalCount").GetInt32());
     }
 }

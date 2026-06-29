@@ -59,8 +59,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      # Run the production-shaped configuration (JSON logs, no anonymous API docs).
+      # Run the production-shaped runtime config (JSON logs, no anonymous API docs).
+      # Note: this demo is still seeded with SYNTHETIC data (below) — it is not a
+      # production *data* posture.
       ASPNETCORE_ENVIRONMENT: Production
+      # Demo stack: explicitly opt in to seeding synthetic registry data. Seeding defaults
+      # OFF under Production, so this toggle is required here. NEVER set true against a real
+      # registry database.
+      Database__SeedOnStartup: "true"
       ASPNETCORE_URLS: http://+:8080
       # Expose the Scalar/OpenAPI docs in this demo stack, but behind operator auth.
       OpenApi__Enabled: "true"
