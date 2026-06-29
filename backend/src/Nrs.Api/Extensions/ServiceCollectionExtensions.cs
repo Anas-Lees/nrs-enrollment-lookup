@@ -79,6 +79,16 @@ public static class ServiceCollectionExtensions
         // API reach Keycloak via different hostnames (e.g. localhost:8081 vs keycloak:8080 in
         // Docker) while the token issuer stays consistent.
         var metadataAddress = configuration["Auth:MetadataAddress"];
+        // Secure by default: require HTTPS for OIDC metadata/JWKS. Deployments that reach
+        // Keycloak over internal plain HTTP (e.g. docker compose) opt out explicitly.
+        var requireHttpsMetadata = configuration.GetValue<bool?>("Auth:RequireHttpsMetadata") ?? true;
+
+        // Fail fast: with auth on we always validate the audience, so it must be configured.
+        if (string.IsNullOrWhiteSpace(audience))
+        {
+            throw new InvalidOperationException(
+                "Auth:Audience must be configured when Auth:Enabled is true — the API validates the token audience.");
+        }
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -90,11 +100,17 @@ public static class ServiceCollectionExtensions
                 {
                     options.MetadataAddress = metadataAddress;
                 }
-                // Keycloak is typically reached over plain HTTP inside the cluster.
-                options.RequireHttpsMetadata = false;
+                options.RequireHttpsMetadata = requireHttpsMetadata;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateAudience = !string.IsNullOrWhiteSpace(audience),
+                    // Issuer and signing keys come from OIDC discovery; pin audience, lifetime
+                    // and signature, and keep clock skew tight.
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidAudience = audience,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ClockSkew = TimeSpan.FromSeconds(60),
                 };
                 options.Events = new JwtBearerEvents
                 {
