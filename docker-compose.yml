@@ -88,6 +88,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    healthcheck:
+      # curl is installed in the API image; hit the anonymous readiness endpoint.
+      # Generous start_period: the API waits for Oracle, then migrates + seeds on boot.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 90s
 
   spa:
     build:
@@ -99,7 +107,10 @@ services:
       # Runtime config: enable Keycloak login for the containerised SPA.
       - ./deploy/spa-config.docker.json:/usr/share/nginx/html/config.json:ro
     depends_on:
-      - api
+      # Wait for the API to be healthy (serving), not merely started, so the SPA never
+      # proxies to a not-yet-ready backend on first boot.
+      api:
+        condition: service_healthy
 
 volumes:
   oracle-data:
