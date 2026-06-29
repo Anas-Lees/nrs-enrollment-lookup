@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Oracle.EntityFrameworkCore.Infrastructure;
+using Nrs.Api.Auth;
 using Nrs.Application.Interfaces;
 using Nrs.Application.Services;
 using Nrs.Infrastructure.Persistence;
@@ -16,6 +18,9 @@ namespace Nrs.Api.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Keycloak realm role required to use the applicant-lookup endpoints.</summary>
+    public const string OperatorRole = "operator";
+
     /// <summary>
     /// Registers the DbContext (SQLite for local development — see ADR 0003), the
     /// repository, and the application service.
@@ -86,13 +91,34 @@ public static class ServiceCollectionExtensions
                 {
                     ValidateAudience = !string.IsNullOrWhiteSpace(audience),
                 };
+                options.Events = new JwtBearerEvents
+                {
+                    // Keycloak nests realm roles under realm_access.roles; promote them to
+                    // standard role claims so authorization policies (RequireRole) can see them.
+                    OnTokenValidated = context =>
+                    {
+                        if (context.Principal?.Identity is ClaimsIdentity identity)
+                        {
+                            var realmAccess = identity.FindFirst(KeycloakRoleClaims.RealmAccessClaim)?.Value;
+                            foreach (var role in KeycloakRoleClaims.FromRealmAccess(realmAccess))
+                            {
+                                identity.AddClaim(new Claim(ClaimTypes.Role, role));
+                            }
+                        }
+
+                        return Task.CompletedTask;
+                    },
+                };
             });
 
         services.AddAuthorization(options =>
         {
-            // Lock everything down by default once auth is on.
+            // Once auth is on, every endpoint (except those marked AllowAnonymous, e.g.
+            // /health) requires an authenticated user WITH the operator role. This is the
+            // authorization control: authentication alone is not enough.
             options.FallbackPolicy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
+                .RequireRole(OperatorRole)
                 .Build();
         });
 
