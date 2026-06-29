@@ -8,11 +8,46 @@ using Nrs.Api.Extensions;
 using Nrs.Api.Middleware;
 using Nrs.Infrastructure.Persistence;
 using Nrs.Infrastructure.Seed;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 const string SpaCorsPolicy = "spa";
+
+// Structured (JSON) logging with scopes outside development so logs are machine-parseable
+// and carry the correlation id; the readable console stays in dev.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddJsonConsole(o => o.IncludeScopes = true);
+}
+
+// OpenTelemetry tracing + metrics (ASP.NET Core + outbound HTTP). The OTLP exporter is
+// only added when an endpoint is configured, so local/dev runs produce traces without
+// erroring on a missing collector.
+var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"]
+    ?? builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("nrs-api"))
+    .WithTracing(tracing =>
+    {
+        tracing.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation();
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        {
+            tracing.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
+        }
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation();
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        {
+            metrics.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
+        }
+    });
 
 // Controllers + serialize enums as their string names (matches the OpenAPI contract).
 builder.Services
@@ -66,8 +101,9 @@ builder.Services.AddCors(options => options.AddPolicy(SpaCorsPolicy, policy => p
 
 var app = builder.Build();
 
-// Consistent error responses first in the pipeline.
+// Consistent error responses first in the pipeline, then correlation id for everything after.
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
