@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 using Oracle.EntityFrameworkCore.Infrastructure;
 using Nrs.Api.Auth;
@@ -57,8 +58,29 @@ public static class ServiceCollectionExtensions
             }
         });
 
+        // Distributed cache for hot profile reads: Redis when a connection string is
+        // configured (shared across API instances), otherwise an in-process cache so local
+        // dev and tests need no external dependency. Same IDistributedCache contract either way.
+        var redis = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrWhiteSpace(redis))
+        {
+            services.AddStackExchangeRedisCache(options => options.Configuration = redis);
+        }
+        else
+        {
+            services.AddDistributedMemoryCache();
+        }
+
         services.AddScoped<IPersonRepository, PersonRepository>();
-        services.AddScoped<IPersonLookupService, PersonLookupService>();
+
+        // The application service, wrapped in a cache-aside decorator. The decorator sits
+        // BELOW the controller's audit filter, so caching never bypasses the audit trail —
+        // a cache hit skips the DB call, not the "who looked up whom" record.
+        services.AddScoped<PersonLookupService>();
+        services.AddScoped<IPersonLookupService>(sp =>
+            new CachedPersonLookupService(
+                sp.GetRequiredService<PersonLookupService>(),
+                sp.GetRequiredService<IDistributedCache>()));
 
         // Audit trail: the logger persists records; the MVC filter captures every lookup.
         services.AddScoped<IAuditLogger, AuditLogger>();

@@ -60,6 +60,27 @@ public class AuditTrailTests(NrsApiFactory factory) : IClassFixture<NrsApiFactor
         Assert.NotNull(entry);
         Assert.Equal("anonymous", entry!.Actor);
     }
+
+    [Fact]
+    public async Task ProfileView_IsAudited_OnEveryRequest_IncludingCacheHits()
+    {
+        var client = factory.CreateClient();
+
+        // A stable CRN that other tests don't open.
+        var page = await client.GetFromJsonAsync<JsonElement>("/api/v1/persons/search?nationality=OMN&pageSize=10");
+        var crn = page.GetProperty("items")[7].GetProperty("civilNumber").GetString()!;
+
+        var before = (await RecentAsync(client)).Count(a => a.Action == "VIEW_PROFILE" && a.TargetCrn == crn);
+
+        // View twice: the first populates the cache, the second is served from the cache.
+        (await client.GetAsync($"/api/v1/persons/{crn}")).EnsureSuccessStatusCode();
+        (await client.GetAsync($"/api/v1/persons/{crn}")).EnsureSuccessStatusCode();
+
+        var after = (await RecentAsync(client)).Count(a => a.Action == "VIEW_PROFILE" && a.TargetCrn == crn);
+
+        // Caching must NOT suppress the audit trail — both views, cache hit included, are recorded.
+        Assert.Equal(before + 2, after);
+    }
 }
 
 /// <summary>Verifies the audited actor is the authenticated operator when auth is on.</summary>
