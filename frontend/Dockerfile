@@ -14,4 +14,11 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS final
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
+# Make the non-root user explicit (the base image defaults to it) so an accidental
+# regression to root is visible in review.
+USER 101
 EXPOSE 8080
+
+# Container liveness via the existing /healthz endpoint (BusyBox wget ships in the image).
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1

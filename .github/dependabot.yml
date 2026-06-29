@@ -1,0 +1,39 @@
+# Keep dependencies and base images current on a weekly cadence. This is the sustainable
+# alternative to hand-pinning base-image digests: Dependabot opens PRs to bump the pinned
+# versions, and CI (build/test/CodeQL/Trivy) gates each one.
+version: 2
+updates:
+  # .NET / NuGet packages (backend solution).
+  - package-ecosystem: "nuget"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "backend"]
+
+  # Angular / npm packages (frontend).
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "frontend"]
+
+  # Dockerfile base images.
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+
+  # GitHub Actions used in the workflows.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]

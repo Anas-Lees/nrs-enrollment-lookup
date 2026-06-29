@@ -14,6 +14,13 @@ RUN dotnet publish src/Nrs.Api/Nrs.Api.csproj -c Release -o /app/publish --no-re
 # ---- Runtime stage ----
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+
+# curl for the container HEALTHCHECK — the aspnet runtime image ships neither curl nor
+# wget. Installed before the app copy so this layer caches across code changes.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/publish .
 
 # Writable data dir for the local SQLite database (POC). Made group-0 writable so
@@ -27,4 +34,10 @@ USER $APP_UID
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080 \
     ConnectionStrings__Default="Data Source=/app/data/nrs.db"
+
+# Container-level liveness signal (orchestrators that honour HEALTHCHECK; also used by
+# docker-compose to gate the SPA on a ready API). Hits the anonymous readiness endpoint.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8080/health/ready || exit 1
+
 ENTRYPOINT ["dotnet", "Nrs.Api.dll"]
