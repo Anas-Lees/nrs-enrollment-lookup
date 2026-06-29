@@ -11,6 +11,7 @@ Each ADR captures the context, the decision, and its consequences so that future
 | [0001](0001-rest-openapi.md) | REST API with OpenAPI, Contract-First | Accepted | WS3 + Architecture |
 | [0002](0002-layered-architecture.md) | Clean Layered Architecture | Accepted | WS3 (with WS2) |
 | [0003](0003-ef-core-oracle.md) | EF Core over Oracle, SQLite for Local Development | Accepted | WS2 |
+| [0004](0004-audit-safe-distributed-cache.md) | Audit-safe Distributed Cache for Hot Profile Reads | Accepted | WS2/WS3 |
 
 ## ADR process
 

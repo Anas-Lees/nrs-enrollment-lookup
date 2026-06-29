@@ -38,10 +38,11 @@ nrs-enrollment-lookup/            # Git repository root — the whole solution l
 │   ├── adr/                      # Architecture Decision Records (one file per decision)
 │   │   ├── 0001-rest-openapi.md
 │   │   ├── 0002-layered-architecture.md
-│   │   └── 0003-ef-core-oracle.md
+│   │   ├── 0003-ef-core-oracle.md
+│   │   └── 0004-audit-safe-distributed-cache.md
 │   ├── api/
 │   │   └── openapi.yaml          # The frozen API contract — single source of truth
-│   ├── diagrams/                 # Architecture, ERD, sequence, CI/CD exports
+│   ├── diagrams/                 # architecture.drawio source (PNG exports planned)
 │   └── onboarding.md             # New-developer setup guide
 ├── backend/                      # ASP.NET Core solution — clean layered architecture
 │   ├── Nrs.ApplicantLookup.sln
