@@ -10,10 +10,11 @@ to a running app, and points you at the conventions you need on day one.
 | .NET SDK | 10.x | `dotnet --version` |
 | Node.js | 22+ | `node --version` |
 | Git | 2.40+ | |
-| Docker | (optional) | Only for the full Oracle + Keycloak + Redis dev stack |
+| Docker | Required | For the local Oracle (and the full Keycloak + Redis dev stack) |
 
-You do **not** need Oracle installed. Local development runs against SQLite; the Oracle provider
-is selected by configuration for Test/Stage/Prod (see [ADR 0003](adr/0003-ef-core-oracle.md)).
+**All environments use Oracle**, including local development. Start a local Oracle with
+`docker compose up -d oracle`; it listens on `localhost:1521/XEPDB1` (app user `nrs_app`). There is
+no provider toggle — the app is always Oracle (see [ADR 0005](adr/0005-oracle-only.md)).
 
 ## 2. Clone
 
@@ -25,13 +26,14 @@ cd nrs-enrollment-lookup
 ## 3. Run the backend
 
 ```bash
+docker compose up -d oracle          # local Oracle on localhost:1521/XEPDB1
 cd backend
 dotnet restore
 dotnet run --project src/Nrs.Api
 ```
 
 - API reference (Scalar): `https://localhost:7001/scalar`
-- The database is created and seeded with 50–100 persons on first run (Development).
+- On startup the API applies EF Core migrations and seeds 50–100 persons (outside Production).
 
 ## 4. Run the frontend
 

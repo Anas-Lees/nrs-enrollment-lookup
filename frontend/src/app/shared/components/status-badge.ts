@@ -31,10 +31,16 @@ export class StatusBadge {
       case 'LOST':
       case 'STOLEN':
       case 'CANCELLED':
+      case 'REJECTED':
         return 'badge--danger';
       case 'DECEASED':
       case 'MERGED':
+      case 'DRAFT':
         return 'badge--muted';
+      case 'APPROVED':
+        return 'badge--ok';
+      case 'UNDER_REVIEW':
+        return 'badge--warn';
       default:
         return 'badge--default';
     }

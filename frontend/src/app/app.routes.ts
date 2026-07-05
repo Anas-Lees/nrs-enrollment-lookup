@@ -17,11 +17,25 @@ export const routes: Routes = [
     loadComponent: () => import('./features/profile/person-profile').then((m) => m.PersonProfile),
   },
   {
+    path: 'enrollment/queue',
+    title: 'Enrollment queue · NRS',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enrollment/enrollment-queue').then((m) => m.EnrollmentQueue),
+  },
+  {
     path: 'enrollment/new',
     title: 'New enrollment · NRS',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/enrollment/enrollment-placeholder').then((m) => m.EnrollmentPlaceholder),
+      import('./features/enrollment/enrollment-form').then((m) => m.EnrollmentForm),
+  },
+  {
+    path: 'enrollment/:id/edit',
+    title: 'Edit enrollment · NRS',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enrollment/enrollment-form').then((m) => m.EnrollmentForm),
   },
   { path: '**', redirectTo: 'search' },
 ];

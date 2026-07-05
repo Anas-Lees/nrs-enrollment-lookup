@@ -1,0 +1,153 @@
+.queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+
+  h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: var(--color-text);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+
+  select {
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+  }
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--rop-green);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.55rem 1.1rem;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--rop-green-600);
+  }
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.empty {
+  padding: 2.5rem;
+  text-align: center;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+}
+
+.form-error {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: rgb(140 29 43 / 8%);
+  border: 1px solid rgb(140 29 43 / 25%);
+  color: var(--color-danger);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.queue-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  thead th {
+    text-align: start;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-alt);
+  }
+
+  tbody td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .row {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-surface-alt);
+    }
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.col-actions {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

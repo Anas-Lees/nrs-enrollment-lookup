@@ -1,0 +1,67 @@
+<section class="page">
+  <header class="queue-head">
+    <h1>{{ i18n.t('queue.title') }}</h1>
+    <div class="queue-head__actions">
+      <label class="filter">
+        <span>{{ i18n.t('queue.filterStatus') }}</span>
+        <select (change)="onStatusChange($event)">
+          <option value="" [selected]="statusFilter() === ''">{{ i18n.t('queue.allStatuses') }}</option>
+          @for (s of statuses; track s) {
+            <option [value]="s" [selected]="s === statusFilter()">{{ i18n.t('status.' + s) }}</option>
+          }
+        </select>
+      </label>
+      <a routerLink="/enrollment/new" class="btn-primary">+ {{ i18n.t('queue.new') }}</a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="muted">{{ i18n.t('queue.loading') }}</p>
+  } @else if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  } @else if (results(); as r) {
+    @if (r.items.length === 0) {
+      <p class="empty">{{ i18n.t('queue.empty') }}</p>
+    } @else {
+      <div class="table-wrap">
+        <table class="queue-table">
+          <thead>
+            <tr>
+              <th>{{ i18n.t('queue.col.reference') }}</th>
+              <th>{{ i18n.t('queue.col.applicant') }}</th>
+              <th>{{ i18n.t('queue.col.type') }}</th>
+              <th>{{ i18n.t('queue.col.status') }}</th>
+              <th>{{ i18n.t('queue.col.created') }}</th>
+              <th class="col-actions"><span class="sr-only">{{ i18n.t('queue.col.actions') }}</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of r.items; track e.id) {
+              <tr (click)="openEdit(e)" class="row">
+                <td class="mono">{{ e.referenceNumber }}</td>
+                <td>{{ applicantName(e) }}</td>
+                <td>{{ i18n.t('enroll.type.' + e.type) }}</td>
+                <td><app-status-badge [status]="e.status" /></td>
+                <td>{{ e.createdAtUtc.substring(0, 10) | appDate: i18n.lang() }}</td>
+                <td class="col-actions">
+                  <button type="button" class="link-btn" (click)="openEdit(e); $event.stopPropagation()">
+                    {{ i18n.t('queue.edit') }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [page]="r.page"
+        [pageSize]="r.pageSize"
+        [totalCount]="r.totalCount"
+        [pageSizeOptions]="pageSizeOptions"
+        (pageChange)="onPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)"
+      />
+    }
+  }
+</section>

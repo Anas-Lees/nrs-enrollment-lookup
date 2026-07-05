@@ -1,0 +1,145 @@
+.page {
+  max-width: 780px;
+}
+
+.topbar {
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  color: var(--color-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+}
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 1.75rem 2rem;
+}
+
+.enroll-form {
+  h1 {
+    margin: 0 0 1.25rem;
+    font-size: 1.4rem;
+    color: var(--color-text);
+  }
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+
+    &:focus-visible {
+      outline: 2px solid var(--rop-green-600);
+      outline-offset: 1px;
+    }
+
+    &.is-invalid {
+      border-color: var(--color-danger);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+  }
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field-error {
+  color: var(--color-danger);
+  font-size: 0.8rem;
+}
+
+.form-error {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: rgb(140 29 43 / 8%);
+  border: 1px solid rgb(140 29 43 / 25%);
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.btn-primary {
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--rop-green);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--rop-green-600);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  padding: 0.6rem 1.25rem;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-surface-alt);
+  }
+}

@@ -2,14 +2,15 @@
 
 The application code is built secure-by-default; the **demo deployment** (Docker Compose /
 the OpenShift sample) intentionally opts into convenient-but-unsafe values. Before any real
-deployment, work through the items below. Status reflects a 2026‑06‑29 readiness audit.
+deployment, work through the items below. Status reflects a 2026‑07‑05 readiness audit.
 
 ## 🔴 Blockers — must fix before production
 
-- [ ] **Real, durable database.** The OpenShift sample runs pod‑local **SQLite on `emptyDir`**
-  with 2 replicas — data (and the audit trail) is lost on restart and the replicas diverge.
-  Provision a managed/enterprise Oracle, set `DatabaseProvider=Oracle` + the connection string
-  from a secret, remove the SQLite path, and set up **backups + PITR + a tested restore**.
+- [ ] **Real, durable database.** The app always runs on Oracle, but the samples point at a
+  throwaway demo Oracle (single container / pod‑local) that is fine for a POC and unfit for
+  production — data and the audit trail are not durable and would not survive a restart.
+  Provision a managed/enterprise Oracle, inject its connection string from a secret, and set up
+  **backups + PITR + a tested restore**.
 - [ ] **Don't seed or auto-migrate on boot in prod.** Set `Database__SeedOnStartup=false` and run
   migrations as a one‑shot Job/init‑container (not `MigrateAsync()` racing across replicas with
   DDL rights). The OpenShift `configmap.yaml` currently sets `Database__SeedOnStartup: "true"`

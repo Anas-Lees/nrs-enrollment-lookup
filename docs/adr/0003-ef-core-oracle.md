@@ -1,6 +1,9 @@
 # ADR 0003: EF Core over Oracle, SQLite for Local Development
 
-- Status: Accepted
+> **Status: Superseded** by [ADR 0005](0005-oracle-only.md) — the project now uses Oracle for
+> **every** environment (SQLite removed). The historical content below is kept for the record.
+
+- Status: Superseded
 - Date: 2026-06-28
 - Deciders: Solutions Architect, Backend Tech Lead, Frontend Tech Lead
 - Workstream: WS2

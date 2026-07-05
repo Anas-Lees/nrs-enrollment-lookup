@@ -15,6 +15,16 @@
         <span class="nav-item__label">{{ i18n.t('nav.applicantLookup') }}</span>
       </a>
 
+      <a class="nav-item" routerLink="/enrollment/new" routerLinkActive="is-active">
+        <span class="nav-item__dot" aria-hidden="true"></span>
+        <span class="nav-item__label">{{ i18n.t('nav.newEnrollment') }}</span>
+      </a>
+
+      <a class="nav-item" routerLink="/enrollment/queue" routerLinkActive="is-active">
+        <span class="nav-item__dot" aria-hidden="true"></span>
+        <span class="nav-item__label">{{ i18n.t('nav.myQueue') }}</span>
+      </a>
+
       @for (item of stubNav; track item) {
         <span class="nav-item is-disabled" aria-disabled="true">
           <span class="nav-item__dot" aria-hidden="true"></span>

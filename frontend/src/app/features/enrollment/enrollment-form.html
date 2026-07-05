@@ -1,0 +1,108 @@
+<section class="page">
+  <div class="topbar">
+    <a routerLink="/enrollment/queue" class="back-link">{{ i18n.t('enroll.backToQueue') }}</a>
+  </div>
+
+  <article class="panel enroll-form">
+    <h1>{{ isEdit() ? i18n.t('enroll.edit.title') : i18n.t('enroll.new.title') }}</h1>
+
+    @if (loading()) {
+      <p class="muted">{{ i18n.t('enroll.loading') }}</p>
+    } @else {
+      @if (error()) {
+        <p class="form-error" role="alert">{{ error() }}</p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <div class="field">
+          <label for="civilNumber">{{ i18n.t('enroll.field.civilNumber') }}</label>
+          <input id="civilNumber" type="text" inputmode="numeric" formControlName="civilNumber"
+                 [attr.placeholder]="i18n.t('enroll.field.civilNumberHint')" />
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="firstNameEn">{{ i18n.t('enroll.field.firstNameEn') }}</label>
+            <input id="firstNameEn" type="text" formControlName="firstNameEn"
+                   [class.is-invalid]="invalid('firstNameEn')" />
+            @if (invalid('firstNameEn')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+          <div class="field">
+            <label for="familyNameEn">{{ i18n.t('enroll.field.familyNameEn') }}</label>
+            <input id="familyNameEn" type="text" formControlName="familyNameEn"
+                   [class.is-invalid]="invalid('familyNameEn')" />
+            @if (invalid('familyNameEn')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="firstNameAr">{{ i18n.t('enroll.field.firstNameAr') }}</label>
+            <input id="firstNameAr" type="text" dir="rtl" formControlName="firstNameAr"
+                   [class.is-invalid]="invalid('firstNameAr')" />
+            @if (invalid('firstNameAr')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+          <div class="field">
+            <label for="familyNameAr">{{ i18n.t('enroll.field.familyNameAr') }}</label>
+            <input id="familyNameAr" type="text" dir="rtl" formControlName="familyNameAr"
+                   [class.is-invalid]="invalid('familyNameAr')" />
+            @if (invalid('familyNameAr')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>{{ i18n.t('enroll.field.dob') }}</label>
+            <app-date-field formControlName="dateOfBirth"
+                            [placeholder]="i18n.t('enroll.field.dob')"
+                            [ariaLabel]="i18n.t('enroll.field.dob')" />
+            @if (invalid('dateOfBirth')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+          <div class="field">
+            <label for="nationalityCode">{{ i18n.t('enroll.field.nationality') }}</label>
+            <select id="nationalityCode" formControlName="nationalityCode">
+              @for (opt of nationalityOptions; track opt.code) {
+                <option [value]="opt.code">{{ i18n.t('nationality.' + opt.code) }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="type">{{ i18n.t('enroll.field.type') }}</label>
+          <select id="type" formControlName="type">
+            @for (t of types; track t) {
+              <option [value]="t">{{ i18n.t('enroll.type.' + t) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="notes">{{ i18n.t('enroll.field.notes') }}</label>
+          <textarea id="notes" rows="3" formControlName="notes"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <a routerLink="/enrollment/queue" class="btn-secondary">{{ i18n.t('enroll.cancel') }}</a>
+          <button type="submit" class="btn-primary" [disabled]="saving()">
+            @if (saving()) {
+              {{ i18n.t('enroll.saving') }}
+            } @else {
+              {{ isEdit() ? i18n.t('enroll.update') : i18n.t('enroll.save') }}
+            }
+          </button>
+        </div>
+      </form>
+    }
+  </article>
+</section>

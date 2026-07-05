@@ -14,10 +14,10 @@ test.describe('Applicant Lookup — operator journey', () => {
     const firstCard = page.locator('.cards .card').first();
     await expect(firstCard).toBeVisible();
 
-    // Grab the CRN from the card, then select it to populate the quick preview.
+    // Grab the CRN from the card. The first result is auto-selected on load, so its
+    // quick-preview is already shown (clicking the selected card would open the profile).
     const crn = (await firstCard.locator('.card__crn').innerText()).trim();
     expect(crn).not.toEqual('');
-    await firstCard.click();
     await expect(page.locator('.preview__name')).toBeVisible();
 
     // Open the full profile from the preview CTA.
@@ -54,14 +54,14 @@ test.describe('Applicant Lookup — operator journey', () => {
     await expect(page.locator('.results-meta__count')).toContainText('matches');
   });
 
-  test('Start New Enrollment from a profile opens the placeholder for that CRN', async ({
+  test('Start New Enrollment from a profile opens the form with the CRN prefilled', async ({
     page,
   }) => {
     await page.goto('/persons/63498452');
     await expect(page.locator('.summary-card h1')).toBeVisible();
     await page.locator('.enroll-cta').click();
     await expect(page).toHaveURL(/\/enrollment\/new\?crn=63498452$/);
-    await expect(page.locator('.enroll__for')).toContainText('63498452');
+    await expect(page.locator('#civilNumber')).toHaveValue('63498452');
   });
 
   test('language toggle switches the UI to Arabic and flips to RTL', async ({ page }) => {
