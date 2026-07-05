@@ -5,9 +5,13 @@
       <label class="filter">
         <span>{{ i18n.t('queue.filterStatus') }}</span>
         <select (change)="onStatusChange($event)">
-          <option value="" [selected]="statusFilter() === ''">{{ i18n.t('queue.allStatuses') }}</option>
+          <option value="" [selected]="statusFilter() === ''">
+            {{ i18n.t('queue.allStatuses') }}
+          </option>
           @for (s of statuses; track s) {
-            <option [value]="s" [selected]="s === statusFilter()">{{ i18n.t('status.' + s) }}</option>
+            <option [value]="s" [selected]="s === statusFilter()">
+              {{ i18n.t('status.' + s) }}
+            </option>
           }
         </select>
       </label>
@@ -32,7 +36,9 @@
               <th>{{ i18n.t('queue.col.type') }}</th>
               <th>{{ i18n.t('queue.col.status') }}</th>
               <th>{{ i18n.t('queue.col.created') }}</th>
-              <th class="col-actions"><span class="sr-only">{{ i18n.t('queue.col.actions') }}</span></th>
+              <th class="col-actions">
+                <span class="sr-only">{{ i18n.t('queue.col.actions') }}</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -44,7 +50,11 @@
                 <td><app-status-badge [status]="e.status" /></td>
                 <td>{{ e.createdAtUtc.substring(0, 10) | appDate: i18n.lang() }}</td>
                 <td class="col-actions">
-                  <button type="button" class="link-btn" (click)="openEdit(e); $event.stopPropagation()">
+                  <button
+                    type="button"
+                    class="link-btn"
+                    (click)="openEdit(e); $event.stopPropagation()"
+                  >
                     {{ i18n.t('queue.edit') }}
                   </button>
                 </td>

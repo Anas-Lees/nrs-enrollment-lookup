@@ -16,23 +16,36 @@
       <form [formGroup]="form" (ngSubmit)="save()" novalidate>
         <div class="field">
           <label for="civilNumber">{{ i18n.t('enroll.field.civilNumber') }}</label>
-          <input id="civilNumber" type="text" inputmode="numeric" formControlName="civilNumber"
-                 [attr.placeholder]="i18n.t('enroll.field.civilNumberHint')" />
+          <input
+            id="civilNumber"
+            type="text"
+            inputmode="numeric"
+            formControlName="civilNumber"
+            [attr.placeholder]="i18n.t('enroll.field.civilNumberHint')"
+          />
         </div>
 
         <div class="grid-2">
           <div class="field">
             <label for="firstNameEn">{{ i18n.t('enroll.field.firstNameEn') }}</label>
-            <input id="firstNameEn" type="text" formControlName="firstNameEn"
-                   [class.is-invalid]="invalid('firstNameEn')" />
+            <input
+              id="firstNameEn"
+              type="text"
+              formControlName="firstNameEn"
+              [class.is-invalid]="invalid('firstNameEn')"
+            />
             @if (invalid('firstNameEn')) {
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }
           </div>
           <div class="field">
             <label for="familyNameEn">{{ i18n.t('enroll.field.familyNameEn') }}</label>
-            <input id="familyNameEn" type="text" formControlName="familyNameEn"
-                   [class.is-invalid]="invalid('familyNameEn')" />
+            <input
+              id="familyNameEn"
+              type="text"
+              formControlName="familyNameEn"
+              [class.is-invalid]="invalid('familyNameEn')"
+            />
             @if (invalid('familyNameEn')) {
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }
@@ -42,16 +55,26 @@
         <div class="grid-2">
           <div class="field">
             <label for="firstNameAr">{{ i18n.t('enroll.field.firstNameAr') }}</label>
-            <input id="firstNameAr" type="text" dir="rtl" formControlName="firstNameAr"
-                   [class.is-invalid]="invalid('firstNameAr')" />
+            <input
+              id="firstNameAr"
+              type="text"
+              dir="rtl"
+              formControlName="firstNameAr"
+              [class.is-invalid]="invalid('firstNameAr')"
+            />
             @if (invalid('firstNameAr')) {
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }
           </div>
           <div class="field">
             <label for="familyNameAr">{{ i18n.t('enroll.field.familyNameAr') }}</label>
-            <input id="familyNameAr" type="text" dir="rtl" formControlName="familyNameAr"
-                   [class.is-invalid]="invalid('familyNameAr')" />
+            <input
+              id="familyNameAr"
+              type="text"
+              dir="rtl"
+              formControlName="familyNameAr"
+              [class.is-invalid]="invalid('familyNameAr')"
+            />
             @if (invalid('familyNameAr')) {
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }
@@ -61,9 +84,11 @@
         <div class="grid-2">
           <div class="field">
             <label>{{ i18n.t('enroll.field.dob') }}</label>
-            <app-date-field formControlName="dateOfBirth"
-                            [placeholder]="i18n.t('enroll.field.dob')"
-                            [ariaLabel]="i18n.t('enroll.field.dob')" />
+            <app-date-field
+              formControlName="dateOfBirth"
+              [placeholder]="i18n.t('enroll.field.dob')"
+              [ariaLabel]="i18n.t('enroll.field.dob')"
+            />
             @if (invalid('dateOfBirth')) {
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }

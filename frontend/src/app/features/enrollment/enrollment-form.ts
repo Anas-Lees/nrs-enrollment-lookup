@@ -57,7 +57,10 @@ export class EnrollmentForm {
       validators: [Validators.required, Validators.maxLength(100)],
     }),
     dateOfBirth: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    nationalityCode: new FormControl('OMN', { nonNullable: true, validators: [Validators.required] }),
+    nationalityCode: new FormControl('OMN', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
     type: new FormControl<EnrollmentType>('NEW_CARD', {
       nonNullable: true,
       validators: [Validators.required],
