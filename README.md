@@ -41,7 +41,7 @@ codebase shows a layered feature (lookup) and a vertical-slice feature (enrollme
 
 ![New enrollment form](docs/screenshots/enrollment-new.png)
 
-**My Queue — enrollment applications, status-tracked (RabbitMQ advances submitted → under review)**
+**My Queue — enrollment applications, status-tracked, with approve/reject on under-review rows (Camunda-driven)**
 
 ![Enrollment queue](docs/screenshots/enrollment-queue.png)
 
@@ -120,9 +120,14 @@ flowchart LR
   traces and metrics to a collector (otherwise it is a no-op).
 - New **enrollment** applications are created and edited through self-contained **vertical
   slices** (minimal-API endpoints + FluentValidation using EF Core directly). On submit the API
-  publishes an event to **RabbitMQ**; a background **review worker** consumes it and advances the
-  application to *under review* — decoupling slow downstream work from the fast web request.
-  Messaging is best-effort and feature-flagged: with no broker configured it is a no-op.
+  publishes an event to **RabbitMQ** and starts the review process.
+- The review itself is an explicit **Camunda 8** BPMN process (`SUBMITTED → UNDER_REVIEW →
+  APPROVED | REJECTED`). The API is an external **job worker**: it deploys the model on startup,
+  long-polls for the service-task jobs, and applies each status change to Oracle — so Camunda owns
+  the *flow* and the app owns the *side effects*. An operator approves or rejects from the queue,
+  which correlates the decision message the process is waiting on. Camunda is feature-flagged: with
+  no engine configured, decisions apply directly to the database and the app runs unchanged — see
+  [ADR 0006](docs/adr/0006-camunda-workflow.md).
 
 Clean, layered architecture with dependencies pointing **inward**
 (`Api → Application → Domain`; `Infrastructure` wired at the composition root) — see
@@ -164,15 +169,20 @@ sequenceDiagram
   participant S as Angular SPA
   participant E as Enrollment slice
   participant DB as Oracle
-  participant Q as RabbitMQ
-  participant W as Review worker
+  participant C as Camunda 8
+  participant W as Job worker
   O->>S: Fill new-enrollment form, Submit
   S->>E: POST /api/v1/enrollments
   E->>DB: INSERT enrollment (SUBMITTED)
-  E->>Q: publish enrollment.submitted
+  E->>C: start enrollment-review instance
   E-->>S: 201 Created
-  Q-->>W: deliver enrollment.submitted
+  C-->>W: mark-under-review job
   W->>DB: UPDATE status to UNDER_REVIEW
+  O->>S: Click Approve / Reject
+  S->>E: POST /enrollments/{id}/decision
+  E->>C: correlate enrollment-decision
+  C-->>W: apply-approved / apply-rejected job
+  W->>DB: UPDATE status to APPROVED / REJECTED
 ```
 
 ---
@@ -184,7 +194,8 @@ sequenceDiagram
 | Frontend     | Angular 21 (standalone components, signals, reactive forms, router)  |
 | Backend      | ASP.NET Core (.NET 10) — layered (lookup) + vertical slices (enrollment) |
 | Data access  | Entity Framework Core (Oracle)                                       |
-| Messaging    | RabbitMQ — enrollment events + background review worker             |
+| Messaging    | RabbitMQ — enrollment events (best-effort, feature-flagged)          |
+| Workflow     | Camunda 8 (BPMN) — enrollment review, REST `/v2` job worker          |
 | API docs     | OpenAPI (contract-first) rendered with Scalar                        |
 | Identity     | Keycloak (OIDC / JWT) — feature-flagged                              |
 | Quality      | xUnit, Playwright; unit · integration · contract · architecture · e2e |
@@ -220,6 +231,7 @@ docker compose up --build
 
 - App: **http://localhost:4200** — redirects to Keycloak to log in (**operator1 / Operator1234**)
 - API docs (Scalar): http://localhost:5000/scalar · Keycloak admin: http://localhost:8081 (admin / admin)
+- Camunda Operate (live BPMN process instances): http://localhost:8088 (**demo / demo**)
 
 First start takes a few minutes (Oracle initialises; the API waits for it, then creates the
 schema and seeds 100 persons). Auth is enabled for the container SPA via a mounted
@@ -256,8 +268,9 @@ migrations on startup, and seeds 100 persons (each with ID cards + passports) ou
 | ------------- | ------- |
 | `GET /api/v1/persons/search?crn&name&dob&nationality&page&pageSize` | Paged, multi-filter search (partial bilingual name match) |
 | `GET /api/v1/persons/{crn}` | Full profile incl. ID cards + passports |
-| `POST /api/v1/enrollments` · `PUT /api/v1/enrollments/{id}` | Create / edit an enrollment (publishes a RabbitMQ event) |
+| `POST /api/v1/enrollments` · `PUT /api/v1/enrollments/{id}` | Create / edit an enrollment (starts the review workflow) |
 | `GET /api/v1/enrollments?status&page&pageSize` · `GET /api/v1/enrollments/{id}` | List (queue) / fetch one enrollment |
+| `POST /api/v1/enrollments/{id}/decision` | Approve / reject an under-review enrollment (correlates the Camunda decision) |
 | `GET /api/v1/audit/recent` | Recent audit-trail entries (operator-only) |
 | `GET /health/live` · `/health/ready` · `/health` | Liveness · readiness (DB) · full health |
 

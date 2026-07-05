@@ -159,6 +159,12 @@
   "queue.col.created": "Created",
   "queue.col.actions": "Actions",
   "queue.edit": "Edit",
+  "queue.approve": "Approve",
+  "queue.reject": "Reject",
+  "queue.confirmApprove": "Approve enrollment {ref}?",
+  "queue.confirmReject": "Reject enrollment {ref}?",
+  "queue.decisionError": "Could not record the decision. Please try again.",
+  "queue.decisionConflict": "This enrollment is no longer under review.",
 
   "gender.M": "Male",
   "gender.F": "Female",

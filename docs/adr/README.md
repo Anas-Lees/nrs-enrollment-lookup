@@ -13,6 +13,7 @@ Each ADR captures the context, the decision, and its consequences so that future
 | [0003](0003-ef-core-oracle.md) | EF Core over Oracle, SQLite for Local Development | Superseded by [0005](0005-oracle-only.md) | WS2 |
 | [0004](0004-audit-safe-distributed-cache.md) | Audit-safe Distributed Cache for Hot Profile Reads | Accepted | WS2/WS3 |
 | [0005](0005-oracle-only.md) | Oracle for Every Environment (SQLite Removed) | Accepted | WS2 |
+| [0006](0006-camunda-workflow.md) | Camunda 8 for the Enrollment Review Workflow | Accepted | WS3 |
 
 ## ADR process
 

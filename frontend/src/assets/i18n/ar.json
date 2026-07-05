@@ -159,6 +159,12 @@
   "queue.col.created": "تاريخ الإنشاء",
   "queue.col.actions": "إجراءات",
   "queue.edit": "تعديل",
+  "queue.approve": "اعتماد",
+  "queue.reject": "رفض",
+  "queue.confirmApprove": "اعتماد التسجيل {ref}؟",
+  "queue.confirmReject": "رفض التسجيل {ref}؟",
+  "queue.decisionError": "تعذّر تسجيل القرار. يرجى المحاولة مرة أخرى.",
+  "queue.decisionConflict": "لم يعد هذا التسجيل قيد المراجعة.",
 
   "gender.M": "ذكر",
   "gender.F": "أنثى",

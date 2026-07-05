@@ -50,13 +50,33 @@
                 <td><app-status-badge [status]="e.status" /></td>
                 <td>{{ e.createdAtUtc.substring(0, 10) | appDate: i18n.lang() }}</td>
                 <td class="col-actions">
-                  <button
-                    type="button"
-                    class="link-btn"
-                    (click)="openEdit(e); $event.stopPropagation()"
-                  >
-                    {{ i18n.t('queue.edit') }}
-                  </button>
+                  <div class="row-actions">
+                    @if (canDecide(e)) {
+                      <button
+                        type="button"
+                        class="decide-btn decide-btn--approve"
+                        [disabled]="deciding() !== null"
+                        (click)="decide(e, true, $event)"
+                      >
+                        {{ i18n.t('queue.approve') }}
+                      </button>
+                      <button
+                        type="button"
+                        class="decide-btn decide-btn--reject"
+                        [disabled]="deciding() !== null"
+                        (click)="decide(e, false, $event)"
+                      >
+                        {{ i18n.t('queue.reject') }}
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="link-btn"
+                      (click)="openEdit(e); $event.stopPropagation()"
+                    >
+                      {{ i18n.t('queue.edit') }}
+                    </button>
+                  </div>
                 </td>
               </tr>
             }

@@ -140,6 +140,50 @@
   }
 }
 
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.decide-btn {
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  &--approve {
+    background: rgb(30 100 60 / 10%);
+    border-color: rgb(30 100 60 / 30%);
+    color: var(--rop-green);
+
+    &:hover:not(:disabled) {
+      background: var(--rop-green);
+      color: #fff;
+    }
+  }
+
+  &--reject {
+    background: rgb(140 29 43 / 8%);
+    border-color: rgb(140 29 43 / 25%);
+    color: var(--color-danger);
+
+    &:hover:not(:disabled) {
+      background: var(--color-danger);
+      color: #fff;
+    }
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

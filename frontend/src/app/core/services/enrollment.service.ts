@@ -51,4 +51,14 @@ export class EnrollmentService {
   update(id: string, body: EnrollmentRequest): Observable<Enrollment> {
     return this.http.put<Enrollment>(`${this.baseUrl}/${encodeURIComponent(id)}`, body);
   }
+
+  /**
+   * Approve or reject an enrollment that is under review. The API hands the decision to the
+   * Camunda workflow, which applies the resulting status; the returned DTO reflects it.
+   */
+  decide(id: string, approved: boolean): Observable<Enrollment> {
+    return this.http.post<Enrollment>(`${this.baseUrl}/${encodeURIComponent(id)}/decision`, {
+      approved,
+    });
+  }
 }

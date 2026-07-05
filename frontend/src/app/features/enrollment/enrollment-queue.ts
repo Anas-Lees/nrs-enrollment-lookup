@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
@@ -32,6 +33,9 @@ export class EnrollmentQueue {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  /** Id of the row whose approve/reject request is in flight (disables its buttons). */
+  readonly deciding = signal<string | null>(null);
+
   readonly pageSize = signal(10);
   readonly pageSizeOptions = [10, 25, 50, 100];
   readonly statusFilter = signal<EnrollmentStatus | ''>('');
@@ -60,6 +64,12 @@ export class EnrollmentQueue {
       .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize() })
       .subscribe({
         next: (r) => {
+          // A decision can empty the current page (e.g. the last under-review row on the last
+          // page). Fall back to the previous page rather than showing a false "empty" state.
+          if (r.items.length === 0 && r.page > 1) {
+            this.load(r.page - 1);
+            return;
+          }
           this.results.set(r);
           this.loading.set(false);
         },
@@ -94,6 +104,44 @@ export class EnrollmentQueue {
 
   openEdit(e: EnrollmentSummary): void {
     this.router.navigate(['/enrollment', e.id, 'edit']);
+  }
+
+  /** Only an under-review application can be approved or rejected. */
+  canDecide(e: EnrollmentSummary): boolean {
+    return e.status === 'UNDER_REVIEW';
+  }
+
+  /** Approve or reject a row, confirming first, then reloading the page to show the new status. */
+  decide(e: EnrollmentSummary, approved: boolean, event: Event): void {
+    event.stopPropagation();
+    if (this.deciding()) {
+      return;
+    }
+
+    const key = approved ? 'queue.confirmApprove' : 'queue.confirmReject';
+    if (!window.confirm(this.i18n.t(key).replace('{ref}', e.referenceNumber))) {
+      return;
+    }
+
+    this.deciding.set(e.id);
+    this.error.set(null);
+    this.enrollments.decide(e.id, approved).subscribe({
+      next: () => {
+        this.deciding.set(null);
+        this.load(this.results()?.page ?? 1);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.deciding.set(null);
+        if (err.status === 409 || err.status === 404) {
+          // The row was already decided (the workflow settled it, or another operator acted).
+          // Refresh so its real status and actions update — retrying would be futile.
+          this.error.set(this.i18n.t('queue.decisionConflict'));
+          this.load(this.results()?.page ?? 1);
+        } else {
+          this.error.set(this.i18n.t('queue.decisionError'));
+        }
+      },
+    });
   }
 
   applicantName(e: EnrollmentSummary): string {
