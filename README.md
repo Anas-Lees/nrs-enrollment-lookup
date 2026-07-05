@@ -45,6 +45,10 @@ codebase shows a layered feature (lookup) and a vertical-slice feature (enrollme
 
 ![Enrollment queue](docs/screenshots/enrollment-queue.png)
 
+**Camunda Operate — the same review as a live BPMN process; the badge on _Await decision_ is the count of applications waiting for an operator**
+
+![Camunda Operate showing the enrollment-review process with instances parked at the decision gateway](docs/screenshots/camunda-operate.png)
+
 **API reference (Scalar) — every endpoint documented from the OpenAPI contract**
 
 ![Scalar API reference rendered from the OpenAPI contract](docs/screenshots/scalar.png)

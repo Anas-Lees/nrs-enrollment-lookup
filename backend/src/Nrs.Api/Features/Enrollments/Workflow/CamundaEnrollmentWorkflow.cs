@@ -47,9 +47,11 @@ public sealed partial class CamundaEnrollmentWorkflow(
 
         // Correlate the decision message. Just after the process starts there is a brief window
         // where the enrollment already reads UNDER_REVIEW but the message-catch subscription has
-        // not opened yet (404). Retry within the deadline rather than failing the operator's click.
+        // not opened yet (404). Retry briefly rather than failing the operator's click — the real
+        // race is sub-second, so a persistent 404 means no instance is waiting at all.
+        var correlateDeadline = DateTimeOffset.UtcNow.AddSeconds(2);
         var correlated = false;
-        while (!correlated && DateTimeOffset.UtcNow < deadline)
+        while (!correlated && DateTimeOffset.UtcNow < correlateDeadline)
         {
             correlated = await camunda.CorrelateMessageAsync(
                 DecisionMessage, enrollmentId.ToString(), new { approved }, cancellationToken);
@@ -61,12 +63,17 @@ public sealed partial class CamundaEnrollmentWorkflow(
 
         if (!correlated)
         {
-            // The subscription never appeared in time — the worker/engine is unhealthy. Report the
-            // decision as accepted-but-not-settled so the endpoint returns 202, not a false 200.
-            LogDecisionPending(logger, enrollmentId);
-            var current = await db.Enrollments.AsNoTracking()
+            // No instance is waiting for this decision. That means the enrollment is orphaned —
+            // it reached UNDER_REVIEW outside Camunda (the RabbitMQ-consumer era, or its instance
+            // was lost to an engine restart). The operator's decision must still count, so apply
+            // it directly to the database, exactly like the no-engine fallback.
+            LogOrphanedDecision(logger, enrollmentId);
+            var enrollmentToSettle = await db.Enrollments
                 .FirstAsync(e => e.Id == enrollmentId, cancellationToken);
-            return new DecisionResult(current.ToDto(), Settled: false);
+            enrollmentToSettle.Status = approved ? EnrollmentStatus.APPROVED : EnrollmentStatus.REJECTED;
+            enrollmentToSettle.UpdatedAtUtc = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            return new DecisionResult(enrollmentToSettle.ToDto(), Settled: true);
         }
 
         // The worker applies APPROVED/REJECTED as it completes the follow-on job — normally
@@ -99,4 +106,7 @@ public sealed partial class CamundaEnrollmentWorkflow(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Decision for enrollment {EnrollmentId} correlated but the status had not settled yet.")]
     private static partial void LogDecisionPending(ILogger logger, Guid enrollmentId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No Camunda instance was waiting for a decision on enrollment {EnrollmentId} (orphaned); applied it directly to the database.")]
+    private static partial void LogOrphanedDecision(ILogger logger, Guid enrollmentId);
 }
