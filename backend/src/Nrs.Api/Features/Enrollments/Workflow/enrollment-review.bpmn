@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_EnrollmentReview"
+                  targetNamespace="http://nrs.rop.gov.om/enrollment">
+  <bpmn:message id="Message_EnrollmentDecision" name="enrollment-decision">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=enrollmentId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+
+  <bpmn:process id="enrollment-review" name="Enrollment review" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Submitted">
+      <bpmn:outgoing>Flow_Start_Mark</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Activity_MarkReview" name="Mark under review">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="mark-under-review" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_Mark</bpmn:incoming>
+      <bpmn:outgoing>Flow_Mark_Await</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="Event_AwaitDecision" name="Await decision">
+      <bpmn:incoming>Flow_Mark_Await</bpmn:incoming>
+      <bpmn:outgoing>Flow_Await_Gw</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_1" messageRef="Message_EnrollmentDecision" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_Approved" name="Approved?" default="Flow_Gw_Reject">
+      <bpmn:incoming>Flow_Await_Gw</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gw_Approve</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Gw_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Activity_Approve" name="Approve application">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="apply-approved" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Gw_Approve</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approve_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Activity_Reject" name="Reject application">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="apply-rejected" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Gw_Reject</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reject_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="Event_Approved" name="Approved">
+      <bpmn:incoming>Flow_Approve_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="Event_Rejected" name="Rejected">
+      <bpmn:incoming>Flow_Reject_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_Start_Mark" sourceRef="StartEvent_1" targetRef="Activity_MarkReview" />
+    <bpmn:sequenceFlow id="Flow_Mark_Await" sourceRef="Activity_MarkReview" targetRef="Event_AwaitDecision" />
+    <bpmn:sequenceFlow id="Flow_Await_Gw" sourceRef="Event_AwaitDecision" targetRef="Gateway_Approved" />
+    <bpmn:sequenceFlow id="Flow_Gw_Approve" name="yes" sourceRef="Gateway_Approved" targetRef="Activity_Approve">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Gw_Reject" name="no" sourceRef="Gateway_Approved" targetRef="Activity_Reject" />
+    <bpmn:sequenceFlow id="Flow_Approve_End" sourceRef="Activity_Approve" targetRef="Event_Approved" />
+    <bpmn:sequenceFlow id="Flow_Reject_End" sourceRef="Activity_Reject" targetRef="Event_Rejected" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="enrollment-review">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="159" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="176" y="202" width="46" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_MarkReview_di" bpmnElement="Activity_MarkReview">
+        <dc:Bounds x="270" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_AwaitDecision_di" bpmnElement="Event_AwaitDecision">
+        <dc:Bounds x="432" y="159" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="416" y="202" width="69" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Approved_di" bpmnElement="Gateway_Approved" isMarkerVisible="true">
+        <dc:Bounds x="525" y="152" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="522" y="128" width="56" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Approve_di" bpmnElement="Activity_Approve">
+        <dc:Bounds x="630" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Reject_di" bpmnElement="Activity_Reject">
+        <dc:Bounds x="630" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Approved_di" bpmnElement="Event_Approved">
+        <dc:Bounds x="792" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="787" y="145" width="47" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Rejected_di" bpmnElement="Event_Rejected">
+        <dc:Bounds x="792" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="789" y="275" width="43" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_Mark_di" bpmnElement="Flow_Start_Mark">
+        <di:waypoint x="215" y="177" />
+        <di:waypoint x="270" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Mark_Await_di" bpmnElement="Flow_Mark_Await">
+        <di:waypoint x="370" y="177" />
+        <di:waypoint x="432" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Await_Gw_di" bpmnElement="Flow_Await_Gw">
+        <di:waypoint x="468" y="177" />
+        <di:waypoint x="525" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gw_Approve_di" bpmnElement="Flow_Gw_Approve">
+        <di:waypoint x="550" y="152" />
+        <di:waypoint x="550" y="120" />
+        <di:waypoint x="630" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="556" y="126" width="18" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gw_Reject_di" bpmnElement="Flow_Gw_Reject">
+        <di:waypoint x="550" y="202" />
+        <di:waypoint x="550" y="250" />
+        <di:waypoint x="630" y="250" />
+        <bpmndi:BPMNLabel><dc:Bounds x="558" y="228" width="14" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approve_End_di" bpmnElement="Flow_Approve_End">
+        <di:waypoint x="730" y="120" />
+        <di:waypoint x="792" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Reject_End_di" bpmnElement="Flow_Reject_End">
+        <di:waypoint x="730" y="250" />
+        <di:waypoint x="792" y="250" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

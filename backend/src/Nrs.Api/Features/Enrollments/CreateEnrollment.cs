@@ -1,5 +1,6 @@
 using FluentValidation;
 using Nrs.Api.Features.Enrollments.Messaging;
+using Nrs.Api.Features.Enrollments.Workflow;
 using Nrs.Domain.Entities;
 using Nrs.Domain.Enums;
 using Nrs.Infrastructure.Persistence;
@@ -57,7 +58,7 @@ public static class CreateEnrollment
         }
     }
 
-    public sealed class Handler(NrsDbContext db, IEventPublisher publisher)
+    public sealed class Handler(NrsDbContext db, IEventPublisher publisher, IEnrollmentWorkflow workflow)
     {
         public async Task<EnrollmentDto> HandleAsync(Request request, string operatorName, CancellationToken cancellationToken)
         {
@@ -95,6 +96,9 @@ public static class CreateEnrollment
                     OccurredAtUtc = now,
                 },
                 cancellationToken);
+
+            // Kick off the review workflow (Camunda, or a no-op when no engine is configured).
+            await workflow.OnSubmittedAsync(enrollment, cancellationToken);
 
             return enrollment.ToDto();
         }

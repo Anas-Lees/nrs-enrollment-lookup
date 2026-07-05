@@ -35,4 +35,9 @@
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
   </ItemGroup>
 
+  <!-- Ship the enrollment-review BPMN alongside the app so the Camunda worker can deploy it. -->
+  <ItemGroup>
+    <None Update="Features\Enrollments\Workflow\enrollment-review.bpmn" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

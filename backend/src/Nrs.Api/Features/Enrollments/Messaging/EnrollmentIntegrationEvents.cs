@@ -30,3 +30,12 @@ public record EnrollmentUpdated : EnrollmentIntegrationEvent
 {
     public override string EventType => RabbitMqTopology.UpdatedRoutingKey;
 }
+
+/// <summary>Raised when an operator approves or rejects an enrollment under review.</summary>
+public record EnrollmentDecided : EnrollmentIntegrationEvent
+{
+    public override string EventType => RabbitMqTopology.DecidedRoutingKey;
+
+    /// <summary>True when the operator approved the application, false when they rejected it.</summary>
+    public bool Approved { get; init; }
+}

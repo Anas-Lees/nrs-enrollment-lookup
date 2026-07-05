@@ -1,6 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Nrs.Domain.Enums;
+using Nrs.Infrastructure.Persistence;
 
 namespace Nrs.Api.IntegrationTests;
 
@@ -15,10 +19,26 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _client;
+    private readonly NrsApiFactory _factory;
 
     public EnrollmentEndpointsTests(NrsApiFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
+    }
+
+    /// <summary>
+    /// Force an enrollment to UNDER_REVIEW directly in the database. The test host has no Camunda
+    /// or broker, so nothing advances SUBMITTED -> UNDER_REVIEW on its own; this stands in for that
+    /// transition so the decision endpoint (which requires UNDER_REVIEW) can be exercised.
+    /// </summary>
+    private async Task SetUnderReviewAsync(Guid id)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<NrsDbContext>();
+        var enrollment = await db.Enrollments.FirstAsync(e => e.Id == id);
+        enrollment.Status = EnrollmentStatus.UNDER_REVIEW;
+        await db.SaveChangesAsync();
     }
 
     private static object NewApplicant(string type = "NEW_CARD", string? crn = null) => new
@@ -167,6 +187,58 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
 
         Assert.NotNull(page);
         Assert.All(page!.Items, e => Assert.Equal("SUBMITTED", e.Status));
+    }
+
+    [OracleFact]
+    public async Task Decide_Approve_WhenUnderReview_Returns200_Approved()
+    {
+        var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
+            .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        await SetUnderReviewAsync(created!.Id);
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/enrollments/{created.Id}/decision", new { approved = true });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var dto = await response.Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        Assert.Equal("APPROVED", dto!.Status);
+    }
+
+    [OracleFact]
+    public async Task Decide_Reject_WhenUnderReview_Returns200_Rejected()
+    {
+        var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
+            .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        await SetUnderReviewAsync(created!.Id);
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/enrollments/{created.Id}/decision", new { approved = false });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var dto = await response.Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        Assert.Equal("REJECTED", dto!.Status);
+    }
+
+    [OracleFact]
+    public async Task Decide_WhenNotUnderReview_Returns409()
+    {
+        // A freshly created enrollment is SUBMITTED, not UNDER_REVIEW.
+        var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
+            .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/enrollments/{created!.Id}/decision", new { approved = true });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [OracleFact]
+    public async Task Decide_UnknownId_Returns404()
+    {
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/enrollments/{Guid.NewGuid()}/decision", new { approved = true });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [OracleFact]

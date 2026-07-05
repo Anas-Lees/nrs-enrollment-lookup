@@ -20,4 +20,7 @@ public static class RabbitMqTopology
 
     /// <summary>Routing key / event type for an edited enrollment.</summary>
     public const string UpdatedRoutingKey = "enrollment.updated";
+
+    /// <summary>Routing key / event type for an approved or rejected enrollment.</summary>
+    public const string DecidedRoutingKey = "enrollment.decided";
 }

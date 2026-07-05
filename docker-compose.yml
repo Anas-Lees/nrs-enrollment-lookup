@@ -67,6 +67,46 @@ services:
       timeout: 5s
       retries: 12
 
+  # --- Camunda 8 workflow engine (self-hosted, unified image) --------------------
+  # Orchestrates the enrollment review as a BPMN process. Elasticsearch backs Zeebe's
+  # exporter so Operate can show live/finished instances. JVM heaps are pinned small to
+  # keep the footprint reasonable next to Oracle. The REST API (/v2) is unprotected
+  # locally (see the camunda-config below), so the API calls it with no token.
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.11
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cat/health | grep -qE 'green|yellow'"]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+
+  camunda:
+    image: camunda/camunda:8.9.11
+    environment:
+      - "JAVA_TOOL_OPTIONS=-Xms512m -Xmx1024m"
+    configs:
+      - source: camunda-config
+        target: /usr/local/camunda/config/application.yaml
+    volumes:
+      - camunda-data:/usr/local/camunda/data
+    ports:
+      - "8088:8080"     # REST API (/v2) + Operate / Tasklist UI (login demo / demo)
+      - "26500:26500"   # Zeebe gRPC (unused — we use the REST API)
+      - "9600:9600"     # health / actuator
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
   api:
     build:
       context: ./backend
@@ -90,6 +130,10 @@ services:
       # Message broker for enrollment events: publish on create/edit, and the background
       # consumer advances a submitted enrollment to under-review.
       ConnectionStrings__RabbitMq: "amqp://guest:guest@rabbitmq:5672"
+      # Camunda 8 orchestrates the enrollment review as a BPMN process (REST API /v2).
+      # When set, Camunda owns the review lifecycle; the simple RabbitMQ review consumer
+      # steps aside. The worker connects with retry, so a slow Camunda boot is fine.
+      Camunda__RestAddress: "http://camunda:8080"
       Auth__Enabled: "true"
       Auth__Authority: http://localhost:8081/realms/nrs
       Auth__Audience: nrs-api
@@ -109,6 +153,8 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+      camunda:
+        condition: service_started
       otel-collector:
         condition: service_started
     healthcheck:
@@ -180,3 +226,33 @@ services:
 volumes:
   oracle-data:
   grafana-data:
+  elastic-data:
+  camunda-data:
+
+# Camunda 8 unified-image config: local demo posture — the REST /v2 API needs no token,
+# authorization checks are off, and a demo/demo user is seeded for the Operate UI.
+configs:
+  camunda-config:
+    content: |
+      camunda:
+        security:
+          authentication:
+            method: "basic"
+            unprotectedApi: true
+          authorizations:
+            enabled: false
+          initialization:
+            users:
+              - username: "demo"
+                password: "demo"
+                name: "Demo User"
+                email: "demo@demo.com"
+            defaultRoles.admin.users: ["demo"]
+        data:
+          secondary-storage:
+            type: elasticsearch
+            elasticsearch:
+              cluster-name: elasticsearch
+              url: "http://elasticsearch:9200"
+              # Single-node ES: no replica shards (keeps the cluster green).
+              number-of-replicas: 0

@@ -79,6 +79,35 @@ public static class EnrollmentEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapPost("{id:guid}/decision", async (
+                Guid id,
+                DecideEnrollment.Request request,
+                DecideEnrollment.Handler handler,
+                HttpContext http,
+                CancellationToken cancellationToken) =>
+            {
+                var (outcome, enrollment) = await handler.HandleAsync(
+                    id, request, ResolveOperator(http), cancellationToken);
+                return outcome switch
+                {
+                    DecideEnrollment.Outcome.Applied => Results.Ok(enrollment),
+                    // Accepted but not yet applied by the (asynchronous) workflow — 202, not a false 200.
+                    DecideEnrollment.Outcome.Accepted => Results.Accepted($"/api/v1/enrollments/{id}", enrollment),
+                    DecideEnrollment.Outcome.NotFound => Results.Problem(
+                        statusCode: StatusCodes.Status404NotFound,
+                        title: "Enrollment not found", detail: $"No enrollment exists with id '{id}'."),
+                    _ => Results.Problem(
+                        statusCode: StatusCodes.Status409Conflict,
+                        title: "Enrollment is not under review",
+                        detail: "Only an enrollment that is currently under review can be approved or rejected."),
+                };
+            })
+            .WithSummary("Approve or reject an enrollment that is under review")
+            .Produces<EnrollmentDto>()
+            .Produces<EnrollmentDto>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         return app;
     }
 
