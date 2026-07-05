@@ -3,10 +3,22 @@
 
 Reads the JSON from `dotnet list package --vulnerable --include-transitive --format json`
 (path given as argv[1]). Known/accepted Moderate advisories are suppressed at restore time
-via Directory.Build.props; this gate only blocks on High/Critical.
+via Directory.Build.props; this gate blocks on High/Critical, except for the small set of
+explicitly accepted advisories below (which still print, but do not fail the build).
 """
 import json
 import sys
+
+# Advisories that are acknowledged and accepted: they still print, but don't fail CI.
+# Keep this list tiny and justified; remove an entry the moment a real fix is available.
+ACCEPTED_ADVISORIES = {
+    # Microsoft.OpenApi 2.0.0 (HIGH) — transitive via Microsoft.AspNetCore.OpenApi 10.0.9.
+    # No compatible fix: Microsoft.OpenApi 3.x breaks the framework's OpenAPI source
+    # generator (IOpenApiMediaType.Example became read-only), and 2.0.0 is the only 2.x the
+    # framework works with. Affects OpenAPI document generation, not the request/auth path.
+    # Revisit when a patched .NET 10 Microsoft.AspNetCore.OpenApi ships.
+    "https://github.com/advisories/GHSA-v5pm-xwqc-g5wc",
+}
 
 
 def main(path: str) -> int:
@@ -27,14 +39,18 @@ def main(path: str) -> int:
 
     print("Advisories reported by NuGet audit:")
     for pid, severity, url in sorted(found):
-        print(f"  [{severity}] {pid} -> {url}")
+        tag = "  (accepted)" if url in ACCEPTED_ADVISORIES else ""
+        print(f"  [{severity}] {pid} -> {url}{tag}")
 
-    blocking = [f for f in found if (f[1] or "").lower() in ("high", "critical")]
+    blocking = [
+        f for f in found
+        if (f[1] or "").lower() in ("high", "critical") and f[2] not in ACCEPTED_ADVISORIES
+    ]
     if blocking:
-        print(f"::error::{len(blocking)} High/Critical vulnerable package(s) detected")
+        print(f"::error::{len(blocking)} unaccepted High/Critical vulnerable package(s) detected")
         return 1
 
-    print("No High/Critical advisories — passing (moderate/low reported above).")
+    print("No blocking High/Critical advisories — passing (accepted/moderate/low reported above).")
     return 0
 
 
