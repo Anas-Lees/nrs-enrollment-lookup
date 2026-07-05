@@ -48,6 +48,25 @@ export class AuthService {
     return this.keycloak?.token ?? null;
   }
 
+  /**
+   * Returns a valid access token, refreshing it first if it is within 30s of expiry.
+   * Keycloak access tokens are short-lived (5 min by default), so without this a session
+   * that idles past the lifespan would 401 every API call. If the refresh fails (e.g. the
+   * SSO session itself has ended) the operator is sent to log in again.
+   */
+  async freshToken(): Promise<string | null> {
+    if (!this.keycloak) {
+      return null;
+    }
+    try {
+      await this.keycloak.updateToken(30);
+    } catch {
+      void this.keycloak.login();
+      return null;
+    }
+    return this.keycloak.token ?? null;
+  }
+
   login(): void {
     void this.keycloak?.login();
   }

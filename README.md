@@ -218,7 +218,7 @@ One command runs everything: Angular SPA → API on **Oracle**, with **Keycloak*
 docker compose up --build
 ```
 
-- App: **http://localhost:4200** — redirects to Keycloak to log in (**operator1 / operator1**)
+- App: **http://localhost:4200** — redirects to Keycloak to log in (**operator1 / Operator1234**)
 - API docs (Scalar): http://localhost:5000/scalar · Keycloak admin: http://localhost:8081 (admin / admin)
 
 First start takes a few minutes (Oracle initialises; the API waits for it, then creates the
