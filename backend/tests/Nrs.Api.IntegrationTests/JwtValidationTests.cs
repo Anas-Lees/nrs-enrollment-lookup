@@ -36,7 +36,7 @@ public class JwtValidationTests(NrsApiJwtFactory factory) : IClassFixture<NrsApi
         return client;
     }
 
-    [Fact]
+    [OracleFact]
     public async Task ValidOperatorToken_Returns200()
     {
         var token = Mint(NrsApiJwtFactory.Issuer, NrsApiJwtFactory.Audience, DateTime.UtcNow.AddHours(1), "operator");
@@ -44,7 +44,7 @@ public class JwtValidationTests(NrsApiJwtFactory factory) : IClassFixture<NrsApi
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task WrongAudience_Returns401()
     {
         var token = Mint(NrsApiJwtFactory.Issuer, "some-other-api", DateTime.UtcNow.AddHours(1), "operator");
@@ -52,7 +52,7 @@ public class JwtValidationTests(NrsApiJwtFactory factory) : IClassFixture<NrsApi
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task WrongIssuer_Returns401()
     {
         var token = Mint("https://evil-issuer/realms/nrs", NrsApiJwtFactory.Audience, DateTime.UtcNow.AddHours(1), "operator");
@@ -60,7 +60,7 @@ public class JwtValidationTests(NrsApiJwtFactory factory) : IClassFixture<NrsApi
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task ExpiredToken_Returns401()
     {
         var token = Mint(NrsApiJwtFactory.Issuer, NrsApiJwtFactory.Audience, DateTime.UtcNow.AddHours(-1), "operator");
@@ -68,7 +68,7 @@ public class JwtValidationTests(NrsApiJwtFactory factory) : IClassFixture<NrsApi
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task ValidTokenWithoutOperatorRole_Returns403()
     {
         var token = Mint(NrsApiJwtFactory.Issuer, NrsApiJwtFactory.Audience, DateTime.UtcNow.AddHours(1), "viewer");

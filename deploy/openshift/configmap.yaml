@@ -19,18 +19,8 @@ data:
   ASPNETCORE_URLS: "http://+:8080"
   Database__SeedOnStartup: "true"
 
-  # Database provider selector (non-secret). "Sqlite" is the POC default; each
-  # replica uses its own pod-local SQLite below. For a real registry set this to
-  # "Oracle" AND switch the Deployment to inject ConnectionStrings__Default from
-  # the nrs-secrets Secret (the credential-bearing Oracle string) — see the
-  # commented secretKeyRef block in api-deployment.yaml.
-  DatabaseProvider: "Sqlite"
-
-  # POC-only connection string: a local SQLite *file path*, not a credential, so
-  # it is safe to keep in the ConfigMap. NOTE: only used while DatabaseProvider
-  # is "Sqlite". For Oracle this key is supplied by the Secret instead — do NOT
-  # add an Oracle/credentialed connection string here.
-  ConnectionStrings__Default: "Data Source=/app/data/nrs.db"
+  # The Oracle connection string carries a password, so it is a SECRET: it is injected
+  # from the nrs-secrets Secret via secretKeyRef in api-deployment.yaml, never from here.
 ---
 # nginx site config for the SPA pod. Overrides the image's baked default.conf so
 # /api proxies to the in-cluster API Service (nrs-api) instead of the compose name.

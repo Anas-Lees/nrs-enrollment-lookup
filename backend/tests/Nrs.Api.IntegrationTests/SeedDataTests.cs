@@ -19,7 +19,7 @@ public class SeedDataTests : IClassFixture<NrsApiFactory>
         _factory = factory;
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Seed_HasAtLeast100Persons()
     {
         using var scope = _factory.Services.CreateScope();
@@ -30,7 +30,7 @@ public class SeedDataTests : IClassFixture<NrsApiFactory>
         Assert.True(count >= 100, $"Expected at least 100 seeded persons but found {count}.");
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Seed_EveryPersonHasIdCardAndPassport()
     {
         using var scope = _factory.Services.CreateScope();

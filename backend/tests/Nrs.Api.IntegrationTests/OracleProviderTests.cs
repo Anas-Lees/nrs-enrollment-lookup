@@ -1,34 +1,23 @@
-using Oracle.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Nrs.Application.Dtos;
 using Nrs.Infrastructure.Persistence;
 using Nrs.Infrastructure.Repositories;
 using Nrs.Infrastructure.Seed;
+using Oracle.EntityFrameworkCore.Infrastructure;
 
 namespace Nrs.Api.IntegrationTests;
 
 /// <summary>
-/// Verifies the model and repository work against a real Oracle database.
-/// A no-op unless ORACLE_TEST_CONNSTRING is set (so normal CI, which has no Oracle,
-/// stays green). Point it at an Oracle XE instance to run it for real, e.g.:
-///   ORACLE_TEST_CONNSTRING="User Id=system;Password=...;Data Source=localhost:1521/XEPDB1"
+/// Verifies the model and repository work against a real Oracle database, using the shared
+/// Testcontainers Oracle container. Auto-skips when Docker is unavailable (see [OracleFact]).
 /// </summary>
 public class OracleProviderTests
 {
-    private static string? ConnString =>
-        Environment.GetEnvironmentVariable("ORACLE_TEST_CONNSTRING");
-
-    // Reported as Skipped (not a silent pass) in CI, which has no Oracle. The Oracle path is
-    // verified live against the docker-compose stack; run this for real by setting
-    // ORACLE_TEST_CONNSTRING and removing the Skip (or via a nightly Testcontainers job).
-    [Fact(Skip = "Requires an Oracle target (ORACLE_TEST_CONNSTRING); verified via the live stack.")]
+    [OracleFact]
     public async Task Oracle_CreatesSchema_Seeds_AndSearches()
     {
-        var connectionString = ConnString;
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            return; // no Oracle target configured
-        }
+        var connectionString = await OracleTestcontainer.GetConnectionStringAsync();
+        await OracleTestcontainer.ResetSchemaAsync(connectionString);
 
         var options = new DbContextOptionsBuilder<NrsDbContext>()
             .UseOracle(
@@ -39,7 +28,6 @@ public class OracleProviderTests
         await using var db = new NrsDbContext(options);
 
         // Create the schema from the model (Arabic columns → NVARCHAR2 on Oracle) and seed.
-        // EnsureCreated + the idempotent seeder make this safe to run repeatedly.
         await db.Database.EnsureCreatedAsync();
         await DataSeeder.SeedAsync(db);
 

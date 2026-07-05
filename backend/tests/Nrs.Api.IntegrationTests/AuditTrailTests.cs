@@ -25,7 +25,7 @@ public class AuditTrailTests(NrsApiFactory factory) : IClassFixture<NrsApiFactor
         await client.GetFromJsonAsync<List<AuditRow>>("/api/v1/audit/recent?take=200", JsonOptions)
         ?? [];
 
-    [Fact]
+    [OracleFact]
     public async Task Search_WritesAuditEntry_WithCriteriaAndCount()
     {
         var client = factory.CreateClient();
@@ -42,7 +42,7 @@ public class AuditTrailTests(NrsApiFactory factory) : IClassFixture<NrsApiFactor
         Assert.Null(entry.TargetCrn);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task ProfileView_WritesAuditEntry_WithTargetCrn()
     {
         var client = factory.CreateClient();
@@ -61,7 +61,7 @@ public class AuditTrailTests(NrsApiFactory factory) : IClassFixture<NrsApiFactor
         Assert.Equal("anonymous", entry!.Actor);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task ProfileView_IsAudited_OnEveryRequest_IncludingCacheHits()
     {
         var client = factory.CreateClient();
@@ -88,7 +88,7 @@ public class AuditActorTests(NrsApiAuthFactory factory) : IClassFixture<NrsApiAu
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    [Fact]
+    [OracleFact]
     public async Task SearchAsOperator_RecordsOperatorAsActor()
     {
         var client = factory.CreateClient();

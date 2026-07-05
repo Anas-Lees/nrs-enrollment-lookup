@@ -29,34 +29,21 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddNrsServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Provider is config-driven: SQLite for local dev (default), Oracle for higher
-        // environments (ADR 0003). The fluent mappings are provider-neutral
-        // (IsUnicode(true) → NVARCHAR2 on Oracle), so only the registration changes.
-        var provider = configuration.GetValue<string>("DatabaseProvider") ?? "Sqlite";
-
+        // Oracle is the database for every environment, including local dev (ADR 0005).
+        // The fluent mappings are Oracle-shaped (IsUnicode(true) → NVARCHAR2); the migration
+        // set lives in this same Infrastructure assembly, so no MigrationsAssembly override.
         services.AddDbContext<NrsDbContext>(options =>
-        {
-            if (provider.Equals("Oracle", StringComparison.OrdinalIgnoreCase))
-            {
-                options.UseOracle(
-                    configuration.GetConnectionString("Default"),
-                    oracle =>
-                    {
-                        // Target 19c SQL so generated queries avoid 23c-only features (e.g. the
-                        // boolean literals that Oracle XE 21c rejects). Raise for newer servers.
-                        oracle.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion19);
-                        // Oracle migrations live in their own assembly (see ADR/A8).
-                        oracle.MigrationsAssembly(NrsDbContextFactory.OracleMigrationsAssembly);
-                        // Resilience: cap query time and retry transient connectivity blips.
-                        oracle.CommandTimeout(30);
-                        oracle.ExecutionStrategy(dependencies => new OracleTransientRetryStrategy(dependencies));
-                    });
-            }
-            else
-            {
-                options.UseSqlite(configuration.GetConnectionString("Default") ?? "Data Source=nrs.db");
-            }
-        });
+            options.UseOracle(
+                configuration.GetConnectionString("Default"),
+                oracle =>
+                {
+                    // Target 19c SQL so generated queries avoid 23c-only features (e.g. the
+                    // boolean literals that Oracle XE 21c rejects). Raise for newer servers.
+                    oracle.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion19);
+                    // Resilience: cap query time and retry transient connectivity blips.
+                    oracle.CommandTimeout(30);
+                    oracle.ExecutionStrategy(dependencies => new OracleTransientRetryStrategy(dependencies));
+                }));
 
         // Distributed cache for hot profile reads: Redis when a connection string is
         // configured (shared across API instances), otherwise an in-process cache so local

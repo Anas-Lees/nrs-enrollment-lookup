@@ -1,0 +1,5 @@
+# EF Core-generated migration files. Treat them as generated code so analyzer
+# nitpicks (e.g. CA1861 on the seed-data column arrays) don't flag code that the
+# tooling writes and rewrites — these files are not hand-maintained.
+[*.cs]
+generated_code = true

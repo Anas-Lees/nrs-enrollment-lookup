@@ -13,7 +13,7 @@ public class ProductionModeTests(NrsApiProdFactory factory) : IClassFixture<NrsA
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    [Fact]
+    [OracleFact]
     public async Task Startup_MigratesAndSeeds_InProduction_WhenOptedIn()
     {
         // The prod factory opts in to seeding; the migrated schema + seed mean search
@@ -23,7 +23,7 @@ public class ProductionModeTests(NrsApiProdFactory factory) : IClassFixture<NrsA
         Assert.True(page.GetProperty("totalCount").GetInt32() > 0);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task ApiDocs_AreNotExposed_ByDefault_InProduction()
     {
         var scalar = await _client.GetAsync("/scalar");
@@ -42,7 +42,7 @@ public class ProductionSeedSafetyTests(NrsApiProdNoSeedFactory factory) : IClass
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    [Fact]
+    [OracleFact]
     public async Task Production_DoesNotAutoSeed_FakeData_ByDefault()
     {
         // Schema migrated (search succeeds) but empty — no fake citizens were written.

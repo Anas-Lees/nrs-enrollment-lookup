@@ -80,6 +80,23 @@ jobs:
     name: E2E · operator journey
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    # The e2e job boots the real API, which runs on Oracle in every environment. Provide a
+    # throwaway Oracle XE the way docker-compose does (least-privilege nrs_app account).
+    services:
+      oracle:
+        image: gvenzl/oracle-xe:21-slim
+        env:
+          ORACLE_PASSWORD: nrs_dev_password
+          APP_USER: nrs_app
+          APP_USER_PASSWORD: nrs_app_password
+        ports:
+          - 1521:1521
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 40
+          --health-start-period 90s
     steps:
       - uses: actions/checkout@v4
 

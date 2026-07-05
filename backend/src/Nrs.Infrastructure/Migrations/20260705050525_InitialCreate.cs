@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
+namespace Nrs.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -33,6 +33,31 @@ namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ENROLLMENT",
+                columns: table => new
+                {
+                    ID = table.Column<Guid>(type: "RAW(16)", nullable: false),
+                    REFERENCE_NUMBER = table.Column<string>(type: "VARCHAR2(20)", unicode: false, maxLength: 20, nullable: false),
+                    CIVIL_NUMBER = table.Column<string>(type: "VARCHAR2(9)", unicode: false, maxLength: 9, nullable: true),
+                    FIRST_NAME_EN = table.Column<string>(type: "VARCHAR2(100)", unicode: false, maxLength: 100, nullable: false),
+                    FAMILY_NAME_EN = table.Column<string>(type: "VARCHAR2(100)", unicode: false, maxLength: 100, nullable: false),
+                    FIRST_NAME_AR = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
+                    FAMILY_NAME_AR = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
+                    DATE_OF_BIRTH = table.Column<string>(type: "NVARCHAR2(10)", nullable: false),
+                    NATIONALITY_CODE = table.Column<string>(type: "VARCHAR2(3)", unicode: false, maxLength: 3, nullable: false),
+                    TYPE = table.Column<string>(type: "VARCHAR2(20)", unicode: false, maxLength: 20, nullable: false),
+                    STATUS = table.Column<string>(type: "VARCHAR2(20)", unicode: false, maxLength: 20, nullable: false),
+                    NOTES = table.Column<string>(type: "NVARCHAR2(1000)", maxLength: 1000, nullable: true),
+                    CREATED_BY = table.Column<string>(type: "VARCHAR2(100)", unicode: false, maxLength: 100, nullable: false),
+                    CREATED_AT_UTC = table.Column<DateTimeOffset>(type: "TIMESTAMP(7) WITH TIME ZONE", nullable: false),
+                    UPDATED_AT_UTC = table.Column<DateTimeOffset>(type: "TIMESTAMP(7) WITH TIME ZONE", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ENROLLMENT", x => x.ID);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "NATIONALITY",
                 columns: table => new
                 {
@@ -54,6 +79,7 @@ namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
                     FAMILY_NAME_AR = table.Column<string>(type: "NVARCHAR2(100)", maxLength: 100, nullable: false),
                     FIRST_NAME_EN = table.Column<string>(type: "VARCHAR2(100)", unicode: false, maxLength: 100, nullable: false),
                     FAMILY_NAME_EN = table.Column<string>(type: "VARCHAR2(100)", unicode: false, maxLength: 100, nullable: false),
+                    NAME_SEARCH = table.Column<string>(type: "NVARCHAR2(420)", maxLength: 420, nullable: true),
                     DATE_OF_BIRTH = table.Column<string>(type: "NVARCHAR2(10)", nullable: false),
                     GENDER = table.Column<string>(type: "CHAR(1)", unicode: false, fixedLength: true, maxLength: 1, nullable: false),
                     NATIONALITY_CODE = table.Column<string>(type: "VARCHAR2(3)", unicode: false, maxLength: 3, nullable: false),
@@ -203,6 +229,27 @@ namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
                 column: "TIMESTAMP_UTC");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ENROLLMENT_CIVIL_NUMBER",
+                table: "ENROLLMENT",
+                column: "CIVIL_NUMBER");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ENROLLMENT_CREATED_AT",
+                table: "ENROLLMENT",
+                column: "CREATED_AT_UTC");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ENROLLMENT_REFERENCE_NUMBER",
+                table: "ENROLLMENT",
+                column: "REFERENCE_NUMBER",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ENROLLMENT_STATUS",
+                table: "ENROLLMENT",
+                column: "STATUS");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ID_CARD_CIVIL_NUMBER",
                 table: "ID_CARD",
                 column: "CIVIL_NUMBER");
@@ -228,6 +275,11 @@ namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
                 column: "FAMILY_NAME_EN");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PERSON_NAME_SEARCH",
+                table: "PERSON",
+                column: "NAME_SEARCH");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PERSON_NATIONALITY_CODE",
                 table: "PERSON",
                 column: "NATIONALITY_CODE");
@@ -244,6 +296,9 @@ namespace Nrs.Infrastructure.Migrations.Oracle.Migrations
 
             migrationBuilder.DropTable(
                 name: "CONTACT");
+
+            migrationBuilder.DropTable(
+                name: "ENROLLMENT");
 
             migrationBuilder.DropTable(
                 name: "ID_CARD");

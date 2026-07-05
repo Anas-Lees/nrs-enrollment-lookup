@@ -23,17 +23,12 @@ RUN apt-get update \
 
 COPY --from=build /app/publish .
 
-# Writable data dir for the local SQLite database (POC). Made group-0 writable so
-# it works both for the base image's non-root user and under OpenShift's
-# arbitrary-UID model (random uid, group 0).
-RUN mkdir -p /app/data && chown -R $APP_UID:0 /app/data && chmod -R g=u /app/data
-
 # Run as the non-root user the base image provides.
 USER $APP_UID
 
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080 \
-    ConnectionStrings__Default="Data Source=/app/data/nrs.db"
+# The Oracle connection string is supplied at runtime (docker-compose / OpenShift secret).
+ENV ASPNETCORE_URLS=http://+:8080
 
 # Container-level liveness signal (orchestrators that honour HEALTHCHECK; also used by
 # docker-compose to gate the SPA on a ready API). Hits the anonymous readiness endpoint.

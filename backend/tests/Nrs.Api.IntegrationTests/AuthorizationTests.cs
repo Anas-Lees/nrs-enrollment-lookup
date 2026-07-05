@@ -11,7 +11,7 @@ public class AuthorizationTests(NrsApiAuthFactory factory) : IClassFixture<NrsAp
 {
     private const string SearchUrl = "/api/v1/persons/search?page=1&pageSize=5";
 
-    [Fact]
+    [OracleFact]
     public async Task Search_WithoutAuthentication_Returns401()
     {
         var client = factory.CreateClient();
@@ -21,7 +21,7 @@ public class AuthorizationTests(NrsApiAuthFactory factory) : IClassFixture<NrsAp
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Search_AuthenticatedButNotOperator_Returns403()
     {
         var client = factory.CreateClient();
@@ -32,7 +32,7 @@ public class AuthorizationTests(NrsApiAuthFactory factory) : IClassFixture<NrsAp
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Search_AsOperator_Returns200()
     {
         var client = factory.CreateClient();
@@ -43,7 +43,7 @@ public class AuthorizationTests(NrsApiAuthFactory factory) : IClassFixture<NrsAp
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Health_IsReachable_WithoutAuthentication()
     {
         var client = factory.CreateClient();
@@ -53,7 +53,7 @@ public class AuthorizationTests(NrsApiAuthFactory factory) : IClassFixture<NrsAp
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    [Theory]
+    [OracleTheory]
     [InlineData("""{"roles":["operator","offline_access"]}""", new[] { "operator", "offline_access" })]
     [InlineData("""{"roles":[]}""", new string[0])]
     [InlineData("""{"other":"x"}""", new string[0])]

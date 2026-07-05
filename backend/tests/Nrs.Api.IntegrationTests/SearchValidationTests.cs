@@ -10,7 +10,7 @@ public class SearchValidationTests(NrsApiFactory factory) : IClassFixture<NrsApi
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    [Theory]
+    [OracleTheory]
     [InlineData("/api/v1/persons/search?page=0")] // page below 1
     [InlineData("/api/v1/persons/search?pageSize=0")] // page size below 1
     [InlineData("/api/v1/persons/search?pageSize=101")] // page size above max
@@ -26,7 +26,7 @@ public class SearchValidationTests(NrsApiFactory factory) : IClassFixture<NrsApi
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Theory]
+    [OracleTheory]
     [InlineData("/api/v1/persons/search")] // no filters → all (paged)
     [InlineData("/api/v1/persons/search?crn=12")] // partial CRN prefix is allowed
     [InlineData("/api/v1/persons/search?nationality=omn")] // case-insensitive 3 letters

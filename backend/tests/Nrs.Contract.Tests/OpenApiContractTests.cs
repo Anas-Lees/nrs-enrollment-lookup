@@ -139,6 +139,17 @@ public class OpenApiContractTests
         Assert.True(keys.Contains("/api/v1/persons/{crn}"), "Contract is missing path '/api/v1/persons/{crn}'.");
     }
 
+    [Fact]
+    public void Paths_DefineEnrollmentEndpoints()
+    {
+        var root = AsMap(Root);
+        var paths = AsMap(Get(root, "paths"));
+        var keys = paths.Keys.Select(k => k?.ToString()).ToHashSet(StringComparer.Ordinal);
+
+        Assert.True(keys.Contains("/api/v1/enrollments"), "Contract is missing path '/api/v1/enrollments'.");
+        Assert.True(keys.Contains("/api/v1/enrollments/{id}"), "Contract is missing path '/api/v1/enrollments/{id}'.");
+    }
+
     [Theory]
     [InlineData("PersonStatus", typeof(PersonStatus))]
     [InlineData("CardStatus", typeof(CardStatus))]
@@ -146,6 +157,8 @@ public class OpenApiContractTests
     [InlineData("PassportType", typeof(PassportType))]
     [InlineData("PassportStatus", typeof(PassportStatus))]
     [InlineData("MaritalStatus", typeof(MaritalStatus))]
+    [InlineData("EnrollmentType", typeof(EnrollmentType))]
+    [InlineData("EnrollmentStatus", typeof(EnrollmentStatus))]
     public void Enum_MatchesContract(string schemaName, Type enumType)
     {
         var expected = new HashSet<string>(GetEnumValues(schemaName), StringComparer.Ordinal);

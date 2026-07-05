@@ -31,6 +31,8 @@ servers:
 tags:
   - name: Persons
     description: Search for and retrieve person records.
+  - name: Enrollments
+    description: Create, edit and list enrollment applications.
 
 paths:
   /api/v1/persons/search:
@@ -198,6 +200,134 @@ paths:
                     status: "ACTIVE"
         "404":
           description: No person exists with the supplied CRN.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /api/v1/enrollments:
+    post:
+      tags: [Enrollments]
+      operationId: createEnrollment
+      summary: Create a new enrollment application
+      description: >
+        Captures a new enrollment application (for a brand-new applicant, or continuing from an
+        existing person's CRN). The application starts as SUBMITTED and an "enrollment submitted"
+        event is published to the message broker for the review worker.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEnrollmentRequest"
+      responses:
+        "201":
+          description: The created enrollment application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+        "400":
+          description: Invalid request body.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+    get:
+      tags: [Enrollments]
+      operationId: listEnrollments
+      summary: List enrollment applications (paged, newest first)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/EnrollmentStatus"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: A page of enrollment applications.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedResultOfEnrollmentSummary"
+
+  /api/v1/enrollments/{id}:
+    get:
+      tags: [Enrollments]
+      operationId: getEnrollment
+      summary: Get one enrollment application by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The enrollment application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+        "404":
+          description: No enrollment exists with the supplied id.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+    put:
+      tags: [Enrollments]
+      operationId: updateEnrollment
+      summary: Edit an existing enrollment application
+      description: >
+        Updates the editable fields of an enrollment. The status is driven by the review
+        workflow, not by this endpoint. An "enrollment updated" event is published on success.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEnrollmentRequest"
+      responses:
+        "200":
+          description: The updated enrollment application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+        "400":
+          description: Invalid request body.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: No enrollment exists with the supplied id.
           content:
             application/problem+json:
               schema:
@@ -437,6 +567,128 @@ components:
           format: int32
           example: 20
 
+    CreateEnrollmentRequest:
+      type: object
+      description: Body for creating or editing an enrollment application.
+      required: [firstNameEn, familyNameEn, firstNameAr, familyNameAr, dateOfBirth, nationalityCode, type]
+      properties:
+        civilNumber:
+          type: string
+          nullable: true
+          description: CRN of an existing person to continue from, or null for a new applicant.
+          example: "12345678"
+        firstNameEn:
+          type: string
+          example: "Salim"
+        familyNameEn:
+          type: string
+          example: "Al Harthy"
+        firstNameAr:
+          type: string
+          example: "سالم"
+        familyNameAr:
+          type: string
+          example: "الحارثي"
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1990-05-14"
+        nationalityCode:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: "OMN"
+        type:
+          $ref: "#/components/schemas/EnrollmentType"
+        notes:
+          type: string
+          nullable: true
+          maxLength: 1000
+
+    EnrollmentSummary:
+      type: object
+      description: One row in the enrollment queue.
+      required:
+        - id
+        - referenceNumber
+        - firstNameEn
+        - familyNameEn
+        - firstNameAr
+        - familyNameAr
+        - nationalityCode
+        - type
+        - status
+        - createdAtUtc
+        - updatedAtUtc
+      properties:
+        id:
+          type: string
+          format: uuid
+        referenceNumber:
+          type: string
+          example: "ENR-1A2B3C4D"
+        civilNumber:
+          type: string
+          nullable: true
+          example: "12345678"
+        firstNameEn:
+          type: string
+        familyNameEn:
+          type: string
+        firstNameAr:
+          type: string
+        familyNameAr:
+          type: string
+        nationalityCode:
+          type: string
+          example: "OMN"
+        type:
+          $ref: "#/components/schemas/EnrollmentType"
+        status:
+          $ref: "#/components/schemas/EnrollmentStatus"
+        createdAtUtc:
+          type: string
+          format: date-time
+        updatedAtUtc:
+          type: string
+          format: date-time
+
+    Enrollment:
+      description: Full enrollment application.
+      allOf:
+        - $ref: "#/components/schemas/EnrollmentSummary"
+        - type: object
+          properties:
+            dateOfBirth:
+              type: string
+              format: date
+              example: "1990-05-14"
+            notes:
+              type: string
+              nullable: true
+            createdBy:
+              type: string
+              description: Operator who created the application.
+              example: "operator1"
+
+    PagedResultOfEnrollmentSummary:
+      type: object
+      required: [items, totalCount, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnrollmentSummary"
+        totalCount:
+          type: integer
+          format: int32
+        page:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+
     ProblemDetails:
       type: object
       description: RFC 7807 problem details for error responses.
@@ -486,3 +738,11 @@ components:
     PassportStatus:
       type: string
       enum: [ACTIVE, EXPIRED, CANCELLED, LOST, STOLEN]
+
+    EnrollmentType:
+      type: string
+      enum: [NEW_CARD, RENEWAL, REPLACEMENT, CORRECTION]
+
+    EnrollmentStatus:
+      type: string
+      enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED]

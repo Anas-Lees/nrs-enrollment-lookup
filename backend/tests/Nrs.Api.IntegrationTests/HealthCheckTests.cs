@@ -10,7 +10,7 @@ public class HealthCheckTests(NrsApiFactory factory) : IClassFixture<NrsApiFacto
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    [Theory]
+    [OracleTheory]
     [InlineData("/health/live")]
     [InlineData("/health/ready")]
     [InlineData("/health")]

@@ -6,9 +6,8 @@ metadata:
     app: nrs
     component: api
 spec:
-  # The API is stateless; it scales horizontally. In this POC each replica seeds
-  # its own pod-local SQLite from the same deterministic dataset, so replicas serve
-  # identical, read-only data. Production points all replicas at a shared Oracle.
+  # The API is stateless; it scales horizontally. Every replica points at the same
+  # shared Oracle database (connection string injected from the nrs-secrets Secret).
   replicas: 2
   selector:
     matchLabels:
@@ -24,8 +23,8 @@ spec:
       serviceAccountName: nrs-api
       automountServiceAccountToken: false
       # Pod-level hardening. No numeric runAsUser/fsGroup: OpenShift's restricted SCC
-      # assigns a random non-root UID (group 0), and the image's /app/data is group-0
-      # writable, so this stays portable across clusters.
+      # assigns a random non-root UID (group 0); the root filesystem is read-only and the
+      # only writable path is an explicit emptyDir for /tmp, so this stays portable.
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -45,20 +44,27 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          # Non-secret config (env, URLs, provider toggle, POC SQLite path) comes
-          # from the ConfigMap. Credentials are injected key-by-key from the
-          # nrs-secrets Secret below — never via envFrom of the whole Secret, and
-          # never from the ConfigMap.
+          # Non-secret config (env, URLs) comes from the ConfigMap. Credentials are
+          # injected key-by-key from the nrs-secrets Secret below — never via envFrom
+          # of the whole Secret, and never from the ConfigMap.
           envFrom:
             - configMapRef:
                 name: nrs-api-config
           env:
             # --- Secrets from nrs-secrets (see secret.yaml) ---
             # Injected per-key via secretKeyRef so the pod spec lists exactly which
-            # secret values it consumes. optional:true keeps the POC bootable when
-            # the Secret is absent (the demo runs on pod-local SQLite + auth off);
-            # for production, populate nrs-secrets and flip optional to false.
+            # secret values it consumes. Populate nrs-secrets before applying: the
+            # Oracle connection string is required (optional:false); the rest are
+            # optional conveniences.
             #
+            # The Oracle connection string (with its embedded password). Required — a
+            # missing Secret should fail fast, not boot the API half-configured.
+            - name: ConnectionStrings__Default
+              valueFrom:
+                secretKeyRef:
+                  name: nrs-secrets
+                  key: ConnectionStrings__Default
+                  optional: false
             # Keycloak/OIDC confidential-client secret. Only meaningful if a
             # confidential-client flow is enabled; harmless to inject otherwise.
             - name: Auth__ClientSecret
@@ -81,19 +87,6 @@ spec:
                   name: nrs-secrets
                   key: ConnectionStrings__Redis
                   optional: true
-            # --- PRODUCTION (Oracle) OVERRIDE ---
-            # Uncomment to source the real, credential-bearing Oracle connection
-            # string from the Secret. An explicit env entry takes precedence over
-            # the same key supplied by envFrom (the ConfigMap's POC SQLite value),
-            # so this cleanly replaces it. Also set DatabaseProvider=Oracle in the
-            # ConfigMap. Use optional:false in production so a missing Secret fails
-            # fast instead of silently falling back.
-            # - name: ConnectionStrings__Default
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: nrs-secrets
-            #       key: ConnectionStrings__Default
-            #       optional: false
           # startupProbe decouples slow cold starts (migrate + seed) from liveness, so a
           # slow boot can't trip a restart loop.
           startupProbe:
@@ -120,14 +113,9 @@ spec:
               cpu: "1"
               memory: 512Mi
           volumeMounts:
-            - name: data
-              mountPath: /app/data
             - name: tmp
               mountPath: /tmp
       volumes:
-        # Ephemeral writable location for the pod-local SQLite database (POC).
-        - name: data
-          emptyDir: {}
         # .NET needs a writable temp dir under readOnlyRootFilesystem.
         - name: tmp
           emptyDir: {}

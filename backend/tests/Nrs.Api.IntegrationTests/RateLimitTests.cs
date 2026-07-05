@@ -8,7 +8,7 @@ namespace Nrs.Api.IntegrationTests;
 /// </summary>
 public class RateLimitTests(NrsApiRateLimitFactory factory) : IClassFixture<NrsApiRateLimitFactory>
 {
-    [Fact]
+    [OracleFact]
     public async Task Search_Throttles_AfterPermitLimit()
     {
         var client = factory.CreateClient();

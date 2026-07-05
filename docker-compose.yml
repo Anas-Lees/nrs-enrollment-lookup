@@ -56,6 +56,17 @@ services:
     ports:
       - "6379:6379"
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    ports:
+      - "5672:5672"     # AMQP — the API publishes/consumes enrollment events here
+      - "15672:15672"   # management UI (guest / guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   api:
     build:
       context: ./backend
@@ -72,11 +83,13 @@ services:
       ASPNETCORE_URLS: http://+:8080
       # Expose the Scalar/OpenAPI docs in this demo stack, but behind operator auth.
       OpenApi__Enabled: "true"
-      DatabaseProvider: Oracle
       # Connect as the least-privilege app account, not SYSTEM/DBA.
       ConnectionStrings__Default: "User Id=nrs_app;Password=nrs_app_password;Data Source=oracle:1521/XEPDB1"
       # Distributed cache for hot profile reads (cache-aside; audit still fires per request).
       ConnectionStrings__Redis: "redis:6379"
+      # Message broker for enrollment events: publish on create/edit, and the background
+      # consumer advances a submitted enrollment to under-review.
+      ConnectionStrings__RabbitMq: "amqp://guest:guest@rabbitmq:5672"
       Auth__Enabled: "true"
       Auth__Authority: http://localhost:8081/realms/nrs
       Auth__Audience: nrs-api
@@ -94,6 +107,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
       otel-collector:
         condition: service_started
     healthcheck:

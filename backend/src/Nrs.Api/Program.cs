@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Nrs.Api.Errors;
 using Nrs.Api.Extensions;
+using Nrs.Api.Features.Enrollments;
 using Nrs.Api.Middleware;
 using Nrs.Infrastructure.Persistence;
 using Nrs.Infrastructure.Seed;
@@ -75,6 +76,12 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+// The enrollment feature uses minimal-API endpoints, which read their JSON options from
+// here (not from AddControllers above). Serialize enums as their string names so the slice
+// endpoints speak the same contract as the MVC controllers.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 // First-party OpenAPI document generation (served at /openapi/v1.json), rendered by Scalar.
 // The transformer adds API Info + a JWT bearer security scheme (so Scalar gets an Authorize
 // button); /// doc comments flow into the document automatically (GenerateDocumentationFile).
@@ -83,6 +90,9 @@ builder.Services.AddOpenApi(options =>
 
 // Application services (DbContext, repository, service).
 builder.Services.AddNrsServices(builder.Configuration);
+
+// Enrollment feature — vertical slices (create/edit/get/list) plus best-effort messaging.
+builder.Services.AddEnrollmentFeature(builder.Configuration);
 
 // Health checks for container/Kubernetes probes. The database check is tagged "ready"
 // so readiness reflects DB connectivity while liveness only reflects the process.
@@ -229,8 +239,7 @@ if (builder.Configuration.GetValue<bool?>("Database:InitializeOnStartup") ?? tru
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<NrsDbContext>();
 
-    // Both providers apply real EF migrations on startup. SQLite's set lives in
-    // Nrs.Infrastructure; Oracle's lives in Nrs.Infrastructure.Migrations.Oracle.
+    // Apply the Oracle EF migrations on startup (the migration set lives in Nrs.Infrastructure).
     await db.Database.MigrateAsync();
 
     if (builder.Configuration.GetValue<bool?>("Database:SeedOnStartup") ?? !app.Environment.IsProduction())
@@ -251,6 +260,9 @@ if (authEnabled)
 app.UseRateLimiter();
 
 app.MapControllers();
+
+// Enrollment vertical-slice endpoints (minimal APIs under /api/v1/enrollments).
+app.MapEnrollmentEndpoints();
 
 // Health endpoints for probes — always reachable, even when auth is on.
 //   /health/live  — liveness: the process is up (no dependency checks).

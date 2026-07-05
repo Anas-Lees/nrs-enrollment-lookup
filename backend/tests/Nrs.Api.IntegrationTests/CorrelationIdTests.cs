@@ -8,7 +8,7 @@ public class CorrelationIdTests(NrsApiFactory factory) : IClassFixture<NrsApiFac
 {
     private const string Header = "X-Correlation-Id";
 
-    [Fact]
+    [OracleFact]
     public async Task Response_AlwaysCarries_CorrelationId()
     {
         var client = factory.CreateClient();
@@ -20,7 +20,7 @@ public class CorrelationIdTests(NrsApiFactory factory) : IClassFixture<NrsApiFac
         Assert.False(string.IsNullOrWhiteSpace(value));
     }
 
-    [Fact]
+    [OracleFact]
     public async Task InboundCorrelationId_IsEchoed()
     {
         var client = factory.CreateClient();

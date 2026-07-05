@@ -1,57 +1,19 @@
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Nrs.Infrastructure.Persistence;
 
 namespace Nrs.Api.IntegrationTests;
 
 /// <summary>
-/// Runs the app in the Production environment (still on in-memory SQLite) to verify the
-/// production-shaped behaviour: startup migrate+seed runs (not gated to Development), and
+/// Runs the app in the Production environment (still on the shared Oracle container) to verify
+/// the production-shaped behaviour: startup migrate+seed runs (not gated to Development), and
 /// the API docs are not exposed anonymously.
 /// </summary>
-public class NrsApiProdFactory : WebApplicationFactory<Program>
+public class NrsApiProdFactory : OracleWebApplicationFactory
 {
-    private readonly SqliteConnection _connection;
-
-    public NrsApiProdFactory()
-    {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-    }
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    protected override void ConfigureScenario(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Production");
         // Seeding defaults OFF under Production; opt in explicitly, exactly as the
         // docker-compose demo stack does, so this factory exercises that real path.
         builder.UseSetting("Database:SeedOnStartup", "true");
-
-        builder.ConfigureServices(services =>
-        {
-            var toRemove = services
-                .Where(d =>
-                    d.ServiceType == typeof(DbContextOptions<NrsDbContext>) ||
-                    d.ServiceType == typeof(DbContextOptions) ||
-                    d.ServiceType == typeof(NrsDbContext))
-                .ToList();
-            foreach (var descriptor in toRemove)
-            {
-                services.Remove(descriptor);
-            }
-
-            services.AddDbContext<NrsDbContext>(options => options.UseSqlite(_connection));
-        });
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-        if (disposing)
-        {
-            _connection.Dispose();
-        }
     }
 }

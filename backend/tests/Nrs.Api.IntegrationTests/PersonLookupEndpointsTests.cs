@@ -20,7 +20,7 @@ public class PersonLookupEndpointsTests : IClassFixture<NrsApiFactory>
         _client = factory.CreateClient();
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Search_ReturnsOk_AndPagedEnvelope()
     {
         var response = await _client.GetAsync("/api/v1/persons/search?page=1&pageSize=5");
@@ -36,7 +36,7 @@ public class PersonLookupEndpointsTests : IClassFixture<NrsApiFactory>
         Assert.Equal(5, page.PageSize);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Search_FiltersByNationality()
     {
         var page = await _client.GetFromJsonAsync<PagedResult<PersonSummary>>(
@@ -47,7 +47,7 @@ public class PersonLookupEndpointsTests : IClassFixture<NrsApiFactory>
         Assert.All(page.Items, item => Assert.Equal("OMN", item.NationalityCode));
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Search_PartialName_ReturnsMatches()
     {
         var page = await _client.GetFromJsonAsync<PagedResult<PersonSummary>>(
@@ -57,7 +57,7 @@ public class PersonLookupEndpointsTests : IClassFixture<NrsApiFactory>
         Assert.True(page!.TotalCount > 0, "Expected a partial name match for 'al' to return results.");
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Search_RejectsOutOfRangePageSize_With400()
     {
         // pageSize is documented (and now validated) as 1..100; out of range is a 400.
@@ -66,7 +66,7 @@ public class PersonLookupEndpointsTests : IClassFixture<NrsApiFactory>
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Search_SerializesEnumsAsStrings()
     {
         var response = await _client.GetAsync("/api/v1/persons/search?pageSize=1");
@@ -78,7 +78,7 @@ public class PersonLookupEndpointsTests : IClassFixture<NrsApiFactory>
         Assert.Matches(new Regex("\"status\":\"[A-Z]"), body);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task GetByCrn_ReturnsProfile_WithDocuments()
     {
         var page = await _client.GetFromJsonAsync<PagedResult<PersonSummary>>(
@@ -98,7 +98,7 @@ public class PersonLookupEndpointsTests : IClassFixture<NrsApiFactory>
         Assert.True(person.Passports.Length >= 1, "Expected the person to have at least one passport.");
     }
 
-    [Fact]
+    [OracleFact]
     public async Task GetByCrn_Returns404_ForUnknownCrn()
     {
         var response = await _client.GetAsync("/api/v1/persons/00000000");

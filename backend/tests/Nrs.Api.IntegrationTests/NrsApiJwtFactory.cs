@@ -1,13 +1,8 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Nrs.Infrastructure.Persistence;
 
 namespace Nrs.Api.IntegrationTests;
 
@@ -16,7 +11,7 @@ namespace Nrs.Api.IntegrationTests;
 /// test key (no live Keycloak). Issuer/audience/lifetime/signature are all enforced — so
 /// tests can prove that wrong-issuer, wrong-audience and expired tokens are rejected.
 /// </summary>
-public class NrsApiJwtFactory : WebApplicationFactory<Program>
+public class NrsApiJwtFactory : OracleWebApplicationFactory
 {
     public const string Issuer = "https://test-issuer/realms/nrs";
     public const string Audience = "nrs-api";
@@ -25,15 +20,7 @@ public class NrsApiJwtFactory : WebApplicationFactory<Program>
     public static readonly SymmetricSecurityKey SigningKey =
         new(Encoding.UTF8.GetBytes("nrs-test-signing-key-please-use-32+chars!!"));
 
-    private readonly SqliteConnection _connection;
-
-    public NrsApiJwtFactory()
-    {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-    }
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    protected override void ConfigureScenario(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("Auth:Enabled", "true");
@@ -43,19 +30,6 @@ public class NrsApiJwtFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            var toRemove = services
-                .Where(d =>
-                    d.ServiceType == typeof(DbContextOptions<NrsDbContext>) ||
-                    d.ServiceType == typeof(DbContextOptions) ||
-                    d.ServiceType == typeof(NrsDbContext))
-                .ToList();
-            foreach (var descriptor in toRemove)
-            {
-                services.Remove(descriptor);
-            }
-
-            services.AddDbContext<NrsDbContext>(options => options.UseSqlite(_connection));
-
             // Validate against the test signing key/issuer instead of live OIDC discovery,
             // keeping the hardened ValidateAudience/Lifetime settings from the app.
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -68,14 +42,5 @@ public class NrsApiJwtFactory : WebApplicationFactory<Program>
                 options.TokenValidationParameters.ClockSkew = TimeSpan.Zero;
             });
         });
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-        if (disposing)
-        {
-            _connection.Dispose();
-        }
     }
 }

@@ -34,7 +34,7 @@ public class SearchFuzzyTests(NrsApiFactory factory) : IClassFixture<NrsApiFacto
         page.GetProperty("items").EnumerateArray()
             .Any(i => i.GetProperty("civilNumber").GetString() == crn);
 
-    [Fact]
+    [OracleFact]
     public async Task EnglishSearch_IsCaseInsensitive()
     {
         var person = await AnyPersonAsync();
@@ -43,7 +43,7 @@ public class SearchFuzzyTests(NrsApiFactory factory) : IClassFixture<NrsApiFacto
         Assert.True(ContainsCrn(await SearchAsync(person.FirstNameEn.ToLowerInvariant()), person.Crn));
     }
 
-    [Fact]
+    [OracleFact]
     public async Task ArabicSearch_IsDiacriticInsensitive()
     {
         var person = await AnyPersonAsync();
@@ -57,7 +57,7 @@ public class SearchFuzzyTests(NrsApiFactory factory) : IClassFixture<NrsApiFacto
         Assert.True(ContainsCrn(await SearchAsync(diacritized), person.Crn));
     }
 
-    [Fact]
+    [OracleFact]
     public async Task Search_TrimsAndMatches()
     {
         var person = await AnyPersonAsync();

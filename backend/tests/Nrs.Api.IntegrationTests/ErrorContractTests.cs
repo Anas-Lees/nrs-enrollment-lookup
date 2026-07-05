@@ -25,14 +25,14 @@ public class ErrorContractTests(NrsApiFactory factory) : IClassFixture<NrsApiFac
         Assert.False(string.IsNullOrWhiteSpace(traceId.GetString()));
     }
 
-    [Fact]
+    [OracleFact]
     public async Task NotFound_IsProblemJson_WithTraceId()
     {
         var response = await _client.GetAsync("/api/v1/persons/00000000");
         await AssertProblemWithTraceId(response, HttpStatusCode.NotFound);
     }
 
-    [Fact]
+    [OracleFact]
     public async Task ValidationError_IsProblemJson_WithTraceId()
     {
         var response = await _client.GetAsync("/api/v1/persons/search?pageSize=9999");

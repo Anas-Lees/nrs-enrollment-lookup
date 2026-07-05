@@ -1,10 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Nrs.Infrastructure.Persistence;
 
 namespace Nrs.Api.IntegrationTests;
 
@@ -14,17 +10,9 @@ namespace Nrs.Api.IntegrationTests;
 /// driven <see cref="TestAuthHandler"/> set as the default scheme, letting tests assert
 /// 401 (no identity), 403 (wrong role) and 200 (operator) through the real pipeline.
 /// </summary>
-public class NrsApiAuthFactory : WebApplicationFactory<Program>
+public class NrsApiAuthFactory : OracleWebApplicationFactory
 {
-    private readonly SqliteConnection _connection;
-
-    public NrsApiAuthFactory()
-    {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-    }
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    protected override void ConfigureScenario(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
 
@@ -36,20 +24,6 @@ public class NrsApiAuthFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            var toRemove = services
-                .Where(d =>
-                    d.ServiceType == typeof(DbContextOptions<NrsDbContext>) ||
-                    d.ServiceType == typeof(DbContextOptions) ||
-                    d.ServiceType == typeof(NrsDbContext))
-                .ToList();
-
-            foreach (var descriptor in toRemove)
-            {
-                services.Remove(descriptor);
-            }
-
-            services.AddDbContext<NrsDbContext>(options => options.UseSqlite(_connection));
-
             // Make the header-driven Test scheme the default so the fallback policy uses it.
             services
                 .AddAuthentication(options =>
@@ -59,14 +33,5 @@ public class NrsApiAuthFactory : WebApplicationFactory<Program>
                 })
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
         });
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-        if (disposing)
-        {
-            _connection.Dispose();
-        }
     }
 }
