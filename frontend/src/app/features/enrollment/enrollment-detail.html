@@ -1,0 +1,139 @@
+<section class="page">
+  <a class="back-link" routerLink="/enrollment/queue">← {{ i18n.t('detail.back') }}</a>
+
+  @if (loading()) {
+    <p class="muted">{{ i18n.t('detail.loading') }}</p>
+  } @else if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  } @else if (enrollment(); as e) {
+    <header class="detail-head">
+      <div class="detail-head__title">
+        <span class="mono detail-head__ref">{{ e.referenceNumber }}</span>
+        <app-status-badge [status]="e.status" />
+        @if (e.escalatedAtUtc && (e.status === 'PENDING_REVIEW' || e.status === 'UNDER_REVIEW')) {
+          <span class="chip-escalated">{{ i18n.t('detail.escalated') }}</span>
+        }
+      </div>
+      @if (canEdit()) {
+        <a class="btn-primary" [routerLink]="['/enrollment', e.id, 'edit']">
+          {{ i18n.t('detail.edit') }}
+        </a>
+      }
+    </header>
+
+    <!-- Decision outcome first: it is what the operator most needs to relay. -->
+    @if (isDecided()) {
+      <div class="decision-panel" [class.decision-panel--rejected]="isRejected()">
+        <h2 class="decision-panel__title">
+          @if (isRejected()) {
+            {{ i18n.t('detail.decision.rejected') }}
+          } @else {
+            {{ i18n.t('detail.decision.approved') }}
+          }
+        </h2>
+        <dl class="kv">
+          <div class="kv__row">
+            <dt>{{ i18n.t('detail.decidedBy') }}</dt>
+            <dd>{{ e.decidedBy ?? '—' }}</dd>
+          </div>
+          <div class="kv__row">
+            <dt>{{ i18n.t('detail.decidedAt') }}</dt>
+            <dd>
+              @if (e.decidedAtUtc) {
+                {{ e.decidedAtUtc | appDate: i18n.lang() }}
+              } @else {
+                —
+              }
+            </dd>
+          </div>
+        </dl>
+        @if (e.decisionNotes) {
+          <div class="decision-panel__reason">
+            <span class="decision-panel__reason-label">{{ i18n.t('detail.reason') }}</span>
+            <p class="decision-panel__reason-text">{{ e.decisionNotes }}</p>
+          </div>
+        } @else if (isRejected()) {
+          <p class="muted">{{ i18n.t('detail.noReason') }}</p>
+        }
+      </div>
+    }
+
+    <!-- Applicant identity -->
+    <section class="detail-card">
+      <h2>{{ i18n.t('detail.section.applicant') }}</h2>
+      <dl class="kv kv--grid">
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.applicantName') }}</dt>
+          <dd>{{ applicantName(e) }}</dd>
+        </div>
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.nameEn') }}</dt>
+          <dd>{{ e.firstNameEn }} {{ e.familyNameEn }}</dd>
+        </div>
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.nameAr') }}</dt>
+          <dd dir="rtl">{{ e.firstNameAr }} {{ e.familyNameAr }}</dd>
+        </div>
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.crn') }}</dt>
+          <dd class="mono">{{ e.civilNumber ?? '—' }}</dd>
+        </div>
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.dob') }}</dt>
+          <dd>{{ e.dateOfBirth | appDate: i18n.lang() }}</dd>
+        </div>
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.nationality') }}</dt>
+          <dd>{{ e.nationalityCode }}</dd>
+        </div>
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.type') }}</dt>
+          <dd>{{ i18n.t('enroll.type.' + e.type) }}</dd>
+        </div>
+      </dl>
+      @if (e.notes) {
+        <div class="detail-notes">
+          <span class="detail-notes__label">{{ i18n.t('detail.notes') }}</span>
+          <p class="detail-notes__text">{{ e.notes }}</p>
+        </div>
+      }
+    </section>
+
+    <!-- Why it was routed to a human -->
+    @if (e.screeningFlags.length > 0) {
+      <section class="detail-card">
+        <h2>{{ i18n.t('detail.section.screening') }}</h2>
+        <ul class="flag-list">
+          @for (f of e.screeningFlags; track f) {
+            <li class="flag-chip">{{ flagLabel(f) }}</li>
+          }
+        </ul>
+      </section>
+    }
+
+    <!-- Ownership + provenance -->
+    <section class="detail-card">
+      <h2>{{ i18n.t('detail.section.handling') }}</h2>
+      <dl class="kv kv--grid">
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.assignedTo') }}</dt>
+          <dd>{{ e.assignedTo ?? i18n.t('detail.unassigned') }}</dd>
+        </div>
+        @if (e.assignedAtUtc) {
+          <div class="kv__row">
+            <dt>{{ i18n.t('detail.assignedAt') }}</dt>
+            <dd>{{ e.assignedAtUtc | appDate: i18n.lang() }}</dd>
+          </div>
+        }
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.createdBy') }}</dt>
+          <dd>{{ e.createdBy }}</dd>
+        </div>
+        <div class="kv__row">
+          <dt>{{ i18n.t('detail.createdAt') }}</dt>
+          <dd>{{ e.createdAtUtc | appDate: i18n.lang() }}</dd>
+        </div>
+      </dl>
+    </section>
+  }
+</section>

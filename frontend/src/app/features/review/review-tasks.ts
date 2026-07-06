@@ -3,10 +3,13 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgTemplateOutlet } from '@angular/common';
+import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { TranslationService } from '../../core/i18n/translation.service';
@@ -17,14 +20,15 @@ import { ReviewTask } from '../../core/models/enrollment.model';
 import { AppDatePipe } from '../../shared/app-date.pipe';
 
 /**
- * The reviewer's work queue: open Camunda review tasks, oldest first. A reviewer claims a
- * task, examines the screening flags, and approves — or rejects with a mandatory reason.
- * The decision completes the Camunda user task; the workflow applies the status and
- * notifies the submitting operator.
+ * The reviewer's workspace, split the way a real task queue is: applications waiting in the
+ * shared queue (claim one to take ownership), the ones assigned to me (which only I can decide
+ * or release), and — for transparency — the ones colleagues are handling. Deciding is offered
+ * only on my own claimed items; a rejection needs a mandatory reason. "View details" opens the
+ * full application read-only. Everything keys off the enrollment id.
  */
 @Component({
   selector: 'app-review-tasks',
-  imports: [FormsModule, AppDatePipe],
+  imports: [FormsModule, NgTemplateOutlet, AppDatePipe],
   templateUrl: './review-tasks.html',
   styleUrl: './review-tasks.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,18 +38,30 @@ export class ReviewTasks implements OnInit {
   protected readonly auth = inject(AuthService);
   private readonly enrollments = inject(EnrollmentService);
   private readonly notifications = inject(NotificationService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly tasks = signal<ReviewTask[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  /** Enrollment id of the task whose decision is in flight (disables its actions). */
+  /** Enrollment id of the task whose action (claim/release/decide) is in flight. */
   readonly busy = signal<string | null>(null);
 
   /** Enrollment id of the task showing the reject-reason form. */
   readonly rejecting = signal<string | null>(null);
   rejectReason = '';
+
+  /** Waiting in the shared queue, unassigned — anyone may claim. */
+  readonly available = computed(() => this.tasks().filter((t) => !t.assignee));
+
+  /** Claimed by me — mine to decide or release. */
+  readonly mine = computed(() => this.tasks().filter((t) => t.assignee === this.auth.username()));
+
+  /** In progress with a colleague — shown read-only for transparency. */
+  readonly others = computed(() =>
+    this.tasks().filter((t) => t.assignee && t.assignee !== this.auth.username()),
+  );
 
   ngOnInit(): void {
     this.load();
@@ -88,31 +104,34 @@ export class ReviewTasks implements OnInit {
       : `${e.firstNameEn} ${e.familyNameEn}`;
   }
 
-  /** Claimed by me, unclaimed, or claimed by someone else — drives the action states. */
-  claimState(t: ReviewTask): 'mine' | 'unclaimed' | 'other' {
-    if (!t.assignee) {
-      return 'unclaimed';
-    }
-    return t.assignee === this.auth.username() ? 'mine' : 'other';
+  viewDetails(t: ReviewTask): void {
+    this.router.navigate(['/enrollment', t.enrollment.id]);
   }
 
   claim(t: ReviewTask): void {
-    if (!t.userTaskKey || this.busy()) {
+    if (this.busy()) {
       return;
     }
-    const key = t.userTaskKey;
-    this.busy.set(t.enrollment.id);
-    this.enrollments.claimReviewTask(key).subscribe({
+    const id = t.enrollment.id;
+    this.busy.set(id);
+    this.error.set(null);
+    this.enrollments.claimReviewTask(id).subscribe({
       next: () => {
-        // Reflect the claim immediately: the task list is Elasticsearch-backed and lags a
-        // second or two, so a plain reload would still show "Unclaimed" until the next poll.
+        // Reflect the claim immediately, then reconcile on the next poll.
         const me = this.auth.username();
         this.tasks.update((list) =>
-          list.map((x) => (x.userTaskKey === key ? { ...x, assignee: me } : x)),
+          list.map((x) =>
+            x.enrollment.id === id
+              ? {
+                  ...x,
+                  assignee: me,
+                  enrollment: { ...x.enrollment, status: 'UNDER_REVIEW', assignedTo: me },
+                }
+              : x,
+          ),
         );
         this.busy.set(null);
-        // Reconcile with the engine once the search index catches up.
-        setTimeout(() => this.refresh(), 1500);
+        setTimeout(() => this.refresh(), 800);
       },
       error: (err: HttpErrorResponse) => {
         this.busy.set(null);
@@ -123,6 +142,42 @@ export class ReviewTasks implements OnInit {
         } else {
           this.error.set(this.i18n.t('review.error'));
         }
+      },
+    });
+  }
+
+  release(t: ReviewTask): void {
+    if (this.busy()) {
+      return;
+    }
+    const msg = this.i18n.t('review.confirmRelease').replace('{ref}', t.enrollment.referenceNumber);
+    if (!window.confirm(msg)) {
+      return;
+    }
+    const id = t.enrollment.id;
+    this.busy.set(id);
+    this.error.set(null);
+    this.enrollments.releaseReviewTask(id).subscribe({
+      next: () => {
+        // Back to the shared queue, unassigned.
+        this.tasks.update((list) =>
+          list.map((x) =>
+            x.enrollment.id === id
+              ? {
+                  ...x,
+                  assignee: null,
+                  enrollment: { ...x.enrollment, status: 'PENDING_REVIEW', assignedTo: null },
+                }
+              : x,
+          ),
+        );
+        this.busy.set(null);
+        setTimeout(() => this.refresh(), 800);
+      },
+      error: () => {
+        this.busy.set(null);
+        this.error.set(this.i18n.t('review.error'));
+        this.load();
       },
     });
   }
@@ -165,15 +220,15 @@ export class ReviewTasks implements OnInit {
         this.busy.set(null);
         this.rejecting.set(null);
         this.rejectReason = '';
-        // Drop the decided task immediately (the ES-backed list lags), then reconcile.
+        // Drop the decided task immediately, then reconcile.
         this.tasks.update((list) => list.filter((x) => x.enrollment.id !== t.enrollment.id));
         this.notifications.refresh();
-        setTimeout(() => this.refresh(), 1500);
+        setTimeout(() => this.refresh(), 1000);
       },
       error: (err: HttpErrorResponse) => {
         this.busy.set(null);
-        if (err.status === 409 || err.status === 404) {
-          // Decided elsewhere in the meantime — refresh to show reality.
+        if (err.status === 409 || err.status === 404 || err.status === 403) {
+          // Decided elsewhere, or no longer mine — refresh to show reality.
           this.error.set(this.i18n.t('review.conflict'));
           this.load();
         } else {

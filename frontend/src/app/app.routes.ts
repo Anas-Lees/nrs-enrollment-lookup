@@ -40,6 +40,13 @@ export const routes: Routes = [
       import('./features/enrollment/enrollment-form').then((m) => m.EnrollmentForm),
   },
   {
+    path: 'enrollment/:id',
+    title: 'Enrollment details · NRS',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/enrollment/enrollment-detail').then((m) => m.EnrollmentDetail),
+  },
+  {
     path: 'review',
     title: 'Review tasks · NRS',
     canActivate: [authGuard, reviewerGuard],

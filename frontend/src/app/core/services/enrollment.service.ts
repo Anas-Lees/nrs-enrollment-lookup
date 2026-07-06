@@ -54,9 +54,9 @@ export class EnrollmentService {
   }
 
   /**
-   * Approve or reject an enrollment that is under review (reviewer role). The API completes
-   * the Camunda review task, which applies the resulting status; the returned DTO reflects
-   * it. A reason is required when rejecting.
+   * Approve or reject an enrollment you have claimed (assignee only). The API completes the
+   * Camunda review task, which applies the resulting status; the returned DTO reflects it. A
+   * reason is required when rejecting.
    */
   decide(id: string, approved: boolean, notes: string | null): Observable<Enrollment> {
     return this.http.post<Enrollment>(`${this.baseUrl}/${encodeURIComponent(id)}/decision`, {
@@ -65,15 +65,23 @@ export class EnrollmentService {
     });
   }
 
-  /** Open review tasks (Camunda user tasks + their enrollments), oldest first. */
+  /** Reviews in progress and waiting (pending + under review), oldest first. */
   listReviewTasks(): Observable<ReviewTask[]> {
     return this.http.get<ReviewTask[]>(`${APP_CONFIG.apiBaseUrl}/api/v1/review-tasks`);
   }
 
-  /** Claim a review task for the signed-in reviewer. */
-  claimReviewTask(userTaskKey: string): Observable<{ assignee: string }> {
+  /** Claim a pending review, taking ownership. Keyed by enrollment id. */
+  claimReviewTask(enrollmentId: string): Observable<{ assignee: string }> {
     return this.http.post<{ assignee: string }>(
-      `${APP_CONFIG.apiBaseUrl}/api/v1/review-tasks/${encodeURIComponent(userTaskKey)}/claim`,
+      `${APP_CONFIG.apiBaseUrl}/api/v1/review-tasks/${encodeURIComponent(enrollmentId)}/claim`,
+      {},
+    );
+  }
+
+  /** Release a review you hold back into the shared queue. */
+  releaseReviewTask(enrollmentId: string): Observable<void> {
+    return this.http.post<void>(
+      `${APP_CONFIG.apiBaseUrl}/api/v1/review-tasks/${encodeURIComponent(enrollmentId)}/release`,
       {},
     );
   }

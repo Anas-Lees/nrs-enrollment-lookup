@@ -1,10 +1,8 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 
 import { TranslationService } from '../../core/i18n/translation.service';
-import { AuthService } from '../../core/services/auth.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { PagedResult } from '../../core/models/paged-result.model';
 import { EnrollmentStatus, EnrollmentSummary } from '../../core/models/enrollment.model';
@@ -13,9 +11,11 @@ import { StatusBadge } from '../../shared/components/status-badge';
 import { AppDatePipe } from '../../shared/app-date.pipe';
 
 /**
- * The operator's enrollment queue: a paged, status-filterable list of applications, newest
- * first. Clicking a row opens it in the edit form. URL-driven (page / size / status) so the
- * view is shareable and bookmarkable, mirroring the search page.
+ * The operator's enrollment register: a paged, status-filterable list of applications, newest
+ * first. It is a tracking view, not a decision surface — approvals and rejections belong to
+ * reviewers on the Review Tasks screen. Clicking a row opens the read-only detail (where a
+ * rejection's reason is shown); editing is a separate action, only while still editable.
+ * URL-driven (page / size / status) so the view is shareable and bookmarkable.
  */
 @Component({
   selector: 'app-enrollment-queue',
@@ -26,7 +26,6 @@ import { AppDatePipe } from '../../shared/app-date.pipe';
 })
 export class EnrollmentQueue {
   protected readonly i18n = inject(TranslationService);
-  protected readonly auth = inject(AuthService);
   private readonly enrollments = inject(EnrollmentService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -35,15 +34,13 @@ export class EnrollmentQueue {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  /** Id of the row whose approve/reject request is in flight (disables its buttons). */
-  readonly deciding = signal<string | null>(null);
-
   readonly pageSize = signal(10);
   readonly pageSizeOptions = [10, 25, 50, 100];
   readonly statusFilter = signal<EnrollmentStatus | ''>('');
 
   readonly statuses: EnrollmentStatus[] = [
     'SUBMITTED',
+    'PENDING_REVIEW',
     'UNDER_REVIEW',
     'APPROVED',
     'REJECTED',
@@ -58,18 +55,15 @@ export class EnrollmentQueue {
       this.load(Number(pm.get('page')) || 1);
     });
 
-    // Live queue: silently re-poll the current page so background status changes — a review
-    // decision settling, an auto-approval, another operator's action — appear without a
-    // manual refresh.
+    // Live view: silently re-poll the current page so background status changes — a review
+    // decision settling, an auto-approval, a claim by a reviewer — appear without a manual
+    // refresh.
     const timer = setInterval(() => this.refresh(), 15_000);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
   }
 
-  /** Reload the current page/filter with no loading flicker; skipped during an in-flight action. */
+  /** Reload the current page/filter with no loading flicker. */
   private refresh(): void {
-    if (this.deciding()) {
-      return;
-    }
     const page = this.results()?.page ?? 1;
     this.enrollments
       .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize() })
@@ -91,8 +85,6 @@ export class EnrollmentQueue {
       .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize() })
       .subscribe({
         next: (r) => {
-          // A decision can empty the current page (e.g. the last under-review row on the last
-          // page). Fall back to the previous page rather than showing a false "empty" state.
           if (r.items.length === 0 && r.page > 1) {
             this.load(r.page - 1);
             return;
@@ -129,61 +121,17 @@ export class EnrollmentQueue {
     this.router.navigate([], { relativeTo: this.route, queryParams });
   }
 
+  openDetail(e: EnrollmentSummary): void {
+    this.router.navigate(['/enrollment', e.id]);
+  }
+
   openEdit(e: EnrollmentSummary): void {
     this.router.navigate(['/enrollment', e.id, 'edit']);
   }
 
-  /** Only a reviewer can decide, and only an under-review application. */
-  canDecide(e: EnrollmentSummary): boolean {
-    return e.status === 'UNDER_REVIEW' && this.auth.isReviewer();
-  }
-
-  /** Approve (confirm) or reject (with a mandatory reason), then reload to show the new status. */
-  decide(e: EnrollmentSummary, approved: boolean, event: Event): void {
-    event.stopPropagation();
-    if (this.deciding()) {
-      return;
-    }
-
-    let notes: string | null = null;
-    if (approved) {
-      const msg = this.i18n.t('queue.confirmApprove').replace('{ref}', e.referenceNumber);
-      if (!window.confirm(msg)) {
-        return;
-      }
-    } else {
-      // Rejections need a reason for the applicant; the review screen has the richer form.
-      const reason = window.prompt(
-        this.i18n.t('queue.rejectReason').replace('{ref}', e.referenceNumber),
-      );
-      if (!reason?.trim()) {
-        return;
-      }
-      notes = reason.trim();
-    }
-
-    this.deciding.set(e.id);
-    this.error.set(null);
-    this.enrollments.decide(e.id, approved, notes).subscribe({
-      next: () => {
-        this.deciding.set(null);
-        this.load(this.results()?.page ?? 1);
-        // The Camunda decision can settle a moment later (202 → APPROVED/REJECTED); a short
-        // follow-up refresh reflects the final status without waiting for the 15s poll.
-        setTimeout(() => this.refresh(), 2000);
-      },
-      error: (err: HttpErrorResponse) => {
-        this.deciding.set(null);
-        if (err.status === 409 || err.status === 404) {
-          // The row was already decided (the workflow settled it, or another operator acted).
-          // Refresh so its real status and actions update — retrying would be futile.
-          this.error.set(this.i18n.t('queue.decisionConflict'));
-          this.load(this.results()?.page ?? 1);
-        } else {
-          this.error.set(this.i18n.t('queue.decisionError'));
-        }
-      },
-    });
+  /** An application can still be edited until it has been decided. */
+  canEdit(e: EnrollmentSummary): boolean {
+    return e.status === 'DRAFT' || e.status === 'SUBMITTED' || e.status === 'PENDING_REVIEW';
   }
 
   applicantName(e: EnrollmentSummary): string {

@@ -53,7 +53,7 @@
       </div>
 
       <div class="operator-card">
-        <span class="operator-card__avatar" aria-hidden="true">OP</span>
+        <span class="operator-card__avatar" aria-hidden="true">{{ operatorInitials() }}</span>
         <span class="operator-card__meta">
           <span class="operator-card__name">{{ operatorName() }}</span>
           <span class="operator-card__status">
@@ -63,6 +63,17 @@
             {{ i18n.t(operatorStatusKey()) }}
           </span>
         </span>
+        @if (authActive()) {
+          <button
+            type="button"
+            class="operator-card__logout"
+            (click)="logout()"
+            [attr.aria-label]="i18n.t('auth.logout')"
+            [title]="i18n.t('auth.logout')"
+          >
+            <span aria-hidden="true">⎋</span>
+          </button>
+        }
       </div>
     </div>
   </aside>

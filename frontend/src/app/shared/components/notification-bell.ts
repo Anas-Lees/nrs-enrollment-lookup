@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
 
 import { TranslationService } from '../../core/i18n/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -19,6 +27,7 @@ import { AppNotification } from '../../core/models/notification.model';
 export class NotificationBell implements OnInit {
   protected readonly i18n = inject(TranslationService);
   protected readonly notifications = inject(NotificationService);
+  private readonly host = inject(ElementRef<HTMLElement>);
 
   readonly open = signal(false);
 
@@ -35,6 +44,22 @@ export class NotificationBell implements OnInit {
 
   close(): void {
     this.open.set(false);
+  }
+
+  /** Close when a click lands anywhere outside the bell (including the toggle's own host). */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.open() && !this.host.nativeElement.contains(event.target as Node)) {
+      this.close();
+    }
+  }
+
+  /** Escape closes the panel — expected for any dismissible popover. */
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.open()) {
+      this.close();
+    }
   }
 
   message(n: AppNotification): string {

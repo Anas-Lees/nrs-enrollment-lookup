@@ -12,6 +12,35 @@
   color: var(--color-muted);
 }
 
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+
+  .count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: var(--color-border, #e2e8f0);
+    color: var(--color-text, #1f2937);
+    font-size: 0.72rem;
+  }
+}
+
 .empty {
   padding: 2.5rem;
   text-align: center;

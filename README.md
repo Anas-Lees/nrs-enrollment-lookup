@@ -41,11 +41,15 @@ codebase shows a layered feature (lookup) and a vertical-slice feature (enrollme
 
 ![New enrollment form](docs/screenshots/enrollment-new.png)
 
-**My Queue — enrollment applications, status-tracked, with approve/reject on under-review rows (Camunda-driven)**
+**My Queue — the operator's application register, status-tracked; a row opens the read-only detail (where a rejection's reason is shown). Decisions live on Review Tasks, not here.**
 
 ![Enrollment queue](docs/screenshots/enrollment-queue.png)
 
-**Review Tasks — the reviewer's work queue (Camunda user tasks): screening flags explain the routing, overdue reviews carry an escalation chip, and the staff notification bell keeps everyone informed**
+**Enrollment detail — the full application read-only: screening flags, who is handling it, and the decision outcome. A rejection shows its reason prominently, so the operator can relay it.**
+
+![Enrollment detail with the rejection reason](docs/screenshots/enrollment-detail.png)
+
+**Review Tasks — the reviewer's workspace, split into "assigned to me", "available to claim", and "with other reviewers". Claiming takes ownership (only the assignee can decide or release); screening flags explain the routing, overdue reviews carry an escalation chip, and the notification bell keeps everyone informed.**
 
 ![Review tasks screen with screening flags, escalation chips and the notification panel](docs/screenshots/review-tasks.png)
 
@@ -136,12 +140,15 @@ flowchart LR
 - The review itself is an explicit **Camunda 8** BPMN process — a real human-in-the-loop
   workflow. **Automated screening** (a service task) checks the registry: a clean renewal is
   **auto-approved** in seconds (straight-through processing); anything flagged (unknown CRN,
-  name mismatch, duplicate pending, minor applicant) routes to a **reviewer user task** that
-  appears both in the app's Review Tasks screen and in Camunda Tasklist. A **boundary timer**
-  escalates overdue reviews to a supervisor, and **notification service tasks** keep staff
-  informed via the in-app bell. The API is an external **job worker**: Camunda owns the *flow*,
-  the app owns the *side effects* (Oracle status writes, notifications). Deciding requires the
-  **reviewer role**; rejections require a reason, and every decision is audited (who/when/why).
+  name mismatch, duplicate pending, minor applicant) is **queued for review** (`PENDING_REVIEW`)
+  as a **reviewer user task** that appears both in the app's Review Tasks screen and in Camunda
+  Tasklist. A reviewer **claims** it to take ownership (`UNDER_REVIEW`, stamped with the
+  assignee) — and **only that assignee** can approve or reject it, or release it back to the
+  queue. A **boundary timer** escalates overdue reviews to a supervisor, and **notification
+  service tasks** keep staff informed via the in-app bell. The API is an external **job worker**:
+  Camunda owns the *flow*, the app owns the *side effects* (Oracle status writes, notifications).
+  Ownership lives on the enrollment row, so the queue and claim/release are DB-driven (accurate
+  and lag-free); rejections require a reason, and every decision is audited (who/when/why).
   Camunda is feature-flagged: with no engine configured, decisions apply directly to the
   database — see [ADR 0006](docs/adr/0006-camunda-workflow.md) and
   [ADR 0007](docs/adr/0007-human-in-the-loop-review.md).
@@ -203,10 +210,13 @@ sequenceDiagram
     C-->>W: apply-approved (auto-screening)
     W->>DB: APPROVED, notify operator
   else flagged
-    C-->>W: mark-under-review + notify reviewers
-    W->>DB: UNDER_REVIEW (+ screening flags)
+    C-->>W: queue-for-review + notify reviewers
+    W->>DB: PENDING_REVIEW (+ screening flags)
     Note over C: reviewer user task (escalation timer runs)
-    R->>S: Review Tasks: claim, then approve/reject + reason
+    R->>S: Review Tasks: claim (take ownership)
+    S->>E: POST /review-tasks/{id}/claim
+    E->>DB: UNDER_REVIEW, assignedTo = reviewer
+    R->>S: approve/reject + reason (assignee only)
     S->>E: POST /enrollments/{id}/decision
     E->>C: complete the user task
     C-->>W: apply-approved / apply-rejected
@@ -307,8 +317,8 @@ migrations on startup, and seeds 100 persons (each with ID cards + passports) ou
 | `GET /api/v1/persons/{crn}` | Full profile incl. ID cards + passports |
 | `POST /api/v1/enrollments` · `PUT /api/v1/enrollments/{id}` | Create / edit an enrollment (starts the review workflow) |
 | `GET /api/v1/enrollments?status&page&pageSize` · `GET /api/v1/enrollments/{id}` | List (queue) / fetch one enrollment |
-| `POST /api/v1/enrollments/{id}/decision` | Approve / reject an under-review enrollment (reviewer role; reason required to reject) |
-| `GET /api/v1/review-tasks` · `POST /api/v1/review-tasks/{key}/claim` | The reviewer work queue (Camunda user tasks) |
+| `POST /api/v1/enrollments/{id}/decision` | Approve / reject an enrollment you have claimed (assignee only; reason required to reject) |
+| `GET /api/v1/review-tasks` · `POST /api/v1/review-tasks/{id}/claim` · `POST /api/v1/review-tasks/{id}/release` | The reviewer work queue: list, claim (take ownership), release (hand back) |
 | `GET /api/v1/notifications` · `POST .../read` · `POST .../read-all` | Staff notification bell (review queued / decided / escalated) |
 | `GET /api/v1/reports/enrollment-summary?days` | Enrollment analytics (supervisor role) — throughput, auto-approval/approval rates, time-to-decision, escalations, flags, reviewer workload |
 | `GET /api/v1/audit/recent` | Recent audit-trail entries (operator-only) |

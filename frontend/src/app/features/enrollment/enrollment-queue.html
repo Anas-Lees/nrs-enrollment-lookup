@@ -43,44 +43,38 @@
           </thead>
           <tbody>
             @for (e of r.items; track e.id) {
-              <tr (click)="openEdit(e)" class="row">
+              <tr (click)="openDetail(e)" class="row">
                 <td class="mono">{{ e.referenceNumber }}</td>
                 <td>{{ applicantName(e) }}</td>
                 <td>{{ i18n.t('enroll.type.' + e.type) }}</td>
                 <td>
                   <app-status-badge [status]="e.status" />
-                  @if (e.escalatedAtUtc && e.status === 'UNDER_REVIEW') {
+                  @if (
+                    e.escalatedAtUtc &&
+                    (e.status === 'PENDING_REVIEW' || e.status === 'UNDER_REVIEW')
+                  ) {
                     <span class="chip-escalated">{{ i18n.t('queue.escalated') }}</span>
                   }
                 </td>
                 <td>{{ e.createdAtUtc.substring(0, 10) | appDate: i18n.lang() }}</td>
                 <td class="col-actions">
                   <div class="row-actions">
-                    @if (canDecide(e)) {
-                      <button
-                        type="button"
-                        class="decide-btn decide-btn--approve"
-                        [disabled]="deciding() !== null"
-                        (click)="decide(e, true, $event)"
-                      >
-                        {{ i18n.t('queue.approve') }}
-                      </button>
-                      <button
-                        type="button"
-                        class="decide-btn decide-btn--reject"
-                        [disabled]="deciding() !== null"
-                        (click)="decide(e, false, $event)"
-                      >
-                        {{ i18n.t('queue.reject') }}
-                      </button>
-                    }
                     <button
                       type="button"
                       class="link-btn"
-                      (click)="openEdit(e); $event.stopPropagation()"
+                      (click)="openDetail(e); $event.stopPropagation()"
                     >
-                      {{ i18n.t('queue.edit') }}
+                      {{ i18n.t('queue.view') }}
                     </button>
+                    @if (canEdit(e)) {
+                      <button
+                        type="button"
+                        class="link-btn"
+                        (click)="openEdit(e); $event.stopPropagation()"
+                      >
+                        {{ i18n.t('queue.edit') }}
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>

@@ -30,4 +30,19 @@ export class App {
     }
     return this.auth.isAuthenticated() ? 'operator.status' : 'operator.status.signedOut';
   });
+
+  /**
+   * Avatar initials derived from the signed-in account, so the badge matches who is logged in
+   * (e.g. "reviewer1" → "RE", "Salim Al Harthy" → "SA") instead of a fixed "OP".
+   */
+  protected readonly operatorInitials = computed(() => {
+    const name = this.operatorName().trim();
+    const parts = name.split(/\s+/).filter(Boolean);
+    const raw = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
+    return raw.toUpperCase() || 'OP';
+  });
+
+  logout(): void {
+    this.auth.logout();
+  }
 }

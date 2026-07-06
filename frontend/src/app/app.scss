@@ -199,11 +199,15 @@
     display: flex;
     flex-direction: column;
     line-height: 1.25;
+    min-width: 0;
   }
 
   &__name {
     font-size: 0.85rem;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__status {
@@ -212,6 +216,37 @@
     gap: 0.35rem;
     font-size: 0.72rem;
     color: rgba(255, 255, 255, 0.6);
+  }
+
+  &__logout {
+    margin-inline-start: auto;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 1rem;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.32);
+      color: #fff;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--rop-green-400, #5fc27e);
+      outline-offset: 2px;
+    }
   }
 }
 
