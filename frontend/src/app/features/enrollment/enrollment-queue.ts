@@ -42,8 +42,10 @@ export class EnrollmentQueue {
     'SUBMITTED',
     'PENDING_REVIEW',
     'UNDER_REVIEW',
+    'NEEDS_CORRECTION',
     'APPROVED',
     'REJECTED',
+    'WITHDRAWN',
     'DRAFT',
   ];
 
@@ -129,9 +131,14 @@ export class EnrollmentQueue {
     this.router.navigate(['/enrollment', e.id, 'edit']);
   }
 
-  /** An application can still be edited until it has been decided. */
+  /** An application can still be edited until it has been decided (incl. while awaiting corrections). */
   canEdit(e: EnrollmentSummary): boolean {
-    return e.status === 'DRAFT' || e.status === 'SUBMITTED' || e.status === 'PENDING_REVIEW';
+    return (
+      e.status === 'DRAFT' ||
+      e.status === 'SUBMITTED' ||
+      e.status === 'PENDING_REVIEW' ||
+      e.status === 'NEEDS_CORRECTION'
+    );
   }
 
   applicantName(e: EnrollmentSummary): string {

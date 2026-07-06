@@ -36,10 +36,12 @@ export class StatusBadge {
       case 'DECEASED':
       case 'MERGED':
       case 'DRAFT':
+      case 'WITHDRAWN':
         return 'badge--muted';
       case 'APPROVED':
         return 'badge--ok';
       case 'UNDER_REVIEW':
+      case 'NEEDS_CORRECTION':
         return 'badge--warn';
       case 'PENDING_REVIEW':
         return 'badge--default';

@@ -53,6 +53,14 @@ codebase shows a layered feature (lookup) and a vertical-slice feature (enrollme
 
 ![Review tasks screen with screening flags, escalation chips and the notification panel](docs/screenshots/review-tasks.png)
 
+**Review Tasks with the full outcome set — approve, reject, or _request corrections_; high-risk applications are flagged `HIGH RISK` and reserved for a supervisor to claim**
+
+![Review tasks showing approve / request-corrections / reject / release actions, a HIGH RISK chip and a supervisor-only item](docs/screenshots/review-corrections.png)
+
+**Corrections requested — the operator sees the reviewer's note and resubmits (looping the Camunda process back through screening), or withdraws the application**
+
+![Enrollment detail with a corrections-requested banner, the reviewer's note, and edit / resubmit / withdraw actions](docs/screenshots/enrollment-corrections.png)
+
 **Reports — enrollment analytics: throughput, auto-approval and approval rates, time-to-decision, SLA escalations, why applications were flagged, and reviewer workload (the in-app equivalent of a Camunda Optimize report)**
 
 ![Reports dashboard with KPI cards and charts computed from the review workflow](docs/screenshots/reports.png)
@@ -144,14 +152,21 @@ flowchart LR
   as a **reviewer user task** that appears both in the app's Review Tasks screen and in Camunda
   Tasklist. A reviewer **claims** it to take ownership (`UNDER_REVIEW`, stamped with the
   assignee) — and **only that assignee** can approve or reject it, or release it back to the
-  queue. A **boundary timer** escalates overdue reviews to a supervisor, and **notification
-  service tasks** keep staff informed via the in-app bell. The API is an external **job worker**:
-  Camunda owns the *flow*, the app owns the *side effects* (Oracle status writes, notifications).
-  Ownership lives on the enrollment row, so the queue and claim/release are DB-driven (accurate
-  and lag-free); rejections require a reason, and every decision is audited (who/when/why).
-  Camunda is feature-flagged: with no engine configured, decisions apply directly to the
-  database — see [ADR 0006](docs/adr/0006-camunda-workflow.md) and
-  [ADR 0007](docs/adr/0007-human-in-the-loop-review.md).
+  queue. The reviewer has a **third outcome — request corrections**: the application goes back
+  to the operator with a note (`NEEDS_CORRECTION`), and the process waits at an **event-based
+  gateway** for *either* a `corrections-submitted` **message** (the operator fixes and resubmits,
+  looping the process back through screening) *or* a **correction-deadline timer** that
+  auto-closes an abandoned application. An applicant can **withdraw** before a decision — an
+  **interrupting message event sub-process** cancels the review from any state (`WITHDRAWN`).
+  Automated screening also assigns a **risk level**: HIGH-risk (identity-integrity) applications
+  are **supervisor-only** to claim. A **boundary timer** escalates overdue reviews to a
+  supervisor, and **notification service tasks** keep staff informed via the in-app bell. The API
+  is an external **job worker**: Camunda owns the *flow*, the app owns the *side effects* (Oracle
+  status writes, notifications). Ownership lives on the enrollment row, so the queue and
+  claim/release are DB-driven (accurate and lag-free); rejections require a reason, and every
+  decision is audited (who/when/why). Camunda is feature-flagged: with no engine configured,
+  decisions apply directly to the database — see [ADR 0006](docs/adr/0006-camunda-workflow.md)
+  and [ADR 0007](docs/adr/0007-human-in-the-loop-review.md).
 - A **supervisor-only Reports** dashboard turns that workflow data into operational analytics —
   throughput, straight-through (auto-approval) rate, approval/rejection rates, average
   time-to-decision, SLA-escalation rate, why applications get flagged, and per-reviewer

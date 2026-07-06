@@ -391,6 +391,137 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /api/v1/enrollments/{id}/request-corrections:
+    post:
+      tags: [Enrollments]
+      operationId: requestCorrections
+      summary: Send a claimed application back to the operator for corrections (assignee only)
+      description: >
+        The third review outcome alongside approve and reject. The reviewer who claimed the
+        application sends it back with a note describing what must be fixed; the application
+        settles to NEEDS_CORRECTION and the Camunda process waits for a resubmission (or
+        auto-closes when the correction deadline passes).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note:
+                  type: string
+                  description: What the operator must fix (required).
+      responses:
+        "200":
+          description: The enrollment after it moved to NEEDS_CORRECTION.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "202":
+          description: Accepted but the workflow has not applied it yet.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "403":
+          description: The caller is not the reviewer who claimed it.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "404":
+          description: No enrollment exists with the supplied id.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "409":
+          description: The enrollment is not under review.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
+  /api/v1/enrollments/{id}/resubmit:
+    post:
+      tags: [Enrollments]
+      operationId: resubmitEnrollment
+      summary: Resubmit a corrected application for review
+      description: >
+        The operator resubmits an application a reviewer sent back for corrections. It re-enters
+        automated screening (and, if still flagged, the review queue) via a Camunda message that
+        loops the process back. The reviewer's correction note is cleared.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The enrollment after it was resubmitted (back to SUBMITTED/PENDING_REVIEW).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "404":
+          description: No enrollment exists with the supplied id.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "409":
+          description: The application is not awaiting corrections.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
+  /api/v1/enrollments/{id}/withdraw:
+    post:
+      tags: [Enrollments]
+      operationId: withdrawEnrollment
+      summary: Withdraw an application before it is decided
+      description: >
+        The operator withdraws an application (the applicant pulled out, or it was captured in
+        error). This cancels the review wherever it is — via an interrupting Camunda message that
+        ends the whole process instance — and settles the application to WITHDRAWN.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  nullable: true
+                  description: Optional reason for the withdrawal.
+      responses:
+        "200":
+          description: The enrollment after it was withdrawn.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "202":
+          description: Accepted but the workflow has not applied it yet.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "404":
+          description: No enrollment exists with the supplied id.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "409":
+          description: The application has already been concluded.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
   /api/v1/review-tasks:
     get:
       tags: [Review tasks]
@@ -1031,6 +1162,11 @@ components:
           type: string
           nullable: true
           description: Reviewer who has claimed it, or null while unassigned in the queue.
+        riskLevel:
+          type: string
+          nullable: true
+          enum: [HIGH, NORMAL]
+          description: Screening's risk verdict; HIGH reviews are supervisor-only.
         createdAtUtc:
           type: string
           format: date-time
@@ -1053,6 +1189,11 @@ components:
               type: string
               format: date
               example: "1990-05-14"
+            gender:
+              type: string
+              nullable: true
+              enum: [M, F]
+              description: Captured so an approved new applicant can be registered as a person.
             notes:
               type: string
               nullable: true
@@ -1088,6 +1229,10 @@ components:
                   - NAME_MISMATCH
                   - DUPLICATE_PENDING
                   - MINOR_APPLICANT
+            correctionNote:
+              type: string
+              nullable: true
+              description: Reviewer's note on what to fix, while the application awaits corrections.
 
     PagedResultOfEnrollmentSummary:
       type: object
@@ -1163,4 +1308,12 @@ components:
 
     EnrollmentStatus:
       type: string
-      enum: [DRAFT, SUBMITTED, PENDING_REVIEW, UNDER_REVIEW, APPROVED, REJECTED]
+      enum:
+        - DRAFT
+        - SUBMITTED
+        - PENDING_REVIEW
+        - UNDER_REVIEW
+        - NEEDS_CORRECTION
+        - APPROVED
+        - REJECTED
+        - WITHDRAWN

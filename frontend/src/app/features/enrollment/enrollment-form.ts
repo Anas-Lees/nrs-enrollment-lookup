@@ -57,6 +57,7 @@ export class EnrollmentForm {
       validators: [Validators.required, Validators.maxLength(100)],
     }),
     dateOfBirth: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    gender: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     nationalityCode: new FormControl('OMN', {
       nonNullable: true,
       validators: [Validators.required],
@@ -111,6 +112,7 @@ export class EnrollmentForm {
           firstNameAr: e.firstNameAr,
           familyNameAr: e.familyNameAr,
           dateOfBirth: e.dateOfBirth,
+          gender: e.gender ?? '',
           nationalityCode: e.nationalityCode,
           type: e.type,
           notes: e.notes ?? '',
@@ -143,6 +145,7 @@ export class EnrollmentForm {
       firstNameAr: v.firstNameAr.trim(),
       familyNameAr: v.familyNameAr.trim(),
       dateOfBirth: v.dateOfBirth,
+      gender: v.gender || null,
       nationalityCode: v.nationalityCode,
       type: v.type,
       notes: v.notes.trim() || null,

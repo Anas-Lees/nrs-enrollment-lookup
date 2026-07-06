@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { TranslationService } from '../../core/i18n/translation.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { Enrollment } from '../../core/models/enrollment.model';
 import { StatusBadge } from '../../shared/components/status-badge';
 import { AppDatePipe } from '../../shared/app-date.pipe';
@@ -10,9 +12,10 @@ import { AppDatePipe } from '../../shared/app-date.pipe';
 /**
  * Read-only view of a single enrollment application: the full applicant record, why screening
  * flagged it, who is handling it, and — once decided — the decision, who made it, and the
- * reason (always shown for a rejection, so the operator can tell the applicant). Reachable
- * from the operator's queue (click a row) and from a reviewer's task ("View details"). Editing
- * is a separate action, offered only while the application has not been decided.
+ * reason (always shown for a rejection, so the operator can tell the applicant). Also the
+ * operator's action surface for the two lifecycle steps they own: resubmitting an application a
+ * reviewer sent back for corrections, and withdrawing one before it is decided. Reachable from
+ * the operator's queue (click a row) and from a reviewer's task ("View details").
  */
 @Component({
   selector: 'app-enrollment-detail',
@@ -24,22 +27,37 @@ import { AppDatePipe } from '../../shared/app-date.pipe';
 export class EnrollmentDetail {
   protected readonly i18n = inject(TranslationService);
   private readonly enrollments = inject(EnrollmentService);
+  private readonly notifications = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
 
   readonly enrollment = signal<Enrollment | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly busy = signal(false);
 
   readonly isRejected = computed(() => this.enrollment()?.status === 'REJECTED');
+  readonly isWithdrawn = computed(() => this.enrollment()?.status === 'WITHDRAWN');
+  readonly needsCorrection = computed(() => this.enrollment()?.status === 'NEEDS_CORRECTION');
   readonly isDecided = computed(() => {
     const s = this.enrollment()?.status;
-    return s === 'APPROVED' || s === 'REJECTED';
+    return s === 'APPROVED' || s === 'REJECTED' || s === 'WITHDRAWN';
   });
 
-  /** An application can still be edited until it has been decided. */
+  /** An application can still be edited until it has been decided (incl. while awaiting corrections). */
   readonly canEdit = computed(() => {
     const s = this.enrollment()?.status;
-    return s === 'DRAFT' || s === 'SUBMITTED' || s === 'PENDING_REVIEW';
+    return s === 'DRAFT' || s === 'SUBMITTED' || s === 'PENDING_REVIEW' || s === 'NEEDS_CORRECTION';
+  });
+
+  /** It can be withdrawn any time before it is concluded. */
+  readonly canWithdraw = computed(() => {
+    const s = this.enrollment()?.status;
+    return (
+      s === 'SUBMITTED' ||
+      s === 'PENDING_REVIEW' ||
+      s === 'UNDER_REVIEW' ||
+      s === 'NEEDS_CORRECTION'
+    );
   });
 
   constructor() {
@@ -74,5 +92,63 @@ export class EnrollmentDetail {
     const key = 'flag.' + flag;
     const translated = this.i18n.t(key);
     return translated === key ? flag : translated;
+  }
+
+  resubmit(): void {
+    const e = this.enrollment();
+    if (!e || this.busy()) {
+      return;
+    }
+    if (
+      !window.confirm(this.i18n.t('detail.confirmResubmit').replace('{ref}', e.referenceNumber))
+    ) {
+      return;
+    }
+    this.busy.set(true);
+    this.error.set(null);
+    this.enrollments.resubmit(e.id).subscribe({
+      next: (updated) => {
+        this.enrollment.set(updated);
+        this.busy.set(false);
+        this.notifications.refresh();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.busy.set(false);
+        this.error.set(
+          err.status === 409 ? this.i18n.t('detail.resubmitConflict') : this.i18n.t('detail.error'),
+        );
+        this.load(e.id);
+      },
+    });
+  }
+
+  withdraw(): void {
+    const e = this.enrollment();
+    if (!e || this.busy()) {
+      return;
+    }
+    if (
+      !window.confirm(this.i18n.t('detail.confirmWithdraw').replace('{ref}', e.referenceNumber))
+    ) {
+      return;
+    }
+    // Optional reason — Cancel on the prompt still proceeds (reason stays empty).
+    const reason = window.prompt(this.i18n.t('detail.withdrawReasonPrompt')) ?? '';
+    this.busy.set(true);
+    this.error.set(null);
+    this.enrollments.withdraw(e.id, reason.trim() || null).subscribe({
+      next: (updated) => {
+        this.enrollment.set(updated);
+        this.busy.set(false);
+        this.notifications.refresh();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.busy.set(false);
+        this.error.set(
+          err.status === 409 ? this.i18n.t('detail.withdrawConflict') : this.i18n.t('detail.error'),
+        );
+        this.load(e.id);
+      },
+    });
   }
 }

@@ -3,7 +3,17 @@
 
 export type EnrollmentType = 'NEW_CARD' | 'RENEWAL' | 'REPLACEMENT' | 'CORRECTION';
 export type EnrollmentStatus =
-  'DRAFT' | 'SUBMITTED' | 'PENDING_REVIEW' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'PENDING_REVIEW'
+  | 'UNDER_REVIEW'
+  | 'NEEDS_CORRECTION'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'WITHDRAWN';
+
+/** Screening's risk verdict: HIGH reviews are supervisor-only. */
+export type RiskLevel = 'HIGH' | 'NORMAL';
 
 /** Why automated screening routed an application to a human reviewer. */
 export type ScreeningFlag =
@@ -27,6 +37,8 @@ export interface EnrollmentSummary {
   status: EnrollmentStatus;
   /** Reviewer who has claimed it, or null while unassigned in the queue. */
   assignedTo: string | null;
+  /** Screening's risk verdict ("HIGH" reviews are supervisor-only), or null if unscreened. */
+  riskLevel: RiskLevel | null;
   createdAtUtc: string;
   updatedAtUtc: string;
   /** Set when the review breached its SLA and a supervisor was notified. */
@@ -36,6 +48,8 @@ export interface EnrollmentSummary {
 /** A full enrollment application. */
 export interface Enrollment extends EnrollmentSummary {
   dateOfBirth: string;
+  /** "M"/"F", captured so an approved new applicant can be registered as a person. */
+  gender: string | null;
   notes: string | null;
   createdBy: string;
   /** When the current assignee claimed it; null while unassigned. */
@@ -45,6 +59,8 @@ export interface Enrollment extends EnrollmentSummary {
   decidedAtUtc: string | null;
   decisionNotes: string | null;
   screeningFlags: ScreeningFlag[];
+  /** The reviewer's note on what to fix, while the application sits in NEEDS_CORRECTION. */
+  correctionNote: string | null;
 }
 
 /** One item in the reviewer's work queue: its enrollment (carrying status + assignee). */
@@ -64,6 +80,7 @@ export interface EnrollmentRequest {
   firstNameAr: string;
   familyNameAr: string;
   dateOfBirth: string;
+  gender?: string | null;
   nationalityCode: string;
   type: EnrollmentType;
   notes?: string | null;

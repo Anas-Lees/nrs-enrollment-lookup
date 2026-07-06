@@ -65,6 +65,29 @@ export class EnrollmentService {
     });
   }
 
+  /**
+   * Send an application you have claimed back to the operator for corrections (assignee only),
+   * with a note describing what must be fixed. The application settles to NEEDS_CORRECTION.
+   */
+  requestCorrections(id: string, note: string): Observable<Enrollment> {
+    return this.http.post<Enrollment>(
+      `${this.baseUrl}/${encodeURIComponent(id)}/request-corrections`,
+      { note },
+    );
+  }
+
+  /** Resubmit a corrected application (operator) — it re-enters screening and the queue. */
+  resubmit(id: string): Observable<Enrollment> {
+    return this.http.post<Enrollment>(`${this.baseUrl}/${encodeURIComponent(id)}/resubmit`, {});
+  }
+
+  /** Withdraw an application before it is decided (operator), with an optional reason. */
+  withdraw(id: string, reason: string | null): Observable<Enrollment> {
+    return this.http.post<Enrollment>(`${this.baseUrl}/${encodeURIComponent(id)}/withdraw`, {
+      reason,
+    });
+  }
+
   /** Reviews in progress and waiting (pending + under review), oldest first. */
   listReviewTasks(): Observable<ReviewTask[]> {
     return this.http.get<ReviewTask[]>(`${APP_CONFIG.apiBaseUrl}/api/v1/review-tasks`);

@@ -52,6 +52,10 @@ export class ReviewTasks implements OnInit {
   readonly rejecting = signal<string | null>(null);
   rejectReason = '';
 
+  /** Enrollment id of the task showing the request-corrections note form. */
+  readonly correcting = signal<string | null>(null);
+  correctionNote = '';
+
   /** Waiting in the shared queue, unassigned — anyone may claim. */
   readonly available = computed(() => this.tasks().filter((t) => !t.assignee));
 
@@ -86,9 +90,9 @@ export class ReviewTasks implements OnInit {
     });
   }
 
-  /** Background refresh with no loading flicker; paused during an action or the reject form. */
+  /** Background refresh with no loading flicker; paused during an action or an open form. */
   private refresh(): void {
-    if (this.busy() || this.rejecting()) {
+    if (this.busy() || this.rejecting() || this.correcting()) {
       return;
     }
     this.enrollments.listReviewTasks().subscribe({
@@ -108,8 +112,18 @@ export class ReviewTasks implements OnInit {
     this.router.navigate(['/enrollment', t.enrollment.id]);
   }
 
+  /** A high-risk (identity-integrity) review is a supervisor's job. */
+  isHighRisk(t: ReviewTask): boolean {
+    return t.enrollment.riskLevel === 'HIGH';
+  }
+
+  /** Whether the current user is allowed to claim this item (supervisor for high-risk). */
+  canClaim(t: ReviewTask): boolean {
+    return !this.isHighRisk(t) || this.auth.isSupervisor();
+  }
+
   claim(t: ReviewTask): void {
-    if (this.busy()) {
+    if (this.busy() || !this.canClaim(t)) {
       return;
     }
     const id = t.enrollment.id;
@@ -135,7 +149,11 @@ export class ReviewTasks implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.busy.set(null);
-        if (err.status === 409 || err.status === 404) {
+        if (err.status === 403) {
+          // High-risk: supervisor only.
+          this.error.set(this.i18n.t('review.supervisorOnly'));
+          this.load();
+        } else if (err.status === 409 || err.status === 404) {
           // A colleague claimed it first — refresh to show who has it now.
           this.error.set(this.i18n.t('review.claimTaken'));
           this.load();
@@ -195,6 +213,7 @@ export class ReviewTasks implements OnInit {
 
   /** First click opens the reason form; submit sends the rejection. */
   startReject(t: ReviewTask): void {
+    this.correcting.set(null);
     this.rejectReason = '';
     this.rejecting.set(t.enrollment.id);
   }
@@ -210,6 +229,47 @@ export class ReviewTasks implements OnInit {
       return;
     }
     this.decide(t, false, reason);
+  }
+
+  /** First click opens the corrections-note form; submit sends it back to the operator. */
+  startCorrections(t: ReviewTask): void {
+    this.rejecting.set(null);
+    this.correctionNote = '';
+    this.correcting.set(t.enrollment.id);
+  }
+
+  cancelCorrections(): void {
+    this.correcting.set(null);
+    this.correctionNote = '';
+  }
+
+  submitCorrections(t: ReviewTask): void {
+    const note = this.correctionNote.trim();
+    if (!note || this.busy()) {
+      return;
+    }
+    this.busy.set(t.enrollment.id);
+    this.error.set(null);
+    this.enrollments.requestCorrections(t.enrollment.id, note).subscribe({
+      next: () => {
+        this.busy.set(null);
+        this.correcting.set(null);
+        this.correctionNote = '';
+        // It leaves the reviewer's hands (back to the operator), so drop it from the list.
+        this.tasks.update((list) => list.filter((x) => x.enrollment.id !== t.enrollment.id));
+        this.notifications.refresh();
+        setTimeout(() => this.refresh(), 1000);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.busy.set(null);
+        if (err.status === 409 || err.status === 404 || err.status === 403) {
+          this.error.set(this.i18n.t('review.conflict'));
+          this.load();
+        } else {
+          this.error.set(this.i18n.t('review.error'));
+        }
+      },
+    });
   }
 
   private decide(t: ReviewTask, approved: boolean, notes: string | null): void {

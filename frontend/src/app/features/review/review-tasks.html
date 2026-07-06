@@ -62,6 +62,9 @@
     <div class="task-card__main">
       <div class="task-card__id">
         <span class="mono">{{ t.enrollment.referenceNumber }}</span>
+        @if (t.enrollment.riskLevel === 'HIGH') {
+          <span class="chip chip--risk">{{ i18n.t('review.highRisk') }}</span>
+        }
         @if (t.enrollment.escalatedAtUtc) {
           <span class="chip chip--escalated">{{ i18n.t('review.escalated') }}</span>
         }
@@ -114,9 +117,20 @@
       </button>
 
       @if (mode === 'available') {
-        <button type="button" class="btn-secondary" [disabled]="busy() !== null" (click)="claim(t)">
-          {{ i18n.t('review.claim') }}
-        </button>
+        @if (canClaim(t)) {
+          <button
+            type="button"
+            class="btn-secondary"
+            [disabled]="busy() !== null"
+            (click)="claim(t)"
+          >
+            {{ i18n.t('review.claim') }}
+          </button>
+        } @else {
+          <span class="chip chip--supervisor" [title]="i18n.t('review.supervisorOnlyHint')">
+            {{ i18n.t('review.supervisorOnly') }}
+          </span>
+        }
       }
 
       @if (mode === 'mine') {
@@ -127,6 +141,14 @@
           (click)="approve(t)"
         >
           {{ i18n.t('review.approve') }}
+        </button>
+        <button
+          type="button"
+          class="decide-btn decide-btn--correct"
+          [disabled]="busy() !== null"
+          (click)="startCorrections(t)"
+        >
+          {{ i18n.t('review.requestCorrections') }}
         </button>
         <button
           type="button"
@@ -164,6 +186,34 @@
             {{ i18n.t('review.confirmRejectBtn') }}
           </button>
           <button type="button" class="link-btn" (click)="cancelReject()">
+            {{ i18n.t('review.cancel') }}
+          </button>
+        </div>
+      </form>
+    }
+
+    @if (mode === 'mine' && correcting() === t.enrollment.id) {
+      <form class="reject-form" (ngSubmit)="submitCorrections(t)">
+        <label class="reject-form__label" for="correct-note-{{ t.enrollment.id }}">
+          {{ i18n.t('review.correctionsLabel') }}
+        </label>
+        <textarea
+          id="correct-note-{{ t.enrollment.id }}"
+          name="correctionNote"
+          rows="2"
+          maxlength="1000"
+          [(ngModel)]="correctionNote"
+          [placeholder]="i18n.t('review.correctionsPlaceholder')"
+        ></textarea>
+        <div class="reject-form__actions">
+          <button
+            type="submit"
+            class="decide-btn decide-btn--correct"
+            [disabled]="!correctionNote.trim() || busy() !== null"
+          >
+            {{ i18n.t('review.confirmCorrectionsBtn') }}
+          </button>
+          <button type="button" class="link-btn" (click)="cancelCorrections()">
             {{ i18n.t('review.cancel') }}
           </button>
         </div>

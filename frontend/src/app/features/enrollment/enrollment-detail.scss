@@ -33,6 +33,89 @@
     font-size: 1.35rem;
     font-weight: 700;
   }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+}
+
+.btn-danger {
+  border: 1px solid #f3c4c4;
+  border-radius: var(--radius-sm, 8px);
+  background: #fdecec;
+  color: #c0392b;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #c0392b;
+    color: #fff;
+    border-color: #c0392b;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+// "Needs correction" — a prominent gold call-to-action for the operator.
+.correction-panel {
+  background: #fbf3e0;
+  border: 1px solid #ecd9a6;
+  border-inline-start: 4px solid #b8860b;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+
+  &__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #7a5a08;
+  }
+
+  &__intro {
+    margin: 0 0 0.75rem;
+    color: #6b5a2a;
+  }
+
+  &__note {
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    margin-bottom: 0.85rem;
+  }
+
+  &__note-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted, #64748b);
+  }
+
+  &__note-text {
+    margin: 0.25rem 0 0;
+    font-weight: 500;
+    white-space: pre-wrap;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+}
+
+.risk-line {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+  color: #c0392b;
 }
 
 .detail-card {
@@ -132,6 +215,12 @@
     background: #fdecec;
     border-color: #f3c4c4;
     border-inline-start-color: #c0392b;
+  }
+
+  &--withdrawn {
+    background: #f1f0f6;
+    border-color: #d6d2e5;
+    border-inline-start-color: #5b4b8a;
   }
 
   &__title {

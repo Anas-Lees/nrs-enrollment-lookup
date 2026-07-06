@@ -14,18 +14,55 @@
           <span class="chip-escalated">{{ i18n.t('detail.escalated') }}</span>
         }
       </div>
-      @if (canEdit()) {
-        <a class="btn-primary" [routerLink]="['/enrollment', e.id, 'edit']">
-          {{ i18n.t('detail.edit') }}
-        </a>
-      }
+      <div class="detail-head__actions">
+        @if (canEdit()) {
+          <a class="btn-primary" [routerLink]="['/enrollment', e.id, 'edit']">
+            {{ i18n.t('detail.edit') }}
+          </a>
+        }
+        @if (canWithdraw()) {
+          <button type="button" class="btn-danger" [disabled]="busy()" (click)="withdraw()">
+            {{ i18n.t('detail.withdraw') }}
+          </button>
+        }
+      </div>
     </header>
+
+    <!-- Corrections requested: what the operator most needs to act on, so it leads. -->
+    @if (needsCorrection()) {
+      <div class="correction-panel">
+        <h2 class="correction-panel__title">{{ i18n.t('detail.corrections.title') }}</h2>
+        <p class="correction-panel__intro">{{ i18n.t('detail.corrections.intro') }}</p>
+        @if (e.correctionNote) {
+          <div class="correction-panel__note">
+            <span class="correction-panel__note-label">{{
+              i18n.t('detail.corrections.note')
+            }}</span>
+            <p class="correction-panel__note-text">{{ e.correctionNote }}</p>
+          </div>
+        }
+        <div class="correction-panel__actions">
+          <a class="btn-primary" [routerLink]="['/enrollment', e.id, 'edit']">
+            {{ i18n.t('detail.corrections.edit') }}
+          </a>
+          <button type="button" class="btn-secondary" [disabled]="busy()" (click)="resubmit()">
+            {{ i18n.t('detail.corrections.resubmit') }}
+          </button>
+        </div>
+      </div>
+    }
 
     <!-- Decision outcome first: it is what the operator most needs to relay. -->
     @if (isDecided()) {
-      <div class="decision-panel" [class.decision-panel--rejected]="isRejected()">
+      <div
+        class="decision-panel"
+        [class.decision-panel--rejected]="isRejected()"
+        [class.decision-panel--withdrawn]="isWithdrawn()"
+      >
         <h2 class="decision-panel__title">
-          @if (isRejected()) {
+          @if (isWithdrawn()) {
+            {{ i18n.t('detail.decision.withdrawn') }}
+          } @else if (isRejected()) {
             {{ i18n.t('detail.decision.rejected') }}
           } @else {
             {{ i18n.t('detail.decision.approved') }}
@@ -82,6 +119,12 @@
           <dt>{{ i18n.t('detail.dob') }}</dt>
           <dd>{{ e.dateOfBirth | appDate: i18n.lang() }}</dd>
         </div>
+        @if (e.gender) {
+          <div class="kv__row">
+            <dt>{{ i18n.t('detail.gender') }}</dt>
+            <dd>{{ i18n.t('gender.' + e.gender) }}</dd>
+          </div>
+        }
         <div class="kv__row">
           <dt>{{ i18n.t('detail.nationality') }}</dt>
           <dd>{{ e.nationalityCode }}</dd>
@@ -103,6 +146,9 @@
     @if (e.screeningFlags.length > 0) {
       <section class="detail-card">
         <h2>{{ i18n.t('detail.section.screening') }}</h2>
+        @if (e.riskLevel === 'HIGH') {
+          <p class="risk-line">{{ i18n.t('detail.highRisk') }}</p>
+        }
         <ul class="flag-list">
           @for (f of e.screeningFlags; track f) {
             <li class="flag-chip">{{ flagLabel(f) }}</li>

@@ -161,6 +161,21 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
+
+  &--risk {
+    background: rgb(140 29 43 / 10%);
+    border: 1px solid rgb(140 29 43 / 35%);
+    color: var(--color-danger);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &--supervisor {
+    background: rgb(90 75 138 / 12%);
+    border: 1px solid rgb(90 75 138 / 35%);
+    color: #5b4b8a;
+    cursor: help;
+  }
 }
 
 .mono {
@@ -221,6 +236,17 @@
 
     &:hover:not(:disabled) {
       background: var(--color-danger);
+      color: #fff;
+    }
+  }
+
+  &--correct {
+    background: rgb(181 133 11 / 10%);
+    border-color: rgb(181 133 11 / 30%);
+    color: #7a5a08;
+
+    &:hover:not(:disabled) {
+      background: #b8860b;
       color: #fff;
     }
   }

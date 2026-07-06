@@ -94,6 +94,20 @@
             }
           </div>
           <div class="field">
+            <label for="gender">{{ i18n.t('enroll.field.gender') }}</label>
+            <select id="gender" formControlName="gender">
+              <option value="" disabled>{{ i18n.t('enroll.field.genderPlaceholder') }}</option>
+              <option value="M">{{ i18n.t('gender.M') }}</option>
+              <option value="F">{{ i18n.t('gender.F') }}</option>
+            </select>
+            @if (invalid('gender')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
             <label for="nationalityCode">{{ i18n.t('enroll.field.nationality') }}</label>
             <select id="nationalityCode" formControlName="nationalityCode">
               @for (opt of nationalityOptions; track opt.code) {
