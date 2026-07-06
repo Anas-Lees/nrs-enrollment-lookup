@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 
@@ -57,6 +57,31 @@ export class EnrollmentQueue {
       this.statusFilter.set((pm.get('status') as EnrollmentStatus | null) ?? '');
       this.load(Number(pm.get('page')) || 1);
     });
+
+    // Live queue: silently re-poll the current page so background status changes — a review
+    // decision settling, an auto-approval, another operator's action — appear without a
+    // manual refresh.
+    const timer = setInterval(() => this.refresh(), 15_000);
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+  }
+
+  /** Reload the current page/filter with no loading flicker; skipped during an in-flight action. */
+  private refresh(): void {
+    if (this.deciding()) {
+      return;
+    }
+    const page = this.results()?.page ?? 1;
+    this.enrollments
+      .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize() })
+      .subscribe({
+        next: (r) => {
+          if (r.items.length === 0 && r.page > 1) {
+            return; // page-emptied edge case; leave it to the next explicit load
+          }
+          this.results.set(r);
+        },
+        error: () => undefined, // a failed poll just retries next tick
+      });
   }
 
   load(page: number): void {
@@ -143,6 +168,9 @@ export class EnrollmentQueue {
       next: () => {
         this.deciding.set(null);
         this.load(this.results()?.page ?? 1);
+        // The Camunda decision can settle a moment later (202 → APPROVED/REJECTED); a short
+        // follow-up refresh reflects the final status without waiting for the 15s poll.
+        setTimeout(() => this.refresh(), 2000);
       },
       error: (err: HttpErrorResponse) => {
         this.deciding.set(null);

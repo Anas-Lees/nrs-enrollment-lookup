@@ -183,6 +183,24 @@ public sealed partial class CamundaEnrollmentWorkflow(
         // The Camunda worker normally tells the submitting operator; on the direct path we do.
         db.Notifications.Add(DecisionNotifications.Decided(enrollment, now));
         await db.SaveChangesAsync(cancellationToken);
+
+        // We decided outside the engine, so the process instance is now stranded at its user
+        // task. Best-effort cancel it (if the engine is reachable) so it does not linger as a
+        // ghost review task or later fire its escalation timer on an already-decided enrollment.
+        if (enrollment.ProcessInstanceKey is { } instanceKey)
+        {
+            try
+            {
+                await camunda.CancelProcessInstanceAsync(instanceKey, cancellationToken);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Engine still down or the instance already gone — the review list filters
+                // decided enrollments out regardless, so a leftover instance is harmless.
+                LogCancelFailed(logger, enrollment.ReferenceNumber, ex.Message);
+            }
+        }
+
         return new DecisionResult(enrollment.ToDto(), Settled: true);
     }
 
@@ -203,4 +221,7 @@ public sealed partial class CamundaEnrollmentWorkflow(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Camunda unreachable while deciding enrollment {ReferenceNumber} ({Error}); applying the decision directly.")]
     private static partial void LogEngineUnavailable(ILogger logger, string referenceNumber, string error);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Could not cancel the stranded process instance for enrollment {ReferenceNumber} ({Error}); it will be ignored by the review list.")]
+    private static partial void LogCancelFailed(ILogger logger, string referenceNumber, string error);
 }

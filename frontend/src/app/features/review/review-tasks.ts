@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -27,6 +34,7 @@ export class ReviewTasks implements OnInit {
   protected readonly auth = inject(AuthService);
   private readonly enrollments = inject(EnrollmentService);
   private readonly notifications = inject(NotificationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly tasks = signal<ReviewTask[]>([]);
   readonly loading = signal(false);
@@ -41,6 +49,10 @@ export class ReviewTasks implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    // Live queue: silently re-poll so newly-queued applications, and claims/decisions made by
+    // other reviewers, appear without a manual refresh.
+    const timer = setInterval(() => this.refresh(), 12_000);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
   }
 
   load(): void {
@@ -55,6 +67,17 @@ export class ReviewTasks implements OnInit {
         this.error.set(this.i18n.t('review.error'));
         this.loading.set(false);
       },
+    });
+  }
+
+  /** Background refresh with no loading flicker; paused during an action or the reject form. */
+  private refresh(): void {
+    if (this.busy() || this.rejecting()) {
+      return;
+    }
+    this.enrollments.listReviewTasks().subscribe({
+      next: (tasks) => this.tasks.set(tasks),
+      error: () => undefined, // a failed poll just tries again next tick
     });
   }
 
@@ -77,11 +100,19 @@ export class ReviewTasks implements OnInit {
     if (!t.userTaskKey || this.busy()) {
       return;
     }
+    const key = t.userTaskKey;
     this.busy.set(t.enrollment.id);
-    this.enrollments.claimReviewTask(t.userTaskKey).subscribe({
+    this.enrollments.claimReviewTask(key).subscribe({
       next: () => {
+        // Reflect the claim immediately: the task list is Elasticsearch-backed and lags a
+        // second or two, so a plain reload would still show "Unclaimed" until the next poll.
+        const me = this.auth.username();
+        this.tasks.update((list) =>
+          list.map((x) => (x.userTaskKey === key ? { ...x, assignee: me } : x)),
+        );
         this.busy.set(null);
-        this.load();
+        // Reconcile with the engine once the search index catches up.
+        setTimeout(() => this.refresh(), 1500);
       },
       error: (err: HttpErrorResponse) => {
         this.busy.set(null);
@@ -134,8 +165,10 @@ export class ReviewTasks implements OnInit {
         this.busy.set(null);
         this.rejecting.set(null);
         this.rejectReason = '';
-        this.load();
+        // Drop the decided task immediately (the ES-backed list lags), then reconcile.
+        this.tasks.update((list) => list.filter((x) => x.enrollment.id !== t.enrollment.id));
         this.notifications.refresh();
+        setTimeout(() => this.refresh(), 1500);
       },
       error: (err: HttpErrorResponse) => {
         this.busy.set(null);

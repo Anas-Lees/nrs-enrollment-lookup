@@ -230,6 +230,21 @@ public sealed class CamundaClient(HttpClient http) : ICamundaClient
         return true;
     }
 
+    public async Task CancelProcessInstanceAsync(long processInstanceKey, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsJsonAsync(
+            $"v2/process-instances/{processInstanceKey.ToString(CultureInfo.InvariantCulture)}/cancellation",
+            new { }, Json, cancellationToken);
+
+        // Already completed/cancelled/gone — nothing to tidy up.
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Conflict)
+        {
+            return;
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
     private static long ParseKey(string? key) =>
         long.Parse(key ?? throw new InvalidOperationException("Camunda returned a null key."), CultureInfo.InvariantCulture);
 }

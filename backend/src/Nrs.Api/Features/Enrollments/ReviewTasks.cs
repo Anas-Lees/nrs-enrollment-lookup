@@ -78,8 +78,16 @@ public static class ReviewTasks
             }
 
             var instanceKeys = reviewTasks.Select(t => t.ProcessInstanceKey).ToList();
+            // Only enrollments still awaiting a decision. A decision applied out-of-band — via
+            // the engine-down / orphan direct-write fallback — updates Oracle but cannot complete
+            // the Camunda user task, leaving a "ghost" task that lingers as CREATED. The
+            // enrollment status is the source of truth for what still needs a human; filtering on
+            // UNDER_REVIEW keeps those already-decided ghosts out of the queue (deciding one would
+            // only 409 forever).
             var enrollments = await db.Enrollments.AsNoTracking()
-                .Where(e => e.ProcessInstanceKey != null && instanceKeys.Contains(e.ProcessInstanceKey.Value))
+                .Where(e => e.ProcessInstanceKey != null
+                            && instanceKeys.Contains(e.ProcessInstanceKey.Value)
+                            && e.Status == EnrollmentStatus.UNDER_REVIEW)
                 .ToDictionaryAsync(e => e.ProcessInstanceKey!.Value, cancellationToken);
 
             return reviewTasks

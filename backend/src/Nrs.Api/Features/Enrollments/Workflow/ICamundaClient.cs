@@ -33,6 +33,13 @@ public interface ICamundaClient
     Task<bool> CorrelateMessageAsync(string name, string correlationKey, object variables, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Cancels a running process instance — used to tidy up an instance whose enrollment was
+    /// decided out-of-band (so it does not linger as a ghost task or fire its escalation timer).
+    /// No-ops when the instance is already gone (HTTP 404).
+    /// </summary>
+    Task CancelProcessInstanceAsync(long processInstanceKey, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Searches user tasks (Elasticsearch-backed — freshly created tasks can lag a second or
     /// two). Filters are optional; state is e.g. "CREATED" for open tasks.
     /// </summary>
