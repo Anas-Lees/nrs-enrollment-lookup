@@ -9,29 +9,50 @@
                   targetNamespace="http://nrs.rop.gov.om/enrollment">
 
   <!--
-    Enrollment review, version 2 — the human-in-the-loop shape:
+    Enrollment review, version 3 — a living, message-driven process:
 
-      submit -> automated screening -> clean renewal?  yes -> auto-approve (straight-through)
-                                                       no  -> reviewer USER TASK (claim/decide)
-                                                              · escalation timer -> notify supervisor
-                                                       -> apply approved / rejected
+      submit -> screen -> clean renewal?  yes -> auto-approve
+                                          no  -> queue -> notify -> reviewer USER TASK
+                                                 · candidate group = =reviewGroup (HIGH risk -> supervisor)
+                                                 · escalation timer -> notify supervisor (non-interrupting)
+                          outcome? approved  -> approve
+                                   rejected  -> reject
+                                   corrections -> mark NEEDS_CORRECTION, then EVENT-BASED GATEWAY:
+                                        · message corrections-submitted -> loop back to screening
+                                        · timer correctionDeadline      -> auto-close (abandoned)
 
-    Camunda drives the flow; the API's workers own the side effects (Oracle status
-    writes + notifications). The reviewer step is a real Camunda user task, so it is
-    visible both in the app's Review Tasks screen and in Camunda Tasklist.
+      Cross-cutting: an interrupting message event sub-process (enrollment-withdrawn) can cancel
+      the review from ANY state and settle it to WITHDRAWN.
+
+    Camunda drives the flow; the API's workers own the side effects (Oracle status writes +
+    notifications). The reviewer step is a real Camunda user task, visible in the app's Review
+    Tasks screen and in Camunda Tasklist. Messages are correlated by the enrollment id.
   -->
+
+  <bpmn:message id="Message_CorrectionsSubmitted" name="corrections-submitted">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=enrollmentId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:message id="Message_Withdrawn" name="enrollment-withdrawn">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=enrollmentId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+
   <bpmn:process id="enrollment-review" name="Enrollment review" isExecutable="true">
 
     <bpmn:startEvent id="StartEvent_1" name="Submitted">
       <bpmn:outgoing>Flow_Start_Screen</bpmn:outgoing>
     </bpmn:startEvent>
 
-    <!-- Automated screening: registry CRN check, duplicate check, clean-renewal detection. -->
+    <!-- Automated screening: registry checks, duplicate check, clean-renewal + risk detection. -->
     <bpmn:serviceTask id="Activity_Screen" name="Screen application">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="screen-application" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Start_Screen</bpmn:incoming>
+      <bpmn:incoming>Flow_Msg_Screen</bpmn:incoming>
       <bpmn:outgoing>Flow_Screen_Gw</bpmn:outgoing>
     </bpmn:serviceTask>
 
@@ -73,18 +94,17 @@
       <bpmn:outgoing>Flow_Notify_Review</bpmn:outgoing>
     </bpmn:serviceTask>
 
-    <!-- The human decision: a Camunda user task offered to the reviewer group. -->
+    <!-- The human decision: a Camunda user task offered to the risk-appropriate group. -->
     <bpmn:userTask id="Activity_Review" name="Review application">
       <bpmn:extensionElements>
         <zeebe:userTask />
-        <zeebe:assignmentDefinition candidateGroups="reviewer" />
+        <zeebe:assignmentDefinition candidateGroups="=[reviewGroup]" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Notify_Review</bpmn:incoming>
       <bpmn:outgoing>Flow_Review_Gw</bpmn:outgoing>
     </bpmn:userTask>
 
-    <!-- SLA escalation: if the review sits unactioned, tell a supervisor (non-interrupting:
-         the review itself stays open). Duration comes from the escalationAfter variable. -->
+    <!-- SLA escalation: if the review sits unactioned, tell a supervisor (non-interrupting). -->
     <bpmn:boundaryEvent id="Event_EscalationTimer" name="Review overdue" cancelActivity="false" attachedToRef="Activity_Review">
       <bpmn:outgoing>Flow_Timer_Escalate</bpmn:outgoing>
       <bpmn:timerEventDefinition id="TED_Escalation">
@@ -107,9 +127,11 @@
       <bpmn:incoming>Flow_Escalate_End</bpmn:incoming>
     </bpmn:endEvent>
 
-    <bpmn:exclusiveGateway id="Gateway_Approved" name="Approved?" default="Flow_Gw_Reject">
+    <!-- Three-way outcome: approve, reject, or send back for corrections. -->
+    <bpmn:exclusiveGateway id="Gateway_Outcome" name="Outcome?" default="Flow_Gw_Reject">
       <bpmn:incoming>Flow_Review_Gw</bpmn:incoming>
       <bpmn:outgoing>Flow_Gw_Approve</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Gw_Corr</bpmn:outgoing>
       <bpmn:outgoing>Flow_Gw_Reject</bpmn:outgoing>
     </bpmn:exclusiveGateway>
 
@@ -137,6 +159,68 @@
       <bpmn:incoming>Flow_Reject_End</bpmn:incoming>
     </bpmn:endEvent>
 
+    <!-- Corrections: mark NEEDS_CORRECTION + tell the operator, then wait. -->
+    <bpmn:serviceTask id="Activity_RequestCorrections" name="Request corrections">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="apply-corrections-requested" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Gw_Corr</bpmn:incoming>
+      <bpmn:outgoing>Flow_Corr_EventGw</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Race: the operator resubmits (message) OR the correction deadline lapses (timer). -->
+    <bpmn:eventBasedGateway id="Gateway_Corrections" name="Resubmitted in time?">
+      <bpmn:incoming>Flow_Corr_EventGw</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gw_Corr_Msg</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Gw_Corr_Timer</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_CorrectionsSubmitted" name="Resubmitted">
+      <bpmn:incoming>Flow_Gw_Corr_Msg</bpmn:incoming>
+      <bpmn:outgoing>Flow_Msg_Screen</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_Corr" messageRef="Message_CorrectionsSubmitted" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="Event_CorrectionDeadline" name="Deadline passed">
+      <bpmn:incoming>Flow_Gw_Corr_Timer</bpmn:incoming>
+      <bpmn:outgoing>Flow_Timer_Abandon</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TED_Correction">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">=correctionDeadline</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:serviceTask id="Activity_Abandon" name="Close (abandoned)">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="apply-abandoned" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Timer_Abandon</bpmn:incoming>
+      <bpmn:outgoing>Flow_Abandon_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="Event_Abandoned" name="Abandoned">
+      <bpmn:incoming>Flow_Abandon_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Cross-cutting: the applicant withdraws — interrupt everything and settle to WITHDRAWN. -->
+    <bpmn:subProcess id="SubProcess_Withdraw" name="Withdrawal" triggeredByEvent="true">
+      <bpmn:startEvent id="Event_WithdrawStart" name="Withdrawn" isInterrupting="true">
+        <bpmn:outgoing>Flow_Withdraw_Apply</bpmn:outgoing>
+        <bpmn:messageEventDefinition id="MED_Withdraw" messageRef="Message_Withdrawn" />
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Activity_ApplyWithdrawn" name="Apply withdrawal">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="apply-withdrawn" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_Withdraw_Apply</bpmn:incoming>
+        <bpmn:outgoing>Flow_Withdraw_End</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="Event_Withdrawn" name="Withdrawn">
+        <bpmn:incoming>Flow_Withdraw_End</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_Withdraw_Apply" sourceRef="Event_WithdrawStart" targetRef="Activity_ApplyWithdrawn" />
+      <bpmn:sequenceFlow id="Flow_Withdraw_End" sourceRef="Activity_ApplyWithdrawn" targetRef="Event_Withdrawn" />
+    </bpmn:subProcess>
+
     <bpmn:sequenceFlow id="Flow_Start_Screen" sourceRef="StartEvent_1" targetRef="Activity_Screen" />
     <bpmn:sequenceFlow id="Flow_Screen_Gw" sourceRef="Activity_Screen" targetRef="Gateway_Auto" />
     <bpmn:sequenceFlow id="Flow_Gw_Auto" name="yes" sourceRef="Gateway_Auto" targetRef="Activity_AutoApprove">
@@ -146,121 +230,197 @@
     <bpmn:sequenceFlow id="Flow_Auto_End" sourceRef="Activity_AutoApprove" targetRef="Event_AutoApproved" />
     <bpmn:sequenceFlow id="Flow_Mark_Notify" sourceRef="Activity_MarkReview" targetRef="Activity_NotifyReviewers" />
     <bpmn:sequenceFlow id="Flow_Notify_Review" sourceRef="Activity_NotifyReviewers" targetRef="Activity_Review" />
-    <bpmn:sequenceFlow id="Flow_Review_Gw" sourceRef="Activity_Review" targetRef="Gateway_Approved" />
+    <bpmn:sequenceFlow id="Flow_Review_Gw" sourceRef="Activity_Review" targetRef="Gateway_Outcome" />
     <bpmn:sequenceFlow id="Flow_Timer_Escalate" sourceRef="Event_EscalationTimer" targetRef="Activity_NotifySupervisor" />
     <bpmn:sequenceFlow id="Flow_Escalate_End" sourceRef="Activity_NotifySupervisor" targetRef="Event_Escalated" />
-    <bpmn:sequenceFlow id="Flow_Gw_Approve" name="yes" sourceRef="Gateway_Approved" targetRef="Activity_Approve">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = true</bpmn:conditionExpression>
+    <bpmn:sequenceFlow id="Flow_Gw_Approve" name="approve" sourceRef="Gateway_Outcome" targetRef="Activity_Approve">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=outcome = "approved"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_Gw_Reject" name="no" sourceRef="Gateway_Approved" targetRef="Activity_Reject" />
+    <bpmn:sequenceFlow id="Flow_Gw_Corr" name="corrections" sourceRef="Gateway_Outcome" targetRef="Activity_RequestCorrections">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=outcome = "corrections"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Gw_Reject" name="reject" sourceRef="Gateway_Outcome" targetRef="Activity_Reject" />
     <bpmn:sequenceFlow id="Flow_Approve_End" sourceRef="Activity_Approve" targetRef="Event_Approved" />
     <bpmn:sequenceFlow id="Flow_Reject_End" sourceRef="Activity_Reject" targetRef="Event_Rejected" />
+    <bpmn:sequenceFlow id="Flow_Corr_EventGw" sourceRef="Activity_RequestCorrections" targetRef="Gateway_Corrections" />
+    <bpmn:sequenceFlow id="Flow_Gw_Corr_Msg" sourceRef="Gateway_Corrections" targetRef="Event_CorrectionsSubmitted" />
+    <bpmn:sequenceFlow id="Flow_Gw_Corr_Timer" sourceRef="Gateway_Corrections" targetRef="Event_CorrectionDeadline" />
+    <bpmn:sequenceFlow id="Flow_Msg_Screen" sourceRef="Event_CorrectionsSubmitted" targetRef="Activity_Screen" />
+    <bpmn:sequenceFlow id="Flow_Timer_Abandon" sourceRef="Event_CorrectionDeadline" targetRef="Activity_Abandon" />
+    <bpmn:sequenceFlow id="Flow_Abandon_End" sourceRef="Activity_Abandon" targetRef="Event_Abandoned" />
   </bpmn:process>
 
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="enrollment-review">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
-        <dc:Bounds x="152" y="222" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="146" y="265" width="49" height="14" /></bpmndi:BPMNLabel>
+        <dc:Bounds x="152" y="282" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="146" y="325" width="49" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_Screen_di" bpmnElement="Activity_Screen">
-        <dc:Bounds x="240" y="200" width="100" height="80" />
+        <dc:Bounds x="240" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_Auto_di" bpmnElement="Gateway_Auto" isMarkerVisible="true">
-        <dc:Bounds x="395" y="215" width="50" height="50" />
-        <bpmndi:BPMNLabel><dc:Bounds x="381" y="272" width="79" height="14" /></bpmndi:BPMNLabel>
+        <dc:Bounds x="405" y="275" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="391" y="332" width="79" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_AutoApprove_di" bpmnElement="Activity_AutoApprove">
-        <dc:Bounds x="500" y="60" width="100" height="80" />
+        <dc:Bounds x="520" y="120" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_AutoApproved_di" bpmnElement="Event_AutoApproved">
-        <dc:Bounds x="662" y="82" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="643" y="125" width="75" height="14" /></bpmndi:BPMNLabel>
+        <dc:Bounds x="682" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="663" y="185" width="75" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_MarkReview_di" bpmnElement="Activity_MarkReview">
-        <dc:Bounds x="500" y="200" width="100" height="80" />
+        <dc:Bounds x="500" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_NotifyReviewers_di" bpmnElement="Activity_NotifyReviewers">
-        <dc:Bounds x="650" y="200" width="100" height="80" />
+        <dc:Bounds x="660" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_Review_di" bpmnElement="Activity_Review">
-        <dc:Bounds x="800" y="200" width="100" height="80" />
+        <dc:Bounds x="820" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_EscalationTimer_di" bpmnElement="Event_EscalationTimer">
-        <dc:Bounds x="832" y="262" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="761" y="273" width="78" height="14" /></bpmndi:BPMNLabel>
+        <dc:Bounds x="852" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="781" y="365" width="78" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_NotifySupervisor_di" bpmnElement="Activity_NotifySupervisor">
-        <dc:Bounds x="800" y="360" width="100" height="80" />
+        <dc:Bounds x="820" y="420" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_Escalated_di" bpmnElement="Event_Escalated">
-        <dc:Bounds x="962" y="382" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="941" y="425" width="78" height="14" /></bpmndi:BPMNLabel>
+        <dc:Bounds x="982" y="442" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="961" y="485" width="78" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_Approved_di" bpmnElement="Gateway_Approved" isMarkerVisible="true">
-        <dc:Bounds x="955" y="215" width="50" height="50" />
-        <bpmndi:BPMNLabel><dc:Bounds x="952" y="191" width="56" height="14" /></bpmndi:BPMNLabel>
+      <bpmndi:BPMNShape id="Gateway_Outcome_di" bpmnElement="Gateway_Outcome" isMarkerVisible="true">
+        <dc:Bounds x="990" y="275" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="984" y="251" width="62" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_Approve_di" bpmnElement="Activity_Approve">
-        <dc:Bounds x="1060" y="120" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_Reject_di" bpmnElement="Activity_Reject">
-        <dc:Bounds x="1060" y="280" width="100" height="80" />
+        <dc:Bounds x="1100" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_Approved_di" bpmnElement="Event_Approved">
-        <dc:Bounds x="1222" y="142" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="1217" y="185" width="47" height="14" /></bpmndi:BPMNLabel>
+        <dc:Bounds x="1262" y="162" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1257" y="205" width="47" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Reject_di" bpmnElement="Activity_Reject">
+        <dc:Bounds x="1100" y="400" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_Rejected_di" bpmnElement="Event_Rejected">
-        <dc:Bounds x="1222" y="302" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="1219" y="345" width="43" height="14" /></bpmndi:BPMNLabel>
+        <dc:Bounds x="1262" y="422" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1259" y="465" width="43" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_RequestCorrections_di" bpmnElement="Activity_RequestCorrections">
+        <dc:Bounds x="1100" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Corrections_di" bpmnElement="Gateway_Corrections">
+        <dc:Bounds x="1265" y="275" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1251" y="332" width="79" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CorrectionsSubmitted_di" bpmnElement="Event_CorrectionsSubmitted">
+        <dc:Bounds x="1372" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1360" y="225" width="61" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CorrectionDeadline_di" bpmnElement="Event_CorrectionDeadline">
+        <dc:Bounds x="1372" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1355" y="405" width="72" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Abandon_di" bpmnElement="Activity_Abandon">
+        <dc:Bounds x="1480" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Abandoned_di" bpmnElement="Event_Abandoned">
+        <dc:Bounds x="1642" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1633" y="405" width="55" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="SubProcess_Withdraw_di" bpmnElement="SubProcess_Withdraw" isExpanded="true">
+        <dc:Bounds x="240" y="560" width="540" height="160" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_WithdrawStart_di" bpmnElement="Event_WithdrawStart">
+        <dc:Bounds x="290" y="622" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="283" y="665" width="53" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_ApplyWithdrawn_di" bpmnElement="Activity_ApplyWithdrawn">
+        <dc:Bounds x="380" y="600" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Withdrawn_di" bpmnElement="Event_Withdrawn">
+        <dc:Bounds x="540" y="622" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="533" y="665" width="53" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
 
       <bpmndi:BPMNEdge id="Flow_Start_Screen_di" bpmnElement="Flow_Start_Screen">
-        <di:waypoint x="188" y="240" /><di:waypoint x="240" y="240" />
+        <di:waypoint x="188" y="300" /><di:waypoint x="240" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Screen_Gw_di" bpmnElement="Flow_Screen_Gw">
-        <di:waypoint x="340" y="240" /><di:waypoint x="395" y="240" />
+        <di:waypoint x="340" y="300" /><di:waypoint x="405" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Gw_Auto_di" bpmnElement="Flow_Gw_Auto">
-        <di:waypoint x="420" y="215" /><di:waypoint x="420" y="100" /><di:waypoint x="500" y="100" />
-        <bpmndi:BPMNLabel><dc:Bounds x="426" y="106" width="18" height="14" /></bpmndi:BPMNLabel>
+        <di:waypoint x="430" y="275" /><di:waypoint x="430" y="160" /><di:waypoint x="520" y="160" />
+        <bpmndi:BPMNLabel><dc:Bounds x="436" y="166" width="18" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Gw_Review_di" bpmnElement="Flow_Gw_Review">
-        <di:waypoint x="445" y="240" /><di:waypoint x="500" y="240" />
-        <bpmndi:BPMNLabel><dc:Bounds x="458" y="222" width="14" height="14" /></bpmndi:BPMNLabel>
+        <di:waypoint x="455" y="300" /><di:waypoint x="500" y="300" />
+        <bpmndi:BPMNLabel><dc:Bounds x="469" y="282" width="14" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Auto_End_di" bpmnElement="Flow_Auto_End">
-        <di:waypoint x="600" y="100" /><di:waypoint x="662" y="100" />
+        <di:waypoint x="620" y="160" /><di:waypoint x="682" y="160" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Mark_Notify_di" bpmnElement="Flow_Mark_Notify">
-        <di:waypoint x="600" y="240" /><di:waypoint x="650" y="240" />
+        <di:waypoint x="600" y="300" /><di:waypoint x="660" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Notify_Review_di" bpmnElement="Flow_Notify_Review">
-        <di:waypoint x="750" y="240" /><di:waypoint x="800" y="240" />
+        <di:waypoint x="760" y="300" /><di:waypoint x="820" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Review_Gw_di" bpmnElement="Flow_Review_Gw">
-        <di:waypoint x="900" y="240" /><di:waypoint x="955" y="240" />
+        <di:waypoint x="920" y="300" /><di:waypoint x="990" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Timer_Escalate_di" bpmnElement="Flow_Timer_Escalate">
-        <di:waypoint x="850" y="298" /><di:waypoint x="850" y="360" />
+        <di:waypoint x="870" y="358" /><di:waypoint x="870" y="420" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Escalate_End_di" bpmnElement="Flow_Escalate_End">
-        <di:waypoint x="900" y="400" /><di:waypoint x="962" y="400" />
+        <di:waypoint x="920" y="460" /><di:waypoint x="982" y="460" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Gw_Approve_di" bpmnElement="Flow_Gw_Approve">
-        <di:waypoint x="980" y="215" /><di:waypoint x="980" y="160" /><di:waypoint x="1060" y="160" />
-        <bpmndi:BPMNLabel><dc:Bounds x="986" y="166" width="18" height="14" /></bpmndi:BPMNLabel>
+        <di:waypoint x="1015" y="275" /><di:waypoint x="1015" y="180" /><di:waypoint x="1100" y="180" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1021" y="186" width="44" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gw_Corr_di" bpmnElement="Flow_Gw_Corr">
+        <di:waypoint x="1040" y="300" /><di:waypoint x="1100" y="300" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1046" y="282" width="58" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Gw_Reject_di" bpmnElement="Flow_Gw_Reject">
-        <di:waypoint x="980" y="265" /><di:waypoint x="980" y="320" /><di:waypoint x="1060" y="320" />
-        <bpmndi:BPMNLabel><dc:Bounds x="988" y="298" width="14" height="14" /></bpmndi:BPMNLabel>
+        <di:waypoint x="1015" y="325" /><di:waypoint x="1015" y="440" /><di:waypoint x="1100" y="440" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1021" y="446" width="34" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Approve_End_di" bpmnElement="Flow_Approve_End">
-        <di:waypoint x="1160" y="160" /><di:waypoint x="1222" y="160" />
+        <di:waypoint x="1200" y="180" /><di:waypoint x="1262" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Reject_End_di" bpmnElement="Flow_Reject_End">
-        <di:waypoint x="1160" y="320" /><di:waypoint x="1222" y="320" />
+        <di:waypoint x="1200" y="440" /><di:waypoint x="1262" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Corr_EventGw_di" bpmnElement="Flow_Corr_EventGw">
+        <di:waypoint x="1200" y="300" /><di:waypoint x="1265" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gw_Corr_Msg_di" bpmnElement="Flow_Gw_Corr_Msg">
+        <di:waypoint x="1290" y="275" /><di:waypoint x="1290" y="200" /><di:waypoint x="1372" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gw_Corr_Timer_di" bpmnElement="Flow_Gw_Corr_Timer">
+        <di:waypoint x="1290" y="325" /><di:waypoint x="1290" y="380" /><di:waypoint x="1372" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Msg_Screen_di" bpmnElement="Flow_Msg_Screen">
+        <di:waypoint x="1390" y="182" /><di:waypoint x="1390" y="80" /><di:waypoint x="290" y="80" /><di:waypoint x="290" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Timer_Abandon_di" bpmnElement="Flow_Timer_Abandon">
+        <di:waypoint x="1408" y="380" /><di:waypoint x="1480" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Abandon_End_di" bpmnElement="Flow_Abandon_End">
+        <di:waypoint x="1580" y="380" /><di:waypoint x="1642" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Withdraw_Apply_di" bpmnElement="Flow_Withdraw_Apply">
+        <di:waypoint x="326" y="640" /><di:waypoint x="380" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Withdraw_End_di" bpmnElement="Flow_Withdraw_End">
+        <di:waypoint x="480" y="640" /><di:waypoint x="540" y="640" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

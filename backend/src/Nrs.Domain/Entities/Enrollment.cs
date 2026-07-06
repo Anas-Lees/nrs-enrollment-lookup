@@ -30,6 +30,12 @@ public class Enrollment
 
     public DateOnly DateOfBirth { get; set; }
 
+    /// <summary>
+    /// Single character "M" or "F", captured at enrollment so an approved new applicant can be
+    /// registered as a person. Nullable: applications predating the field have none.
+    /// </summary>
+    public string? Gender { get; set; }
+
     /// <summary>ISO 3166-1 alpha-3 nationality code.</summary>
     public string NationalityCode { get; set; } = null!;
 
@@ -80,4 +86,16 @@ public class Enrollment
     /// the automated screening routed this application to a human. Null when clean.
     /// </summary>
     public string? ScreeningFlags { get; set; }
+
+    /// <summary>
+    /// Screening's risk verdict: "HIGH" routes the review to a supervisor, "NORMAL" (or null,
+    /// for applications screened before the field existed) to a regular reviewer.
+    /// </summary>
+    public string? RiskLevel { get; set; }
+
+    /// <summary>
+    /// The reviewer's note explaining what must be fixed, while the application sits in
+    /// NEEDS_CORRECTION. Cleared when the operator resubmits.
+    /// </summary>
+    public string? CorrectionNote { get; set; }
 }

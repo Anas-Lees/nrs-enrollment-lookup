@@ -63,6 +63,9 @@ public static class ReviewTasks
         /// <summary>Another reviewer already holds it, or it is no longer waiting (409).</summary>
         Taken,
 
+        /// <summary>It is a high-risk review and the caller is not a supervisor (403).</summary>
+        SupervisorOnly,
+
         /// <summary>No enrollment exists with that id (404).</summary>
         NotFound,
     }
@@ -77,13 +80,21 @@ public static class ReviewTasks
     {
         private readonly ICamundaClient? _camunda = camunda.FirstOrDefault();
 
-        public async Task<ClaimOutcome> HandleAsync(Guid enrollmentId, string reviewer, CancellationToken cancellationToken)
+        public async Task<ClaimOutcome> HandleAsync(
+            Guid enrollmentId, string reviewer, bool callerIsSupervisor, CancellationToken cancellationToken)
         {
             var enrollment = await db.Enrollments.AsNoTracking()
                 .FirstOrDefaultAsync(e => e.Id == enrollmentId, cancellationToken);
             if (enrollment is null)
             {
                 return ClaimOutcome.NotFound;
+            }
+
+            // High-risk (identity-integrity) reviews are a supervisor's job. A regular reviewer
+            // sees them in the queue but cannot take ownership.
+            if (enrollment.RiskLevel == EnrollmentScreening.RiskHigh && !callerIsSupervisor)
+            {
+                return ClaimOutcome.SupervisorOnly;
             }
 
             var now = DateTimeOffset.UtcNow;

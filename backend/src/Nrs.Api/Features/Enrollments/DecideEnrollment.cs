@@ -83,8 +83,9 @@ public static class DecideEnrollment
                 return (Outcome.NotAssignee, enrollment.ToDto());
             }
 
+            var outcome = request.Approved ? ReviewOutcome.Approved : ReviewOutcome.Rejected;
             var result = await workflow.DecideAsync(
-                id, request.Approved, operatorName, EnrollmentRules.TrimToNull(request.Notes), cancellationToken);
+                id, outcome, operatorName, EnrollmentRules.TrimToNull(request.Notes), cancellationToken);
 
             // Another reviewer won the race: THEIR decision stands and this one was never
             // recorded — no audit event for a decision that did not happen.

@@ -23,11 +23,20 @@ public enum EnrollmentStatus
     /// <summary>Claimed by a reviewer and actively under review (see <c>Enrollment.AssignedTo</c>).</summary>
     UNDER_REVIEW,
 
+    /// <summary>
+    /// A reviewer sent it back to the operator with a note (see <c>Enrollment.CorrectionNote</c>).
+    /// The process waits for a resubmission — or auto-closes when the correction deadline passes.
+    /// </summary>
+    NEEDS_CORRECTION,
+
     /// <summary>Review complete; application approved.</summary>
     APPROVED,
 
     /// <summary>Review complete; application rejected.</summary>
-    REJECTED
+    REJECTED,
+
+    /// <summary>Withdrawn by the applicant/operator before a decision; the review was cancelled.</summary>
+    WITHDRAWN
 }
 
 #pragma warning restore CA1707

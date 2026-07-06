@@ -31,6 +31,9 @@ public static class CreateEnrollment
 
         public DateOnly DateOfBirth { get; init; }
 
+        /// <summary>"M" or "F" — needed to register a new applicant as a person once approved.</summary>
+        public string? Gender { get; init; }
+
         public string NationalityCode { get; init; } = null!;
 
         public EnrollmentType Type { get; init; }
@@ -53,6 +56,9 @@ public static class CreateEnrollment
                 .WithMessage("CRN must be 1 to 9 digits.");
             RuleFor(x => x.DateOfBirth).Must(EnrollmentRules.BeAPlausibleDateOfBirth)
                 .WithMessage("Date of birth must be a real past date.");
+            RuleFor(x => x.Gender).Must(g => g is "M" or "F")
+                .When(x => !string.IsNullOrWhiteSpace(x.Gender))
+                .WithMessage("Gender must be 'M' or 'F'.");
             RuleFor(x => x.Type).IsInEnum();
             RuleFor(x => x.Notes).MaximumLength(1000);
         }
@@ -75,6 +81,7 @@ public static class CreateEnrollment
                 FirstNameAr = request.FirstNameAr.Trim(),
                 FamilyNameAr = request.FamilyNameAr.Trim(),
                 DateOfBirth = request.DateOfBirth,
+                Gender = EnrollmentRules.TrimToNull(request.Gender)?.ToUpperInvariant(),
                 NationalityCode = request.NationalityCode.Trim().ToUpperInvariant(),
                 Type = request.Type,
                 Status = EnrollmentStatus.SUBMITTED,

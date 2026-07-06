@@ -21,7 +21,24 @@ public static class EnrollmentScreening
     public const string DuplicatePending = "DUPLICATE_PENDING";
     public const string MinorApplicant = "MINOR_APPLICANT";
 
-    public sealed record Result(bool AutoApprove, IReadOnlyList<string> Flags);
+    // Risk verdicts — decide whether a supervisor must handle the review.
+    public const string RiskHigh = "HIGH";
+    public const string RiskNormal = "NORMAL";
+
+    // Candidate groups the reviewer user task is offered to, by risk.
+    public const string GroupReviewer = "reviewer";
+    public const string GroupSupervisor = "supervisor";
+
+    // Identity-integrity flags: any of these means the applicant may not be who they claim,
+    // so a supervisor — not a regular reviewer — must adjudicate.
+    private static readonly string[] HighRiskFlags =
+        [NameMismatch, RegistryRecordNotActive, DuplicatePending];
+
+    public sealed record Result(bool AutoApprove, IReadOnlyList<string> Flags, string RiskLevel)
+    {
+        /// <summary>The user-task candidate group implied by the risk verdict.</summary>
+        public string ReviewGroup => RiskLevel == RiskHigh ? GroupSupervisor : GroupReviewer;
+    }
 
     public static async Task<Result> ScreenAsync(NrsDbContext db, Enrollment enrollment, CancellationToken cancellationToken)
     {
@@ -52,10 +69,15 @@ public static class EnrollmentScreening
         }
 
         // 2) Another live application for the same person is a red flag (double submission,
-        //    or two counters serving the same applicant).
+        //    or two counters serving the same applicant). "Live" is any not-yet-concluded
+        //    application — including one waiting in the queue (PENDING_REVIEW) or sent back for
+        //    corrections (NEEDS_CORRECTION), not just SUBMITTED/UNDER_REVIEW.
         var hasDuplicate = await db.Enrollments.AsNoTracking().AnyAsync(
             e => e.Id != enrollment.Id
-                 && (e.Status == EnrollmentStatus.SUBMITTED || e.Status == EnrollmentStatus.UNDER_REVIEW)
+                 && (e.Status == EnrollmentStatus.SUBMITTED
+                     || e.Status == EnrollmentStatus.PENDING_REVIEW
+                     || e.Status == EnrollmentStatus.UNDER_REVIEW
+                     || e.Status == EnrollmentStatus.NEEDS_CORRECTION)
                  && (
                      (enrollment.CivilNumber != null && e.CivilNumber == enrollment.CivilNumber)
                      || (e.FirstNameEn == enrollment.FirstNameEn
@@ -79,7 +101,10 @@ public static class EnrollmentScreening
                           && enrollment.Type == EnrollmentType.RENEWAL
                           && !string.IsNullOrWhiteSpace(enrollment.CivilNumber);
 
-        return new Result(autoApprove, flags);
+        // Risk: an identity-integrity flag escalates the review to a supervisor.
+        var riskLevel = flags.Any(HighRiskFlags.Contains) ? RiskHigh : RiskNormal;
+
+        return new Result(autoApprove, flags, riskLevel);
     }
 
     private static int AgeInYears(DateOnly dateOfBirth)

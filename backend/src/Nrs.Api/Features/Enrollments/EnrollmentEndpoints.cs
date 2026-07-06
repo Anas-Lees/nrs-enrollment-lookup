@@ -128,6 +128,104 @@ public static class EnrollmentEndpoints
             decide.RequireAuthorization("CanReview");
         }
 
+        var requestCorrections = group.MapPost("{id:guid}/request-corrections", async (
+                Guid id,
+                RequestCorrections.Request request,
+                RequestCorrections.Handler handler,
+                HttpContext http,
+                CancellationToken cancellationToken) =>
+            {
+                var (outcome, enrollment) = await handler.HandleAsync(
+                    id, request, RequestUser.Username(http), cancellationToken);
+                return outcome switch
+                {
+                    RequestCorrections.Outcome.Applied => Results.Ok(enrollment),
+                    RequestCorrections.Outcome.Accepted => Results.Accepted($"/api/v1/enrollments/{id}", enrollment),
+                    RequestCorrections.Outcome.NotFound => Results.Problem(
+                        statusCode: StatusCodes.Status404NotFound,
+                        title: "Enrollment not found", detail: $"No enrollment exists with id '{id}'."),
+                    RequestCorrections.Outcome.NotAssignee => Results.Problem(
+                        statusCode: StatusCodes.Status403Forbidden,
+                        title: "Not your review",
+                        detail: "Only the reviewer who claimed this application can send it back for corrections."),
+                    RequestCorrections.Outcome.Conflict => Results.Problem(
+                        statusCode: StatusCodes.Status409Conflict,
+                        title: "Decided by another reviewer",
+                        detail: "Another reviewer acted on this application first; your request was not recorded."),
+                    _ => Results.Problem(
+                        statusCode: StatusCodes.Status409Conflict,
+                        title: "Enrollment is not under review",
+                        detail: "Only an enrollment that is currently under review can be sent back for corrections."),
+                };
+            })
+            .AddEndpointFilter<ValidationFilter<RequestCorrections.Request>>()
+            .WithSummary("Send an application you have claimed back to the operator for corrections (assignee only)")
+            .Produces<EnrollmentDto>()
+            .Produces<EnrollmentDto>(StatusCodes.Status202Accepted)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        if (enforceRoles)
+        {
+            requestCorrections.RequireAuthorization("CanReview");
+        }
+
+        // Resubmit a corrected application (operator) — re-enters screening.
+        group.MapPost("{id:guid}/resubmit", async (
+                Guid id,
+                ResubmitEnrollment.Handler handler,
+                CancellationToken cancellationToken) =>
+            {
+                var (outcome, enrollment) = await handler.HandleAsync(id, cancellationToken);
+                return outcome switch
+                {
+                    ResubmitEnrollment.Outcome.Resubmitted => Results.Ok(enrollment),
+                    ResubmitEnrollment.Outcome.NotFound => Results.Problem(
+                        statusCode: StatusCodes.Status404NotFound,
+                        title: "Enrollment not found", detail: $"No enrollment exists with id '{id}'."),
+                    _ => Results.Problem(
+                        statusCode: StatusCodes.Status409Conflict,
+                        title: "Not awaiting corrections",
+                        detail: "Only an application sent back for corrections can be resubmitted."),
+                };
+            })
+            .WithSummary("Resubmit a corrected application for review")
+            .Produces<EnrollmentDto>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        // Withdraw an application before it is decided (operator).
+        group.MapPost("{id:guid}/withdraw", async (
+                Guid id,
+                WithdrawEnrollment.Request request,
+                WithdrawEnrollment.Handler handler,
+                HttpContext http,
+                CancellationToken cancellationToken) =>
+            {
+                var (outcome, enrollment) = await handler.HandleAsync(
+                    id, request, RequestUser.Username(http), cancellationToken);
+                return outcome switch
+                {
+                    WithdrawEnrollment.Outcome.Withdrawn => Results.Ok(enrollment),
+                    WithdrawEnrollment.Outcome.Accepted => Results.Accepted($"/api/v1/enrollments/{id}", enrollment),
+                    WithdrawEnrollment.Outcome.NotFound => Results.Problem(
+                        statusCode: StatusCodes.Status404NotFound,
+                        title: "Enrollment not found", detail: $"No enrollment exists with id '{id}'."),
+                    _ => Results.Problem(
+                        statusCode: StatusCodes.Status409Conflict,
+                        title: "Already concluded",
+                        detail: "This application has already been approved, rejected, or withdrawn."),
+                };
+            })
+            .AddEndpointFilter<ValidationFilter<WithdrawEnrollment.Request>>()
+            .WithSummary("Withdraw an application before it is decided")
+            .Produces<EnrollmentDto>()
+            .Produces<EnrollmentDto>(StatusCodes.Status202Accepted)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         // --- The reviewer work queue ----------------------------------------------------
         // Ownership lives on the enrollment (status + assignee), so claim/release key off the
         // enrollment id, not a Camunda task key. The list is the whole live pipeline; the SPA
@@ -153,10 +251,16 @@ public static class EnrollmentEndpoints
                 HttpContext http,
                 CancellationToken cancellationToken) =>
             {
-                var outcome = await handler.HandleAsync(id, RequestUser.Username(http), cancellationToken);
+                var isSupervisor = RequestUser.Roles(http).Contains(RequestUser.SupervisorRole);
+                var outcome = await handler.HandleAsync(
+                    id, RequestUser.Username(http), isSupervisor, cancellationToken);
                 return outcome switch
                 {
                     ReviewTasks.ClaimOutcome.Claimed => Results.Ok(new { assignee = RequestUser.Username(http) }),
+                    ReviewTasks.ClaimOutcome.SupervisorOnly => Results.Problem(
+                        statusCode: StatusCodes.Status403Forbidden,
+                        title: "Supervisor review required",
+                        detail: "This is a high-risk application; only a supervisor can claim it."),
                     ReviewTasks.ClaimOutcome.Taken => Results.Problem(
                         statusCode: StatusCodes.Status409Conflict,
                         title: "Already claimed",
@@ -167,6 +271,7 @@ public static class EnrollmentEndpoints
                 };
             })
             .WithSummary("Claim a pending review, taking ownership (reviewer role)")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 

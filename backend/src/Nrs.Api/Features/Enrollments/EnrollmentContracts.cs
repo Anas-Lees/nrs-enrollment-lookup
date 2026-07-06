@@ -27,6 +27,9 @@ public record EnrollmentDto
 
     public DateOnly DateOfBirth { get; init; }
 
+    /// <summary>"M"/"F", captured so an approved new applicant can be registered as a person.</summary>
+    public string? Gender { get; init; }
+
     /// <summary>ISO 3166-1 alpha-3 nationality code.</summary>
     public string NationalityCode { get; init; } = null!;
 
@@ -61,6 +64,12 @@ public record EnrollmentDto
 
     /// <summary>Why automated screening routed this to a human (empty when clean).</summary>
     public IReadOnlyList<string> ScreeningFlags { get; init; } = [];
+
+    /// <summary>Screening's risk verdict: "HIGH" (supervisor-only) or "NORMAL"; null if unscreened.</summary>
+    public string? RiskLevel { get; init; }
+
+    /// <summary>Reviewer's note on what to fix, while the application sits in NEEDS_CORRECTION.</summary>
+    public string? CorrectionNote { get; init; }
 }
 
 /// <summary>
@@ -91,6 +100,9 @@ public record EnrollmentSummaryDto
     /// <summary>Reviewer who has claimed it, or null while unassigned (drives the queue's "handled by" chip).</summary>
     public string? AssignedTo { get; init; }
 
+    /// <summary>Screening's risk verdict ("HIGH"/"NORMAL"); drives the queue's risk chip.</summary>
+    public string? RiskLevel { get; init; }
+
     public DateTimeOffset CreatedAtUtc { get; init; }
 
     public DateTimeOffset UpdatedAtUtc { get; init; }
@@ -112,6 +124,7 @@ public static class EnrollmentMappingExtensions
         FirstNameAr = e.FirstNameAr,
         FamilyNameAr = e.FamilyNameAr,
         DateOfBirth = e.DateOfBirth,
+        Gender = e.Gender,
         NationalityCode = e.NationalityCode,
         Type = e.Type,
         Status = e.Status,
@@ -126,6 +139,8 @@ public static class EnrollmentMappingExtensions
         DecisionNotes = e.DecisionNotes,
         EscalatedAtUtc = e.EscalatedAtUtc,
         ScreeningFlags = string.IsNullOrEmpty(e.ScreeningFlags) ? [] : e.ScreeningFlags.Split(','),
+        RiskLevel = e.RiskLevel,
+        CorrectionNote = e.CorrectionNote,
     };
 
     public static EnrollmentSummaryDto ToSummaryDto(this Enrollment e) => new()
@@ -141,6 +156,7 @@ public static class EnrollmentMappingExtensions
         Type = e.Type,
         Status = e.Status,
         AssignedTo = e.AssignedTo,
+        RiskLevel = e.RiskLevel,
         CreatedAtUtc = e.CreatedAtUtc,
         UpdatedAtUtc = e.UpdatedAtUtc,
         EscalatedAtUtc = e.EscalatedAtUtc,

@@ -126,6 +126,24 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             .HasColumnName("ASSIGNED_AT_UTC")
             .IsRequired(false);
 
+        builder.Property(e => e.Gender)
+            .HasColumnName("GENDER")
+            .HasMaxLength(1)
+            .IsUnicode(false)
+            .IsRequired(false);
+
+        builder.Property(e => e.RiskLevel)
+            .HasColumnName("RISK_LEVEL")
+            .HasMaxLength(10)
+            .IsUnicode(false)
+            .IsRequired(false);
+
+        builder.Property(e => e.CorrectionNote)
+            .HasColumnName("CORRECTION_NOTE")
+            .HasMaxLength(1000)
+            .IsUnicode(true)
+            .IsRequired(false);
+
         builder.Property(e => e.ScreeningFlags)
             .HasColumnName("SCREENING_FLAGS")
             .HasMaxLength(200)

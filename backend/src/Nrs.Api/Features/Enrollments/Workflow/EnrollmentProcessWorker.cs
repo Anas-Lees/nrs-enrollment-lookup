@@ -30,6 +30,9 @@ public sealed partial class EnrollmentProcessWorker(
     private const string QueueForReviewJob = "queue-for-review";
     private const string ApplyApprovedJob = "apply-approved";
     private const string ApplyRejectedJob = "apply-rejected";
+    private const string ApplyCorrectionsJob = "apply-corrections-requested";
+    private const string ApplyAbandonedJob = "apply-abandoned";
+    private const string ApplyWithdrawnJob = "apply-withdrawn";
     private const string NotificationJob = "send-notification";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -46,6 +49,9 @@ public sealed partial class EnrollmentProcessWorker(
             PollLoopAsync(QueueForReviewJob, stoppingToken),
             PollLoopAsync(ApplyApprovedJob, stoppingToken),
             PollLoopAsync(ApplyRejectedJob, stoppingToken),
+            PollLoopAsync(ApplyCorrectionsJob, stoppingToken),
+            PollLoopAsync(ApplyAbandonedJob, stoppingToken),
+            PollLoopAsync(ApplyWithdrawnJob, stoppingToken),
             PollLoopAsync(NotificationJob, stoppingToken));
     }
 
@@ -169,6 +175,9 @@ public sealed partial class EnrollmentProcessWorker(
             QueueForReviewJob => await QueueForReviewAsync(db, enrollment, stoppingToken),
             ApplyApprovedJob => await ApplyDecisionAsync(db, enrollment, job, approved: true, stoppingToken),
             ApplyRejectedJob => await ApplyDecisionAsync(db, enrollment, job, approved: false, stoppingToken),
+            ApplyCorrectionsJob => await ApplyCorrectionsRequestedAsync(db, enrollment, job, stoppingToken),
+            ApplyAbandonedJob => await ApplyAbandonedAsync(db, enrollment, stoppingToken),
+            ApplyWithdrawnJob => await ApplyWithdrawnAsync(db, enrollment, job, stoppingToken),
             NotificationJob => await SendNotificationAsync(db, enrollment, job, stoppingToken),
             _ => null,
         };
@@ -181,21 +190,32 @@ public sealed partial class EnrollmentProcessWorker(
     {
         var result = await EnrollmentScreening.ScreenAsync(db, enrollment, ct);
 
-        // Persist the flags so reviewers see why the application was routed to them.
+        // Persist the flags + risk so reviewers see why the application was routed to them, and
+        // so the queue can badge high-risk items even before the user task exists.
         enrollment.ScreeningFlags = result.Flags.Count > 0 ? string.Join(",", result.Flags) : null;
+        enrollment.RiskLevel = result.RiskLevel;
         enrollment.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         LogScreened(logger, enrollment.ReferenceNumber, result.AutoApprove, enrollment.ScreeningFlags ?? "");
 
+        // reviewGroup drives the user task's candidate group (=reviewGroup): HIGH risk → supervisor.
         return result.AutoApprove
             ? new
             {
                 autoApprove = true,
                 screeningFlags = result.Flags,
+                riskLevel = result.RiskLevel,
+                reviewGroup = result.ReviewGroup,
                 decidedBy = "auto-screening",
                 decisionNotes = "Clean renewal approved by automated screening.",
             }
-            : new { autoApprove = false, screeningFlags = result.Flags };
+            : new
+            {
+                autoApprove = false,
+                screeningFlags = result.Flags,
+                riskLevel = result.RiskLevel,
+                reviewGroup = result.ReviewGroup,
+            };
     }
 
     /// <summary>
@@ -237,6 +257,78 @@ public sealed partial class EnrollmentProcessWorker(
 
         await db.SaveChangesAsync(ct);
         LogApplied(logger, enrollment.ReferenceNumber, targetStatus);
+        return null;
+    }
+
+    /// <summary>
+    /// Reviewer sent it back for corrections: NEEDS_CORRECTION, note attached, ownership cleared,
+    /// and the operator is told. The process then waits for a resubmission or the deadline.
+    /// </summary>
+    private async Task<object?> ApplyCorrectionsRequestedAsync(
+        NrsDbContext db, Enrollment enrollment, CamundaJob job, CancellationToken ct)
+    {
+        // Idempotent: only act while it is still under review.
+        if (enrollment.Status is not (EnrollmentStatus.UNDER_REVIEW or EnrollmentStatus.PENDING_REVIEW))
+        {
+            return null;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        enrollment.Status = EnrollmentStatus.NEEDS_CORRECTION;
+        enrollment.CorrectionNote = job.GetString("decisionNotes");
+        enrollment.AssignedTo = null;
+        enrollment.AssignedAtUtc = null;
+        enrollment.UpdatedAtUtc = now;
+        db.Notifications.Add(DecisionNotifications.CorrectionsRequested(enrollment, now));
+        await db.SaveChangesAsync(ct);
+        LogApplied(logger, enrollment.ReferenceNumber, EnrollmentStatus.NEEDS_CORRECTION);
+        return null;
+    }
+
+    /// <summary>
+    /// The correction deadline lapsed with no resubmission: close the application. Guarded on
+    /// NEEDS_CORRECTION so a race (operator resubmitted just as the timer fired) does not clobber
+    /// a now-active application.
+    /// </summary>
+    private async Task<object?> ApplyAbandonedAsync(NrsDbContext db, Enrollment enrollment, CancellationToken ct)
+    {
+        if (enrollment.Status != EnrollmentStatus.NEEDS_CORRECTION)
+        {
+            return null; // resubmitted in time, or already concluded — nothing to abandon.
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        enrollment.Status = EnrollmentStatus.REJECTED;
+        enrollment.DecidedBy = "system";
+        enrollment.DecisionNotes = "Closed automatically: no corrections were received by the deadline.";
+        enrollment.DecidedAtUtc = now;
+        enrollment.UpdatedAtUtc = now;
+        db.Notifications.Add(DecisionNotifications.Abandoned(enrollment, now));
+        await db.SaveChangesAsync(ct);
+        LogApplied(logger, enrollment.ReferenceNumber, EnrollmentStatus.REJECTED);
+        return null;
+    }
+
+    /// <summary>The applicant withdrew: settle to WITHDRAWN and clear any ownership.</summary>
+    private async Task<object?> ApplyWithdrawnAsync(
+        NrsDbContext db, Enrollment enrollment, CamundaJob job, CancellationToken ct)
+    {
+        // Idempotent: never overwrite a concluded application.
+        if (enrollment.Status is EnrollmentStatus.APPROVED or EnrollmentStatus.REJECTED or EnrollmentStatus.WITHDRAWN)
+        {
+            return null;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        enrollment.Status = EnrollmentStatus.WITHDRAWN;
+        enrollment.DecidedBy = job.GetString("withdrawnBy") ?? "operator";
+        enrollment.DecisionNotes = job.GetString("withdrawReason");
+        enrollment.DecidedAtUtc = now;
+        enrollment.AssignedTo = null;
+        enrollment.AssignedAtUtc = null;
+        enrollment.UpdatedAtUtc = now;
+        await db.SaveChangesAsync(ct);
+        LogApplied(logger, enrollment.ReferenceNumber, EnrollmentStatus.WITHDRAWN);
         return null;
     }
 

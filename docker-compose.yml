@@ -160,6 +160,12 @@ services:
       Camunda__RestAddress: "http://camunda:8080"
       # Demo-friendly SLA: reviews escalate to a supervisor after 2 minutes (prod default: 48h).
       Camunda__ReviewEscalationAfter: "PT2M"
+      # Demo-friendly correction window: an application sent back for corrections auto-closes
+      # if not resubmitted within 3 minutes (prod default: 7 days).
+      Camunda__CorrectionDeadline: "PT3M"
+      # Demo-friendly rate limit: one person walks the operator/reviewer/supervisor journey
+      # fast in a demo, so allow more headroom than the production default (60/min).
+      RateLimiting__PermitLimit: "300"
       Auth__Enabled: "true"
       Auth__Authority: http://localhost:8081/realms/nrs
       Auth__Audience: nrs-api
