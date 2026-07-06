@@ -1,0 +1,161 @@
+<section class="page">
+  <header class="rep-head">
+    <div>
+      <h1>{{ i18n.t('reports.title') }}</h1>
+      <p class="muted">{{ i18n.t('reports.subtitle') }}</p>
+    </div>
+    <div class="rep-window" role="group" [attr.aria-label]="i18n.t('reports.window')">
+      @for (d of windowOptions; track d) {
+        <button
+          type="button"
+          class="win-btn"
+          [class.is-active]="windowDays() === d"
+          (click)="setWindow(d)"
+        >
+          {{ i18n.t('reports.lastN').replace('{n}', d.toString()) }}
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (loading() && !report()) {
+    <p class="muted">{{ i18n.t('reports.loading') }}</p>
+  } @else if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  } @else if (report(); as r) {
+    <!-- Headline KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <span class="kpi__value">{{ r.total }}</span>
+        <span class="kpi__label">{{ i18n.t('reports.kpi.total') }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__value">{{ r.autoApprovalRatePct }}%</span>
+        <span class="kpi__label">{{ i18n.t('reports.kpi.autoRate') }}</span>
+        <span class="kpi__sub"
+          >{{ r.autoApproved }} / {{ r.decided }} {{ i18n.t('reports.decided') }}</span
+        >
+      </div>
+      <div class="kpi">
+        <span class="kpi__value">{{ r.approvalRatePct }}%</span>
+        <span class="kpi__label">{{ i18n.t('reports.kpi.approvalRate') }}</span>
+        <span class="kpi__sub">{{ r.approved }} ✓ · {{ r.rejected }} ✗</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__value">{{ avgDecision() }}</span>
+        <span class="kpi__label">{{ i18n.t('reports.kpi.avgDecision') }}</span>
+      </div>
+      <div class="kpi" [class.kpi--warn]="r.escalationRatePct > 0">
+        <span class="kpi__value">{{ r.escalationRatePct }}%</span>
+        <span class="kpi__label">{{ i18n.t('reports.kpi.escalationRate') }}</span>
+        <span class="kpi__sub">{{ r.escalated }} {{ i18n.t('reports.escalated') }}</span>
+      </div>
+    </div>
+
+    <div class="panels">
+      <!-- Daily volume: created vs decided -->
+      <article class="panel panel--wide">
+        <h2>{{ i18n.t('reports.dailyTitle') }}</h2>
+        @if (r.daily.length === 0) {
+          <p class="muted">{{ i18n.t('reports.noData') }}</p>
+        } @else {
+          <div class="daily">
+            @for (d of r.daily; track d.date) {
+              <div class="daily__col" [title]="d.date + ': ' + d.created + ' / ' + d.decided">
+                <div class="daily__bars">
+                  <div
+                    class="daily__bar daily__bar--created"
+                    [style.height.px]="barHeight(d.created)"
+                  ></div>
+                  <div
+                    class="daily__bar daily__bar--decided"
+                    [style.height.px]="barHeight(d.decided)"
+                  ></div>
+                </div>
+                <span class="daily__label">{{ dayLabel(d.date) }}</span>
+              </div>
+            }
+          </div>
+          <div class="legend">
+            <span class="legend__item"
+              ><i class="sw sw--created"></i>{{ i18n.t('reports.created') }}</span
+            >
+            <span class="legend__item"
+              ><i class="sw sw--decided"></i>{{ i18n.t('reports.decidedLegend') }}</span
+            >
+          </div>
+        }
+      </article>
+
+      <!-- Pipeline by status -->
+      <article class="panel">
+        <h2>{{ i18n.t('reports.pipelineTitle') }}</h2>
+        @for (b of statusBars(); track b.label) {
+          <div class="hbar">
+            <span class="hbar__label">{{ i18n.t('status.' + b.label) }}</span>
+            <span class="hbar__track">
+              <span class="hbar__fill hbar__fill--status" [style.width.%]="b.pct"></span>
+            </span>
+            <span class="hbar__value">{{ b.value }}</span>
+          </div>
+        }
+      </article>
+
+      <!-- Why flagged for review -->
+      <article class="panel">
+        <h2>{{ i18n.t('reports.flagsTitle') }}</h2>
+        @if (r.topFlags.length === 0) {
+          <p class="muted">{{ i18n.t('reports.noFlags') }}</p>
+        } @else {
+          @for (f of r.topFlags; track f.flag) {
+            <div class="hbar">
+              <span class="hbar__label">{{ i18n.t('flag.' + f.flag) }}</span>
+              <span class="hbar__track">
+                <span
+                  class="hbar__fill hbar__fill--flag"
+                  [style.width.%]="(f.count / flagMax()) * 100"
+                ></span>
+              </span>
+              <span class="hbar__value">{{ f.count }}</span>
+            </div>
+          }
+        }
+      </article>
+
+      <!-- Reviewer workload -->
+      <article class="panel">
+        <h2>{{ i18n.t('reports.reviewerTitle') }}</h2>
+        @if (r.byReviewer.length === 0) {
+          <p class="muted">{{ i18n.t('reports.noReviewers') }}</p>
+        } @else {
+          @for (rv of r.byReviewer; track rv.name) {
+            <div class="hbar">
+              <span class="hbar__label mono">{{ rv.name }}</span>
+              <span class="hbar__track">
+                <span
+                  class="hbar__fill hbar__fill--rev"
+                  [style.width.%]="(rv.count / reviewerMax()) * 100"
+                ></span>
+              </span>
+              <span class="hbar__value">{{ rv.count }}</span>
+            </div>
+          }
+        }
+      </article>
+
+      <!-- By enrollment type -->
+      <article class="panel">
+        <h2>{{ i18n.t('reports.typeTitle') }}</h2>
+        @for (b of typeBars(); track b.label) {
+          <div class="hbar">
+            <span class="hbar__label">{{ i18n.t('enroll.type.' + b.label) }}</span>
+            <span class="hbar__track">
+              <span class="hbar__fill hbar__fill--type" [style.width.%]="b.pct"></span>
+            </span>
+            <span class="hbar__value">{{ b.value }}</span>
+          </div>
+        }
+      </article>
+    </div>
+  }
+</section>

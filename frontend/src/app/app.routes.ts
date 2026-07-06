@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './core/guards/auth.guard';
 import { reviewerGuard } from './core/guards/reviewer.guard';
+import { supervisorGuard } from './core/guards/supervisor.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'search', pathMatch: 'full' },
@@ -43,6 +44,12 @@ export const routes: Routes = [
     title: 'Review tasks · NRS',
     canActivate: [authGuard, reviewerGuard],
     loadComponent: () => import('./features/review/review-tasks').then((m) => m.ReviewTasks),
+  },
+  {
+    path: 'reports',
+    title: 'Reports · NRS',
+    canActivate: [authGuard, supervisorGuard],
+    loadComponent: () => import('./features/reports/reports').then((m) => m.Reports),
   },
   { path: '**', redirectTo: 'search' },
 ];

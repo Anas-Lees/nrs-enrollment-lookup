@@ -499,6 +499,32 @@ paths:
                   marked:
                     type: integer
 
+  /api/v1/reports/enrollment-summary:
+    get:
+      tags: [Reports]
+      operationId: enrollmentSummaryReport
+      summary: Enrollment review analytics for the last N days (supervisor role)
+      description: >
+        Aggregate KPIs computed from the review workflow's data: throughput, auto-approval
+        (straight-through) rate, approval/rejection rates, average time-to-decision, SLA
+        escalation rate, screening-flag frequency, per-reviewer workload, and a daily trend.
+        Aggregate figures only (no PII).
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 365
+      responses:
+        "200":
+          description: The enrollment analytics summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentReport"
+
 components:
   schemas:
     PersonSummary:
@@ -849,6 +875,74 @@ components:
             $ref: "#/components/schemas/Notification"
         unreadCount:
           type: integer
+
+    EnrollmentReport:
+      type: object
+      description: Aggregate enrollment-review KPIs over a rolling window of days.
+      properties:
+        windowDays:
+          type: integer
+        total:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        byType:
+          type: object
+          additionalProperties:
+            type: integer
+        decided:
+          type: integer
+        autoApproved:
+          type: integer
+        humanDecided:
+          type: integer
+        approved:
+          type: integer
+        rejected:
+          type: integer
+        autoApprovalRatePct:
+          type: number
+        approvalRatePct:
+          type: number
+        avgHoursToDecision:
+          type: number
+          nullable: true
+        escalated:
+          type: integer
+        escalationRatePct:
+          type: number
+        topFlags:
+          type: array
+          items:
+            type: object
+            properties:
+              flag:
+                type: string
+              count:
+                type: integer
+        byReviewer:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+        daily:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              created:
+                type: integer
+              decided:
+                type: integer
 
     EnrollmentSummary:
       type: object

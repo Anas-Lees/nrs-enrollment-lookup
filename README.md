@@ -49,6 +49,10 @@ codebase shows a layered feature (lookup) and a vertical-slice feature (enrollme
 
 ![Review tasks screen with screening flags, escalation chips and the notification panel](docs/screenshots/review-tasks.png)
 
+**Reports — enrollment analytics: throughput, auto-approval and approval rates, time-to-decision, SLA escalations, why applications were flagged, and reviewer workload (the in-app equivalent of a Camunda Optimize report)**
+
+![Reports dashboard with KPI cards and charts computed from the review workflow](docs/screenshots/reports.png)
+
 **Camunda Operate — the same review as a live BPMN process; the badge on _Await decision_ is the count of applications waiting for an operator**
 
 ![Camunda Operate showing the enrollment-review process with instances parked at the decision gateway](docs/screenshots/camunda-operate.png)
@@ -141,6 +145,10 @@ flowchart LR
   Camunda is feature-flagged: with no engine configured, decisions apply directly to the
   database — see [ADR 0006](docs/adr/0006-camunda-workflow.md) and
   [ADR 0007](docs/adr/0007-human-in-the-loop-review.md).
+- A **supervisor-only Reports** dashboard turns that workflow data into operational analytics —
+  throughput, straight-through (auto-approval) rate, approval/rejection rates, average
+  time-to-decision, SLA-escalation rate, why applications get flagged, and per-reviewer
+  workload — the in-app equivalent of a Camunda Optimize report, tailored to this process.
 
 Clean, layered architecture with dependencies pointing **inward**
 (`Api → Application → Domain`; `Infrastructure` wired at the composition root) — see
@@ -302,6 +310,7 @@ migrations on startup, and seeds 100 persons (each with ID cards + passports) ou
 | `POST /api/v1/enrollments/{id}/decision` | Approve / reject an under-review enrollment (reviewer role; reason required to reject) |
 | `GET /api/v1/review-tasks` · `POST /api/v1/review-tasks/{key}/claim` | The reviewer work queue (Camunda user tasks) |
 | `GET /api/v1/notifications` · `POST .../read` · `POST .../read-all` | Staff notification bell (review queued / decided / escalated) |
+| `GET /api/v1/reports/enrollment-summary?days` | Enrollment analytics (supervisor role) — throughput, auto-approval/approval rates, time-to-decision, escalations, flags, reviewer workload |
 | `GET /api/v1/audit/recent` | Recent audit-trail entries (operator-only) |
 | `GET /health/live` · `/health/ready` · `/health` | Liveness · readiness (DB) · full health |
 

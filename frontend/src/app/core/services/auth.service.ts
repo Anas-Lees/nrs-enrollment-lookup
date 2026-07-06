@@ -41,6 +41,9 @@ export class AuthService {
   /** Reviewers decide applications; the review screen and queue actions are theirs. */
   readonly isReviewer = computed(() => this.roles().includes('reviewer'));
 
+  /** Supervisors own escalations and the analytics dashboard. */
+  readonly isSupervisor = computed(() => this.roles().includes('supervisor'));
+
   /**
    * The username the API sees for this session. With auth off the API resolves every caller
    * as "anonymous", so we must match it — otherwise claim states ("mine" vs "other") would

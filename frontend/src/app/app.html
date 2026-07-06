@@ -32,12 +32,11 @@
         </a>
       }
 
-      @for (item of stubNav; track item) {
-        <span class="nav-item is-disabled" aria-disabled="true">
+      @if (auth.isSupervisor()) {
+        <a class="nav-item" routerLink="/reports" routerLinkActive="is-active">
           <span class="nav-item__dot" aria-hidden="true"></span>
-          <span class="nav-item__label">{{ i18n.t(item) }}</span>
-          <span class="nav-item__tag">{{ i18n.t('nav.soon') }}</span>
-        </span>
+          <span class="nav-item__label">{{ i18n.t('nav.reports') }}</span>
+        </a>
       }
     </nav>
 

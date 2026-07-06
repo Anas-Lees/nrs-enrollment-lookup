@@ -1,0 +1,247 @@
+.rep-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+
+  h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.4rem;
+    color: var(--color-text);
+  }
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.form-error {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: rgb(140 29 43 / 8%);
+  border: 1px solid rgb(140 29 43 / 25%);
+  color: var(--color-danger);
+}
+
+.rep-window {
+  display: inline-flex;
+  gap: 0.25rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.2rem;
+}
+
+.win-btn {
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  cursor: pointer;
+
+  &.is-active {
+    background: var(--rop-green);
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+/* --- Headline KPIs --- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 1rem 1.15rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+
+  &__value {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--rop-green);
+    line-height: 1.1;
+  }
+
+  &__label {
+    font-size: 0.8rem;
+    color: var(--color-text);
+  }
+
+  &__sub {
+    font-size: 0.72rem;
+    color: var(--color-muted);
+  }
+
+  &--warn .kpi__value {
+    color: #b5850b;
+  }
+}
+
+/* --- Panels --- */
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1rem;
+}
+
+.panel {
+  padding: 1.1rem 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+
+  h2 {
+    margin: 0 0 0.9rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+  }
+
+  &--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+/* --- Horizontal bars (status / flags / reviewers / type) --- */
+.hbar {
+  display: grid;
+  grid-template-columns: 10rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+
+  &__label {
+    font-size: 0.82rem;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__track {
+    height: 0.7rem;
+    border-radius: 999px;
+    background: var(--color-surface-alt);
+    overflow: hidden;
+  }
+
+  &__fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    min-width: 2px;
+
+    &--status {
+      background: var(--rop-green);
+    }
+    &--flag {
+      background: #b5850b;
+    }
+    &--rev {
+      background: #1c6b8c;
+    }
+    &--type {
+      background: #6b4fa0;
+    }
+  }
+
+  &__value {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: end;
+    color: var(--color-text);
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* --- Daily volume grouped bar chart --- */
+.daily {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  height: 150px;
+  padding-top: 0.5rem;
+  overflow-x: auto;
+}
+
+.daily__col {
+  flex: 1 1 0;
+  min-width: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.daily__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+}
+
+.daily__bar {
+  width: 0.5rem;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+
+  &--created {
+    background: var(--rop-green);
+  }
+  &--decided {
+    background: #c9a227;
+  }
+}
+
+.daily__label {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+}
+
+.legend {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sw {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+
+  &--created {
+    background: var(--rop-green);
+  }
+  &--decided {
+    background: #c9a227;
+  }
+}
