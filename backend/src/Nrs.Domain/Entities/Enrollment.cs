@@ -54,6 +54,16 @@ public class Enrollment
     /// <summary>Key of the Camunda process instance orchestrating this review, when one exists.</summary>
     public long? ProcessInstanceKey { get; set; }
 
+    /// <summary>
+    /// Reviewer who has claimed this application (their username), or null while it sits
+    /// unassigned in the queue. Set on claim (PENDING_REVIEW -> UNDER_REVIEW), cleared on
+    /// release. Only the assignee may approve or reject.
+    /// </summary>
+    public string? AssignedTo { get; set; }
+
+    /// <summary>When the current assignee claimed it; null while unassigned.</summary>
+    public DateTimeOffset? AssignedAtUtc { get; set; }
+
     /// <summary>Who decided: a reviewer's username, or "auto-screening" for straight-through approvals.</summary>
     public string? DecidedBy { get; set; }
 

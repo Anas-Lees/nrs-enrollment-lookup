@@ -337,12 +337,12 @@ paths:
     post:
       tags: [Enrollments]
       operationId: decideEnrollment
-      summary: Approve or reject an enrollment that is under review (reviewer role)
+      summary: Approve or reject an enrollment you have claimed (assignee only)
       description: >
-        Records a reviewer's decision on an under-review enrollment. A reason is required when
-        rejecting. The decision completes the Camunda review user task (or is applied directly
-        with no engine), which sets the status to APPROVED or REJECTED and stamps the decision
-        audit trail (decidedBy / decidedAtUtc / decisionNotes). Requires the reviewer role.
+        Records a reviewer's decision on an enrollment they have claimed. Only the assignee may
+        decide it. A reason is required when rejecting. The decision completes the Camunda review
+        user task (or is applied directly with no engine), which sets the status to APPROVED or
+        REJECTED and stamps the decision audit trail (decidedBy / decidedAtUtc / decisionNotes).
       parameters:
         - name: id
           in: path
@@ -372,6 +372,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Enrollment"
+        "403":
+          description: The caller is not the reviewer who claimed it, so may not decide it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
         "404":
           description: No enrollment exists with the supplied id.
           content:
@@ -389,14 +395,14 @@ paths:
     get:
       tags: [Review tasks]
       operationId: listReviewTasks
-      summary: List open review tasks, oldest first (reviewer role)
+      summary: List reviews in progress and waiting, oldest first (reviewer role)
       description: >
-        The reviewer's work queue: open Camunda review user tasks joined with their
-        enrollments. With no engine configured the list degrades to the UNDER_REVIEW
-        enrollments straight from the database (userTaskKey is then null).
+        The reviewer's work queue, driven by enrollment status: everything PENDING_REVIEW
+        (waiting, unassigned) or UNDER_REVIEW (claimed). The client groups it into available /
+        assigned-to-me / with-others by the assignee.
       responses:
         "200":
-          description: Open review tasks, oldest first.
+          description: Reviews in progress and waiting, oldest first.
           content:
             application/json:
               schema:
@@ -404,21 +410,24 @@ paths:
                 items:
                   $ref: "#/components/schemas/ReviewTask"
 
-  /api/v1/review-tasks/{userTaskKey}/claim:
+  /api/v1/review-tasks/{id}/claim:
     post:
       tags: [Review tasks]
       operationId: claimReviewTask
-      summary: Claim a review task for the signed-in reviewer (reviewer role)
+      summary: Claim a pending review, taking ownership (reviewer role)
+      description: >
+        Atomically moves a PENDING_REVIEW enrollment to UNDER_REVIEW and stamps the caller as
+        its assignee. Only the assignee may later decide or release it.
       parameters:
-        - name: userTaskKey
+        - name: id
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            format: uuid
       responses:
         "200":
-          description: The task is now assigned to the caller.
+          description: The review is now assigned to the caller.
           content:
             application/json:
               schema:
@@ -427,7 +436,44 @@ paths:
                   assignee:
                     type: string
         "404":
-          description: No workflow engine is configured, or the task no longer exists.
+          description: No enrollment exists with that id.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "409":
+          description: Already claimed by another reviewer, or no longer waiting.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /api/v1/review-tasks/{id}/release:
+    post:
+      tags: [Review tasks]
+      operationId: releaseReviewTask
+      summary: Release a claimed review back to the queue (assignee only)
+      description: >
+        The inverse of a claim: moves the caller's UNDER_REVIEW enrollment back to
+        PENDING_REVIEW, unassigned. Only the assignee may release it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Released back to the shared queue.
+        "403":
+          description: The caller is not the assignee.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: No enrollment exists with that id.
           content:
             application/problem+json:
               schema:
@@ -815,21 +861,17 @@ components:
 
     ReviewTask:
       type: object
-      description: One open item in the reviewer's work queue (a Camunda user task + its enrollment).
-      required: [taskCreatedAtUtc, enrollment]
+      description: One item in the reviewer's work queue — its enrollment (carrying status + assignee).
+      required: [queuedAtUtc, enrollment]
       properties:
-        userTaskKey:
-          type: string
-          nullable: true
-          description: Camunda user-task key (a string — int64), or null when no engine is configured.
-          example: "2251799813689085"
         assignee:
           type: string
           nullable: true
-          description: Reviewer who claimed the task, or null while unclaimed.
-        taskCreatedAtUtc:
+          description: Reviewer who has claimed it, or null while it sits unassigned in the queue.
+        queuedAtUtc:
           type: string
           format: date-time
+          description: When it entered the queue / was last touched.
         enrollment:
           $ref: "#/components/schemas/Enrollment"
 
@@ -985,6 +1027,10 @@ components:
           $ref: "#/components/schemas/EnrollmentType"
         status:
           $ref: "#/components/schemas/EnrollmentStatus"
+        assignedTo:
+          type: string
+          nullable: true
+          description: Reviewer who has claimed it, or null while unassigned in the queue.
         createdAtUtc:
           type: string
           format: date-time
@@ -1014,6 +1060,11 @@ components:
               type: string
               description: Operator who created the application.
               example: "operator1"
+            assignedAtUtc:
+              type: string
+              format: date-time
+              nullable: true
+              description: When the current assignee claimed it; null while unassigned.
             decidedBy:
               type: string
               nullable: true
@@ -1112,4 +1163,4 @@ components:
 
     EnrollmentStatus:
       type: string
-      enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED]
+      enum: [DRAFT, SUBMITTED, PENDING_REVIEW, UNDER_REVIEW, APPROVED, REJECTED]

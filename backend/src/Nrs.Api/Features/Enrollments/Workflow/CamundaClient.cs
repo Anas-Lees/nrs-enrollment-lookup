@@ -214,6 +214,21 @@ public sealed class CamundaClient(HttpClient http) : ICamundaClient
         return true;
     }
 
+    public async Task UnassignUserTaskAsync(long userTaskKey, CancellationToken cancellationToken)
+    {
+        // DELETE .../assignee clears the current assignee, returning the task to its candidate
+        // group. Gone/not-open (404/409) is fine — the database already owns the release.
+        using var response = await http.DeleteAsync(
+            $"v2/user-tasks/{userTaskKey.ToString(CultureInfo.InvariantCulture)}/assignee", cancellationToken);
+
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Conflict)
+        {
+            return;
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<bool> CompleteUserTaskAsync(long userTaskKey, object variables, CancellationToken cancellationToken)
     {
         var payload = new { variables };

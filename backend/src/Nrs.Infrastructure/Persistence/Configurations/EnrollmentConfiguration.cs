@@ -116,6 +116,16 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             .HasColumnName("ESCALATED_AT_UTC")
             .IsRequired(false);
 
+        builder.Property(e => e.AssignedTo)
+            .HasColumnName("ASSIGNED_TO")
+            .HasMaxLength(100)
+            .IsUnicode(false)
+            .IsRequired(false);
+
+        builder.Property(e => e.AssignedAtUtc)
+            .HasColumnName("ASSIGNED_AT_UTC")
+            .IsRequired(false);
+
         builder.Property(e => e.ScreeningFlags)
             .HasColumnName("SCREENING_FLAGS")
             .HasMaxLength(200)

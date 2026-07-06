@@ -42,6 +42,12 @@ public record EnrollmentDto
 
     public DateTimeOffset UpdatedAtUtc { get; init; }
 
+    /// <summary>Reviewer who has claimed this application, or null while it sits in the queue.</summary>
+    public string? AssignedTo { get; init; }
+
+    /// <summary>When the current assignee claimed it; null while unassigned.</summary>
+    public DateTimeOffset? AssignedAtUtc { get; init; }
+
     /// <summary>Who decided (a reviewer, or "auto-screening"), once the review concluded.</summary>
     public string? DecidedBy { get; init; }
 
@@ -82,6 +88,9 @@ public record EnrollmentSummaryDto
 
     public EnrollmentStatus Status { get; init; }
 
+    /// <summary>Reviewer who has claimed it, or null while unassigned (drives the queue's "handled by" chip).</summary>
+    public string? AssignedTo { get; init; }
+
     public DateTimeOffset CreatedAtUtc { get; init; }
 
     public DateTimeOffset UpdatedAtUtc { get; init; }
@@ -110,6 +119,8 @@ public static class EnrollmentMappingExtensions
         CreatedBy = e.CreatedBy,
         CreatedAtUtc = e.CreatedAtUtc,
         UpdatedAtUtc = e.UpdatedAtUtc,
+        AssignedTo = e.AssignedTo,
+        AssignedAtUtc = e.AssignedAtUtc,
         DecidedBy = e.DecidedBy,
         DecidedAtUtc = e.DecidedAtUtc,
         DecisionNotes = e.DecisionNotes,
@@ -129,6 +140,7 @@ public static class EnrollmentMappingExtensions
         NationalityCode = e.NationalityCode,
         Type = e.Type,
         Status = e.Status,
+        AssignedTo = e.AssignedTo,
         CreatedAtUtc = e.CreatedAtUtc,
         UpdatedAtUtc = e.UpdatedAtUtc,
         EscalatedAtUtc = e.EscalatedAtUtc,

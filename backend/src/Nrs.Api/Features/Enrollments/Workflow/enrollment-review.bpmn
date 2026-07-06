@@ -54,9 +54,9 @@
       <bpmn:incoming>Flow_Auto_End</bpmn:incoming>
     </bpmn:endEvent>
 
-    <bpmn:serviceTask id="Activity_MarkReview" name="Mark under review">
+    <bpmn:serviceTask id="Activity_MarkReview" name="Queue for review">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="mark-under-review" />
+        <zeebe:taskDefinition type="queue-for-review" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Gw_Review</bpmn:incoming>
       <bpmn:outgoing>Flow_Mark_Notify</bpmn:outgoing>

@@ -11,7 +11,7 @@ namespace Nrs.Api.Features.Enrollments.Workflow;
 /// handlers own the side effects — status writes to Oracle, and the staff notifications:
 /// <list type="bullet">
 ///   <item><c>screen-application</c> — automated registry checks; decides auto-approve vs review.</item>
-///   <item><c>mark-under-review</c> — SUBMITTED → UNDER_REVIEW.</item>
+///   <item><c>queue-for-review</c> — SUBMITTED → PENDING_REVIEW (into the shared queue, unassigned).</item>
 ///   <item><c>apply-approved</c> / <c>apply-rejected</c> — final status + decision audit fields,
 ///   and a "decided" notification back to the submitting operator.</item>
 ///   <item><c>send-notification</c> — process-driven notices (review queued → reviewers,
@@ -27,7 +27,7 @@ public sealed partial class EnrollmentProcessWorker(
 
     // BPMN zeebe:taskDefinition types.
     private const string ScreenJob = "screen-application";
-    private const string MarkUnderReviewJob = "mark-under-review";
+    private const string QueueForReviewJob = "queue-for-review";
     private const string ApplyApprovedJob = "apply-approved";
     private const string ApplyRejectedJob = "apply-rejected";
     private const string NotificationJob = "send-notification";
@@ -43,7 +43,7 @@ public sealed partial class EnrollmentProcessWorker(
         // One long-poll loop per job type, running concurrently for the life of the app.
         await Task.WhenAll(
             PollLoopAsync(ScreenJob, stoppingToken),
-            PollLoopAsync(MarkUnderReviewJob, stoppingToken),
+            PollLoopAsync(QueueForReviewJob, stoppingToken),
             PollLoopAsync(ApplyApprovedJob, stoppingToken),
             PollLoopAsync(ApplyRejectedJob, stoppingToken),
             PollLoopAsync(NotificationJob, stoppingToken));
@@ -166,7 +166,7 @@ public sealed partial class EnrollmentProcessWorker(
         object? outputVariables = job.Type switch
         {
             ScreenJob => await ScreenAsync(db, enrollment, stoppingToken),
-            MarkUnderReviewJob => await MarkUnderReviewAsync(db, enrollment, stoppingToken),
+            QueueForReviewJob => await QueueForReviewAsync(db, enrollment, stoppingToken),
             ApplyApprovedJob => await ApplyDecisionAsync(db, enrollment, job, approved: true, stoppingToken),
             ApplyRejectedJob => await ApplyDecisionAsync(db, enrollment, job, approved: false, stoppingToken),
             NotificationJob => await SendNotificationAsync(db, enrollment, job, stoppingToken),
@@ -198,14 +198,18 @@ public sealed partial class EnrollmentProcessWorker(
             : new { autoApprove = false, screeningFlags = result.Flags };
     }
 
-    private async Task<object?> MarkUnderReviewAsync(NrsDbContext db, Enrollment enrollment, CancellationToken ct)
+    /// <summary>
+    /// SUBMITTED → PENDING_REVIEW: the flagged application joins the shared queue, unassigned.
+    /// A reviewer takes ownership later by claiming it (PENDING_REVIEW → UNDER_REVIEW).
+    /// </summary>
+    private async Task<object?> QueueForReviewAsync(NrsDbContext db, Enrollment enrollment, CancellationToken ct)
     {
         if (enrollment.Status == EnrollmentStatus.SUBMITTED)
         {
-            enrollment.Status = EnrollmentStatus.UNDER_REVIEW;
+            enrollment.Status = EnrollmentStatus.PENDING_REVIEW;
             enrollment.UpdatedAtUtc = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
-            LogApplied(logger, enrollment.ReferenceNumber, EnrollmentStatus.UNDER_REVIEW);
+            LogApplied(logger, enrollment.ReferenceNumber, EnrollmentStatus.PENDING_REVIEW);
         }
 
         return null;
@@ -270,8 +274,11 @@ public sealed partial class EnrollmentProcessWorker(
             case "escalated":
                 // Skip when the review already concluded (the decision landed between the timer
                 // firing and this job running), and when this is a redelivered duplicate
-                // (EscalatedAtUtc doubles as the exactly-once marker).
-                if (enrollment.Status == EnrollmentStatus.UNDER_REVIEW && enrollment.EscalatedAtUtc is null)
+                // (EscalatedAtUtc doubles as the exactly-once marker). An overdue review is
+                // usually still PENDING_REVIEW (nobody claimed it), but a claimed-then-stalled
+                // one (UNDER_REVIEW) is overdue too — escalate either.
+                if (enrollment.Status is EnrollmentStatus.PENDING_REVIEW or EnrollmentStatus.UNDER_REVIEW
+                    && enrollment.EscalatedAtUtc is null)
                 {
                     enrollment.EscalatedAtUtc = now;
                     enrollment.UpdatedAtUtc = now;

@@ -53,6 +53,12 @@ public interface ICamundaClient
     Task<bool> AssignUserTaskAsync(long userTaskKey, string assignee, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Clears a user task's assignee, returning it to its candidate group — mirrors a "release
+    /// back to the queue". No-ops when the task is gone or not open (HTTP 404/409).
+    /// </summary>
+    Task UnassignUserTaskAsync(long userTaskKey, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Completes a user task with the given variables, advancing the process. Returns false
     /// when the task no longer exists / is not open (HTTP 404 or 409 — someone else finished
     /// it first); throws on any other error.

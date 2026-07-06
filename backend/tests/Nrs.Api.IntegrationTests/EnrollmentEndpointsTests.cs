@@ -28,16 +28,30 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
     }
 
     /// <summary>
-    /// Force an enrollment to UNDER_REVIEW directly in the database. The test host has no Camunda
-    /// or broker, so nothing advances SUBMITTED -> UNDER_REVIEW on its own; this stands in for that
-    /// transition so the decision endpoint (which requires UNDER_REVIEW) can be exercised.
+    /// Force an enrollment to UNDER_REVIEW, claimed by the given reviewer, directly in the
+    /// database. The test host has no Camunda or broker, so nothing screens/queues/claims on its
+    /// own; this stands in for "screened → queued → claimed" so the decision endpoint (which
+    /// requires UNDER_REVIEW owned by the caller) can be exercised. The unauthenticated test
+    /// client's identity is "anonymous", so that is the default assignee.
     /// </summary>
-    private async Task SetUnderReviewAsync(Guid id)
+    private async Task SetUnderReviewAsync(Guid id, string assignee = "anonymous")
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<NrsDbContext>();
         var enrollment = await db.Enrollments.FirstAsync(e => e.Id == id);
         enrollment.Status = EnrollmentStatus.UNDER_REVIEW;
+        enrollment.AssignedTo = assignee;
+        enrollment.AssignedAtUtc = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>Force an enrollment into the shared queue (PENDING_REVIEW, unassigned).</summary>
+    private async Task SetPendingReviewAsync(Guid id)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<NrsDbContext>();
+        var enrollment = await db.Enrollments.FirstAsync(e => e.Id == id);
+        enrollment.Status = EnrollmentStatus.PENDING_REVIEW;
         await db.SaveChangesAsync();
     }
 
@@ -238,19 +252,50 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
     }
 
     [OracleFact]
-    public async Task ReviewTasks_WithNoEngine_ListsUnderReviewEnrollments()
+    public async Task ReviewTasks_ListsPendingAndUnderReviewFromTheDatabase()
     {
         var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
             .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
-        await SetUnderReviewAsync(created!.Id);
+        await SetPendingReviewAsync(created!.Id);
 
         var response = await _client.GetAsync("/api/v1/review-tasks");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        // No Camunda in the test host: the list degrades to UNDER_REVIEW rows, keyless.
+        // The queue is driven by enrollment status, so a PENDING_REVIEW row shows up unassigned.
         Assert.Contains(created.ReferenceNumber, body);
-        Assert.Contains("\"userTaskKey\":null", body);
+        Assert.Contains("\"assignee\":null", body);
+    }
+
+    [OracleFact]
+    public async Task Claim_APendingReview_TakesOwnershipAndMovesToUnderReview()
+    {
+        var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
+            .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        await SetPendingReviewAsync(created!.Id);
+
+        var claim = await _client.PostAsync($"/api/v1/review-tasks/{created.Id}/claim", null);
+        Assert.Equal(HttpStatusCode.OK, claim.StatusCode);
+
+        // The claim stamps the assignee and advances the status; only then can it be decided.
+        var reread = await _client.GetFromJsonAsync<EnrollmentDto>(
+            $"/api/v1/enrollments/{created.Id}", JsonOptions);
+        Assert.Equal("UNDER_REVIEW", reread!.Status);
+        Assert.Equal("anonymous", reread.AssignedTo);
+    }
+
+    [OracleFact]
+    public async Task Decide_WhenClaimedBySomeoneElse_Returns403()
+    {
+        // Claimed by another reviewer: the caller ("anonymous") is not the assignee.
+        var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
+            .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        await SetUnderReviewAsync(created!.Id, assignee: "someone-else");
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/enrollments/{created.Id}/decision", new { approved = true });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [OracleFact]
@@ -335,6 +380,7 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
         public string NationalityCode { get; init; } = null!;
         public string Type { get; init; } = null!;
         public string Status { get; init; } = null!;
+        public string? AssignedTo { get; init; }
         public string? Notes { get; init; }
         public string? DecidedBy { get; init; }
         public DateTimeOffset? DecidedAtUtc { get; init; }

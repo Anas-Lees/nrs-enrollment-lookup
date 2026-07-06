@@ -31,6 +31,9 @@ public static class DecideEnrollment
         /// <summary>The enrollment is not under review, so it cannot be decided (409).</summary>
         NotUnderReview,
 
+        /// <summary>The caller is not the reviewer who claimed it, so may not decide it (403).</summary>
+        NotAssignee,
+
         /// <summary>Another reviewer decided first; this decision was NOT recorded (409).</summary>
         Conflict,
     }
@@ -71,6 +74,13 @@ public static class DecideEnrollment
             if (enrollment.Status != EnrollmentStatus.UNDER_REVIEW)
             {
                 return (Outcome.NotUnderReview, enrollment.ToDto());
+            }
+
+            // Ownership: only the reviewer who claimed it may decide it. A supervisor who wants
+            // to act on someone else's task must have it released back to the queue first.
+            if (!string.Equals(enrollment.AssignedTo, operatorName, StringComparison.Ordinal))
+            {
+                return (Outcome.NotAssignee, enrollment.ToDto());
             }
 
             var result = await workflow.DecideAsync(

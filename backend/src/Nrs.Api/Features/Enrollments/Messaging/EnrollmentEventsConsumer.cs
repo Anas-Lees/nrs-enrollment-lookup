@@ -93,7 +93,9 @@ public sealed partial class EnrollmentEventsConsumer(
             return; // already advanced, or gone
         }
 
-        enrollment.Status = EnrollmentStatus.UNDER_REVIEW;
+        // No engine here to screen or auto-approve, so a submitted application simply joins the
+        // shared review queue, unassigned, for a reviewer to claim (PENDING_REVIEW).
+        enrollment.Status = EnrollmentStatus.PENDING_REVIEW;
         enrollment.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync();
         LogUnderReview(logger, referenceNumber);
@@ -149,7 +151,7 @@ public sealed partial class EnrollmentEventsConsumer(
     [LoggerMessage(Level = LogLevel.Information, Message = "Enrollment review worker listening on {Queue}.")]
     private static partial void LogListening(ILogger logger, string queue);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Enrollment {ReferenceNumber} moved to UNDER_REVIEW.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Enrollment {ReferenceNumber} moved to PENDING_REVIEW.")]
     private static partial void LogUnderReview(ILogger logger, string referenceNumber);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Observed enrollment event {RoutingKey} (no action).")]

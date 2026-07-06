@@ -24,6 +24,7 @@ public static class EnrollmentServiceCollectionExtensions
         services.AddScoped<DecideEnrollment.Handler>();
         services.AddScoped<ReviewTasks.ListHandler>();
         services.AddScoped<ReviewTasks.ClaimHandler>();
+        services.AddScoped<ReviewTasks.ReleaseHandler>();
         services.AddScoped<Notifications.NotificationsFeature.ListHandler>();
         services.AddScoped<Notifications.NotificationsFeature.MarkReadHandler>();
         services.AddScoped<Reports.ReportsFeature.Handler>();

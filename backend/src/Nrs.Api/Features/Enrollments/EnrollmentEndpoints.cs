@@ -101,6 +101,10 @@ public static class EnrollmentEndpoints
                     DecideEnrollment.Outcome.NotFound => Results.Problem(
                         statusCode: StatusCodes.Status404NotFound,
                         title: "Enrollment not found", detail: $"No enrollment exists with id '{id}'."),
+                    DecideEnrollment.Outcome.NotAssignee => Results.Problem(
+                        statusCode: StatusCodes.Status403Forbidden,
+                        title: "Not your review",
+                        detail: "Only the reviewer who claimed this application can approve or reject it."),
                     DecideEnrollment.Outcome.Conflict => Results.Problem(
                         statusCode: StatusCodes.Status409Conflict,
                         title: "Decided by another reviewer",
@@ -112,10 +116,11 @@ public static class EnrollmentEndpoints
                 };
             })
             .AddEndpointFilter<ValidationFilter<DecideEnrollment.Request>>()
-            .WithSummary("Approve or reject an enrollment that is under review (reviewer role)")
+            .WithSummary("Approve or reject an enrollment you have claimed (assignee only)")
             .Produces<EnrollmentDto>()
             .Produces<EnrollmentDto>(StatusCodes.Status202Accepted)
             .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
         if (enforceRoles)
@@ -123,7 +128,10 @@ public static class EnrollmentEndpoints
             decide.RequireAuthorization("CanReview");
         }
 
-        // --- The reviewer work queue (Camunda user tasks) -------------------------------
+        // --- The reviewer work queue ----------------------------------------------------
+        // Ownership lives on the enrollment (status + assignee), so claim/release key off the
+        // enrollment id, not a Camunda task key. The list is the whole live pipeline; the SPA
+        // groups it into available / mine / with-others.
         var review = app.MapGroup("/api/v1/review-tasks")
             .WithTags("Review tasks")
             .RequireRateLimiting("lookup");
@@ -136,32 +144,54 @@ public static class EnrollmentEndpoints
                 ReviewTasks.ListHandler handler,
                 CancellationToken cancellationToken) =>
                 Results.Ok(await handler.HandleAsync(cancellationToken)))
-            .WithSummary("List open review tasks, oldest first (reviewer role)")
+            .WithSummary("List reviews in progress and waiting, oldest first (reviewer role)")
             .Produces<IReadOnlyList<ReviewTasks.ReviewTaskDto>>();
 
-        review.MapPost("{userTaskKey:long}/claim", async (
-                long userTaskKey,
+        review.MapPost("{id:guid}/claim", async (
+                Guid id,
                 ReviewTasks.ClaimHandler handler,
                 HttpContext http,
                 CancellationToken cancellationToken) =>
             {
-                var outcome = await handler.HandleAsync(
-                    userTaskKey, RequestUser.Username(http), cancellationToken);
+                var outcome = await handler.HandleAsync(id, RequestUser.Username(http), cancellationToken);
                 return outcome switch
                 {
                     ReviewTasks.ClaimOutcome.Claimed => Results.Ok(new { assignee = RequestUser.Username(http) }),
                     ReviewTasks.ClaimOutcome.Taken => Results.Problem(
                         statusCode: StatusCodes.Status409Conflict,
-                        title: "Task already claimed",
-                        detail: "Another reviewer claimed this task first, or it no longer exists."),
+                        title: "Already claimed",
+                        detail: "Another reviewer claimed this application first, or it is no longer waiting."),
                     _ => Results.Problem(statusCode: StatusCodes.Status404NotFound,
-                        title: "Task not found",
-                        detail: "No workflow engine is configured."),
+                        title: "Enrollment not found",
+                        detail: $"No enrollment exists with id '{id}'."),
                 };
             })
-            .WithSummary("Claim a review task (reviewer role)")
+            .WithSummary("Claim a pending review, taking ownership (reviewer role)")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
+
+        review.MapPost("{id:guid}/release", async (
+                Guid id,
+                ReviewTasks.ReleaseHandler handler,
+                HttpContext http,
+                CancellationToken cancellationToken) =>
+            {
+                var outcome = await handler.HandleAsync(id, RequestUser.Username(http), cancellationToken);
+                return outcome switch
+                {
+                    ReviewTasks.ReleaseOutcome.Released => Results.NoContent(),
+                    ReviewTasks.ReleaseOutcome.NotAssignee => Results.Problem(
+                        statusCode: StatusCodes.Status403Forbidden,
+                        title: "Not your review",
+                        detail: "Only the reviewer who claimed this application can release it."),
+                    _ => Results.Problem(statusCode: StatusCodes.Status404NotFound,
+                        title: "Enrollment not found",
+                        detail: $"No enrollment exists with id '{id}'."),
+                };
+            })
+            .WithSummary("Release a claimed review back to the queue (assignee only)")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         return app;
     }
