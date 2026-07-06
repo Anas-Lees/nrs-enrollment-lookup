@@ -254,6 +254,29 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
     }
 
     [OracleFact]
+    public async Task Reports_EnrollmentSummary_AggregatesADecidedApplication()
+    {
+        // A rejected application should show up in the report's decided/rejected tallies.
+        var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
+            .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        await SetUnderReviewAsync(created!.Id);
+        await _client.PostAsJsonAsync(
+            $"/api/v1/enrollments/{created.Id}/decision",
+            new { approved = false, notes = "Test rejection for the report." });
+
+        var report = await _client.GetFromJsonAsync<ReportDto>(
+            "/api/v1/reports/enrollment-summary?days=30", JsonOptions);
+
+        Assert.NotNull(report);
+        Assert.True(report!.Total >= 1);
+        Assert.True(report.Decided >= 1);
+        Assert.True(report.Rejected >= 1);
+        // Percentages are bounded, and the daily trend is populated.
+        Assert.InRange(report.ApprovalRatePct, 0, 100);
+        Assert.NotEmpty(report.Daily);
+    }
+
+    [OracleFact]
     public async Task Notifications_ListAndMarkAllRead_Work()
     {
         var list = await _client.GetFromJsonAsync<NotificationList>(
@@ -321,6 +344,15 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
     private sealed record NotificationList
     {
         public int UnreadCount { get; init; }
+    }
+
+    private sealed record ReportDto
+    {
+        public int Total { get; init; }
+        public int Decided { get; init; }
+        public int Rejected { get; init; }
+        public double ApprovalRatePct { get; init; }
+        public List<object> Daily { get; init; } = [];
     }
 
     private sealed record EnrollmentSummary

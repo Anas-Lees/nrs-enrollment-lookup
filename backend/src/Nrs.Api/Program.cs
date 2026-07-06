@@ -8,6 +8,7 @@ using Nrs.Api.Errors;
 using Nrs.Api.Extensions;
 using Nrs.Api.Features.Enrollments;
 using Nrs.Api.Features.Notifications;
+using Nrs.Api.Features.Reports;
 using Nrs.Api.Middleware;
 using Nrs.Infrastructure.Persistence;
 using Nrs.Infrastructure.Seed;
@@ -268,6 +269,9 @@ app.MapEnrollmentEndpoints(enforceRoles: authEnabled);
 
 // Staff notification bell (written by the review workflow's workers).
 app.MapNotificationEndpoints();
+
+// Enrollment analytics dashboard (aggregate KPIs from the review workflow) — supervisor-only.
+app.MapReportEndpoints(enforceRoles: authEnabled);
 
 // Health endpoints for probes — always reachable, even when auth is on.
 //   /health/live  — liveness: the process is up (no dependency checks).

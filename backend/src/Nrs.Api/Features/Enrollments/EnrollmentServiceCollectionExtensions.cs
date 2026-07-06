@@ -26,6 +26,7 @@ public static class EnrollmentServiceCollectionExtensions
         services.AddScoped<ReviewTasks.ClaimHandler>();
         services.AddScoped<Notifications.NotificationsFeature.ListHandler>();
         services.AddScoped<Notifications.NotificationsFeature.MarkReadHandler>();
+        services.AddScoped<Reports.ReportsFeature.Handler>();
 
         var rabbitMq = configuration.GetConnectionString("RabbitMq");
         var camundaAddress = configuration["Camunda:RestAddress"];
