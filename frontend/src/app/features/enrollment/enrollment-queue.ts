@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 
 import { TranslationService } from '../../core/i18n/translation.service';
+import { AuthService } from '../../core/services/auth.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { PagedResult } from '../../core/models/paged-result.model';
 import { EnrollmentStatus, EnrollmentSummary } from '../../core/models/enrollment.model';
@@ -25,6 +26,7 @@ import { AppDatePipe } from '../../shared/app-date.pipe';
 })
 export class EnrollmentQueue {
   protected readonly i18n = inject(TranslationService);
+  protected readonly auth = inject(AuthService);
   private readonly enrollments = inject(EnrollmentService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -106,26 +108,38 @@ export class EnrollmentQueue {
     this.router.navigate(['/enrollment', e.id, 'edit']);
   }
 
-  /** Only an under-review application can be approved or rejected. */
+  /** Only a reviewer can decide, and only an under-review application. */
   canDecide(e: EnrollmentSummary): boolean {
-    return e.status === 'UNDER_REVIEW';
+    return e.status === 'UNDER_REVIEW' && this.auth.isReviewer();
   }
 
-  /** Approve or reject a row, confirming first, then reloading the page to show the new status. */
+  /** Approve (confirm) or reject (with a mandatory reason), then reload to show the new status. */
   decide(e: EnrollmentSummary, approved: boolean, event: Event): void {
     event.stopPropagation();
     if (this.deciding()) {
       return;
     }
 
-    const key = approved ? 'queue.confirmApprove' : 'queue.confirmReject';
-    if (!window.confirm(this.i18n.t(key).replace('{ref}', e.referenceNumber))) {
-      return;
+    let notes: string | null = null;
+    if (approved) {
+      const msg = this.i18n.t('queue.confirmApprove').replace('{ref}', e.referenceNumber);
+      if (!window.confirm(msg)) {
+        return;
+      }
+    } else {
+      // Rejections need a reason for the applicant; the review screen has the richer form.
+      const reason = window.prompt(
+        this.i18n.t('queue.rejectReason').replace('{ref}', e.referenceNumber),
+      );
+      if (!reason?.trim()) {
+        return;
+      }
+      notes = reason.trim();
     }
 
     this.deciding.set(e.id);
     this.error.set(null);
-    this.enrollments.decide(e.id, approved).subscribe({
+    this.enrollments.decide(e.id, approved, notes).subscribe({
       next: () => {
         this.deciding.set(null);
         this.load(this.results()?.page ?? 1);

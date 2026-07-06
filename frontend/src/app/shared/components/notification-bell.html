@@ -1,0 +1,76 @@
+<div class="bell">
+  <button
+    type="button"
+    class="bell__button"
+    (click)="toggle()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-label]="i18n.t('notif.aria')"
+  >
+    <span aria-hidden="true">🔔</span>
+    <span class="bell__label">{{ i18n.t('notif.title') }}</span>
+    @if (notifications.unreadCount() > 0) {
+      <span class="bell__badge">{{ notifications.unreadCount() }}</span>
+    }
+  </button>
+
+  @if (open()) {
+    <div class="bell__panel" role="region" [attr.aria-label]="i18n.t('notif.title')">
+      <div class="bell__panel-head">
+        <span>{{ i18n.t('notif.title') }}</span>
+        <span class="bell__panel-actions">
+          @if (notifications.unreadCount() > 0) {
+            <button type="button" class="bell__link" (click)="markAll()">
+              {{ i18n.t('notif.markAll') }}
+            </button>
+          }
+          <button
+            type="button"
+            class="bell__link"
+            (click)="close()"
+            [attr.aria-label]="i18n.t('notif.close')"
+          >
+            ✕
+          </button>
+        </span>
+      </div>
+
+      @if (notifications.items().length === 0) {
+        <p class="bell__empty">{{ i18n.t('notif.empty') }}</p>
+      } @else {
+        <ul class="bell__list">
+          @for (n of notifications.items(); track n.id) {
+            <li>
+              <button
+                type="button"
+                class="bell__item"
+                [class.is-unread]="!n.readAtUtc"
+                (click)="markRead(n)"
+              >
+                <span class="bell__item-kind" [attr.data-kind]="n.kind" aria-hidden="true">
+                  @switch (n.kind) {
+                    @case ('review-queued') {
+                      📥
+                    }
+                    @case ('decided') {
+                      ✅
+                    }
+                    @case ('escalated') {
+                      ⏰
+                    }
+                    @default {
+                      ℹ️
+                    }
+                  }
+                </span>
+                <span class="bell__item-text">{{ message(n) }}</span>
+                @if (!n.readAtUtc) {
+                  <span class="bell__item-dot" aria-hidden="true"></span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</div>

@@ -9,6 +9,7 @@ import {
   EnrollmentRequest,
   EnrollmentStatus,
   EnrollmentSummary,
+  ReviewTask,
 } from '../models/enrollment.model';
 
 /**
@@ -53,12 +54,27 @@ export class EnrollmentService {
   }
 
   /**
-   * Approve or reject an enrollment that is under review. The API hands the decision to the
-   * Camunda workflow, which applies the resulting status; the returned DTO reflects it.
+   * Approve or reject an enrollment that is under review (reviewer role). The API completes
+   * the Camunda review task, which applies the resulting status; the returned DTO reflects
+   * it. A reason is required when rejecting.
    */
-  decide(id: string, approved: boolean): Observable<Enrollment> {
+  decide(id: string, approved: boolean, notes: string | null): Observable<Enrollment> {
     return this.http.post<Enrollment>(`${this.baseUrl}/${encodeURIComponent(id)}/decision`, {
       approved,
+      notes,
     });
+  }
+
+  /** Open review tasks (Camunda user tasks + their enrollments), oldest first. */
+  listReviewTasks(): Observable<ReviewTask[]> {
+    return this.http.get<ReviewTask[]>(`${APP_CONFIG.apiBaseUrl}/api/v1/review-tasks`);
+  }
+
+  /** Claim a review task for the signed-in reviewer. */
+  claimReviewTask(userTaskKey: string): Observable<{ assignee: string }> {
+    return this.http.post<{ assignee: string }>(
+      `${APP_CONFIG.apiBaseUrl}/api/v1/review-tasks/${encodeURIComponent(userTaskKey)}/claim`,
+      {},
+    );
   }
 }

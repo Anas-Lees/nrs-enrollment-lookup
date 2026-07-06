@@ -25,6 +25,13 @@
         <span class="nav-item__label">{{ i18n.t('nav.myQueue') }}</span>
       </a>
 
+      @if (auth.isReviewer()) {
+        <a class="nav-item" routerLink="/review" routerLinkActive="is-active">
+          <span class="nav-item__dot" aria-hidden="true"></span>
+          <span class="nav-item__label">{{ i18n.t('nav.reviewTasks') }}</span>
+        </a>
+      }
+
       @for (item of stubNav; track item) {
         <span class="nav-item is-disabled" aria-disabled="true">
           <span class="nav-item__dot" aria-hidden="true"></span>
@@ -35,6 +42,8 @@
     </nav>
 
     <div class="sidebar__footer">
+      <app-notification-bell />
+
       <button type="button" class="lang-toggle" (click)="i18n.toggle()">
         <span aria-hidden="true">🌐</span> {{ i18n.t('lang.toggle') }}
       </button>
@@ -47,7 +56,7 @@
       <div class="operator-card">
         <span class="operator-card__avatar" aria-hidden="true">OP</span>
         <span class="operator-card__meta">
-          <span class="operator-card__name">{{ i18n.t('operator.name') }}</span>
+          <span class="operator-card__name">{{ operatorName() }}</span>
           <span class="operator-card__status">
             @if (authActive()) {
               <span class="dot-online" aria-hidden="true"></span>

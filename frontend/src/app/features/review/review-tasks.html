@@ -1,0 +1,126 @@
+<section class="page">
+  <header class="review-head">
+    <h1>{{ i18n.t('review.title') }}</h1>
+    <p class="muted">{{ i18n.t('review.subtitle') }}</p>
+  </header>
+
+  @if (loading()) {
+    <p class="muted">{{ i18n.t('review.loading') }}</p>
+  } @else if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  } @else if (tasks().length === 0) {
+    <p class="empty">{{ i18n.t('review.empty') }}</p>
+  } @else {
+    <div class="task-list">
+      @for (t of tasks(); track t.enrollment.id) {
+        <article class="task-card" [class.is-escalated]="t.enrollment.escalatedAtUtc">
+          <div class="task-card__main">
+            <div class="task-card__id">
+              <span class="mono">{{ t.enrollment.referenceNumber }}</span>
+              @if (t.enrollment.escalatedAtUtc) {
+                <span class="chip chip--escalated">{{ i18n.t('review.escalated') }}</span>
+              }
+            </div>
+            <h2 class="task-card__name">{{ applicantName(t) }}</h2>
+            <dl class="task-card__meta">
+              <div>
+                <dt>{{ i18n.t('review.type') }}</dt>
+                <dd>{{ i18n.t('enroll.type.' + t.enrollment.type) }}</dd>
+              </div>
+              <div>
+                <dt>{{ i18n.t('review.dob') }}</dt>
+                <dd>{{ t.enrollment.dateOfBirth | appDate: i18n.lang() }}</dd>
+              </div>
+              @if (t.enrollment.civilNumber) {
+                <div>
+                  <dt>{{ i18n.t('review.crn') }}</dt>
+                  <dd class="mono">{{ t.enrollment.civilNumber }}</dd>
+                </div>
+              }
+              <div>
+                <dt>{{ i18n.t('review.waitingSince') }}</dt>
+                <dd>{{ t.taskCreatedAtUtc.substring(0, 10) | appDate: i18n.lang() }}</dd>
+              </div>
+              <div>
+                <dt>{{ i18n.t('review.assignee') }}</dt>
+                <dd>
+                  @if (claimState(t) === 'unclaimed') {
+                    <span class="muted">{{ i18n.t('review.unclaimed') }}</span>
+                  } @else {
+                    {{ t.assignee }}
+                  }
+                </dd>
+              </div>
+            </dl>
+
+            @if (t.enrollment.screeningFlags.length > 0) {
+              <div class="task-card__flags">
+                <span class="flags-label">{{ i18n.t('review.flags') }}</span>
+                @for (flag of t.enrollment.screeningFlags; track flag) {
+                  <span class="chip chip--flag">{{ i18n.t('flag.' + flag) }}</span>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="task-card__actions">
+            @if (claimState(t) === 'unclaimed' && t.userTaskKey) {
+              <button
+                type="button"
+                class="btn-secondary"
+                [disabled]="busy() !== null"
+                (click)="claim(t)"
+              >
+                {{ i18n.t('review.claim') }}
+              </button>
+            }
+            <button
+              type="button"
+              class="decide-btn decide-btn--approve"
+              [disabled]="busy() !== null"
+              (click)="approve(t)"
+            >
+              {{ i18n.t('review.approve') }}
+            </button>
+            <button
+              type="button"
+              class="decide-btn decide-btn--reject"
+              [disabled]="busy() !== null"
+              (click)="startReject(t)"
+            >
+              {{ i18n.t('review.reject') }}
+            </button>
+          </div>
+
+          @if (rejecting() === t.enrollment.id) {
+            <form class="reject-form" (ngSubmit)="submitReject(t)">
+              <label class="reject-form__label" for="reject-reason-{{ t.enrollment.id }}">
+                {{ i18n.t('review.notesLabel') }}
+              </label>
+              <textarea
+                id="reject-reason-{{ t.enrollment.id }}"
+                name="rejectReason"
+                rows="2"
+                maxlength="1000"
+                [(ngModel)]="rejectReason"
+                [placeholder]="i18n.t('review.notesPlaceholder')"
+              ></textarea>
+              <div class="reject-form__actions">
+                <button
+                  type="submit"
+                  class="decide-btn decide-btn--reject"
+                  [disabled]="!rejectReason.trim() || busy() !== null"
+                >
+                  {{ i18n.t('review.confirmRejectBtn') }}
+                </button>
+                <button type="button" class="link-btn" (click)="cancelReject()">
+                  {{ i18n.t('review.cancel') }}
+                </button>
+              </div>
+            </form>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

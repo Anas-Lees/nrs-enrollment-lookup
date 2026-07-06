@@ -45,6 +45,10 @@ codebase shows a layered feature (lookup) and a vertical-slice feature (enrollme
 
 ![Enrollment queue](docs/screenshots/enrollment-queue.png)
 
+**Review Tasks — the reviewer's work queue (Camunda user tasks): screening flags explain the routing, overdue reviews carry an escalation chip, and the staff notification bell keeps everyone informed**
+
+![Review tasks screen with screening flags, escalation chips and the notification panel](docs/screenshots/review-tasks.png)
+
 **Camunda Operate — the same review as a live BPMN process; the badge on _Await decision_ is the count of applications waiting for an operator**
 
 ![Camunda Operate showing the enrollment-review process with instances parked at the decision gateway](docs/screenshots/camunda-operate.png)
@@ -125,13 +129,18 @@ flowchart LR
 - New **enrollment** applications are created and edited through self-contained **vertical
   slices** (minimal-API endpoints + FluentValidation using EF Core directly). On submit the API
   publishes an event to **RabbitMQ** and starts the review process.
-- The review itself is an explicit **Camunda 8** BPMN process (`SUBMITTED → UNDER_REVIEW →
-  APPROVED | REJECTED`). The API is an external **job worker**: it deploys the model on startup,
-  long-polls for the service-task jobs, and applies each status change to Oracle — so Camunda owns
-  the *flow* and the app owns the *side effects*. An operator approves or rejects from the queue,
-  which correlates the decision message the process is waiting on. Camunda is feature-flagged: with
-  no engine configured, decisions apply directly to the database and the app runs unchanged — see
-  [ADR 0006](docs/adr/0006-camunda-workflow.md).
+- The review itself is an explicit **Camunda 8** BPMN process — a real human-in-the-loop
+  workflow. **Automated screening** (a service task) checks the registry: a clean renewal is
+  **auto-approved** in seconds (straight-through processing); anything flagged (unknown CRN,
+  name mismatch, duplicate pending, minor applicant) routes to a **reviewer user task** that
+  appears both in the app's Review Tasks screen and in Camunda Tasklist. A **boundary timer**
+  escalates overdue reviews to a supervisor, and **notification service tasks** keep staff
+  informed via the in-app bell. The API is an external **job worker**: Camunda owns the *flow*,
+  the app owns the *side effects* (Oracle status writes, notifications). Deciding requires the
+  **reviewer role**; rejections require a reason, and every decision is audited (who/when/why).
+  Camunda is feature-flagged: with no engine configured, decisions apply directly to the
+  database — see [ADR 0006](docs/adr/0006-camunda-workflow.md) and
+  [ADR 0007](docs/adr/0007-human-in-the-loop-review.md).
 
 Clean, layered architecture with dependencies pointing **inward**
 (`Api → Application → Domain`; `Infrastructure` wired at the composition root) — see
@@ -170,23 +179,31 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   actor O as Operator
+  actor R as Reviewer
   participant S as Angular SPA
   participant E as Enrollment slice
   participant DB as Oracle
   participant C as Camunda 8
-  participant W as Job worker
+  participant W as Job workers
   O->>S: Fill new-enrollment form, Submit
   S->>E: POST /api/v1/enrollments
   E->>DB: INSERT enrollment (SUBMITTED)
   E->>C: start enrollment-review instance
   E-->>S: 201 Created
-  C-->>W: mark-under-review job
-  W->>DB: UPDATE status to UNDER_REVIEW
-  O->>S: Click Approve / Reject
-  S->>E: POST /enrollments/{id}/decision
-  E->>C: correlate enrollment-decision
-  C-->>W: apply-approved / apply-rejected job
-  W->>DB: UPDATE status to APPROVED / REJECTED
+  C-->>W: screen-application job (registry checks)
+  alt clean renewal
+    C-->>W: apply-approved (auto-screening)
+    W->>DB: APPROVED, notify operator
+  else flagged
+    C-->>W: mark-under-review + notify reviewers
+    W->>DB: UNDER_REVIEW (+ screening flags)
+    Note over C: reviewer user task (escalation timer runs)
+    R->>S: Review Tasks: claim, then approve/reject + reason
+    S->>E: POST /enrollments/{id}/decision
+    E->>C: complete the user task
+    C-->>W: apply-approved / apply-rejected
+    W->>DB: APPROVED / REJECTED (+ decidedBy, notes), notify operator
+  end
 ```
 
 ---
@@ -199,7 +216,7 @@ sequenceDiagram
 | Backend      | ASP.NET Core (.NET 10) — layered (lookup) + vertical slices (enrollment) |
 | Data access  | Entity Framework Core (Oracle)                                       |
 | Messaging    | RabbitMQ — enrollment events (best-effort, feature-flagged)          |
-| Workflow     | Camunda 8 (BPMN) — enrollment review, REST `/v2` job worker          |
+| Workflow     | Camunda 8 (BPMN) — screening, reviewer user tasks, SLA timers (`/v2`) |
 | API docs     | OpenAPI (contract-first) rendered with Scalar                        |
 | Identity     | Keycloak (OIDC / JWT) — feature-flagged                              |
 | Quality      | xUnit, Playwright; unit · integration · contract · architecture · e2e |
@@ -233,9 +250,17 @@ One command runs everything: Angular SPA → API on **Oracle**, with **Keycloak*
 docker compose up --build
 ```
 
-- App: **http://localhost:4200** — redirects to Keycloak to log in (**operator1 / Operator1234**)
+- App: **http://localhost:4200** — redirects to Keycloak to log in:
+
+  | User | Password | Roles | Can |
+  | ---- | -------- | ----- | --- |
+  | `operator1` | `Operator1234` | operator | search, create/edit enrollments |
+  | `reviewer1` | `Reviewer1234` | operator + reviewer | + claim and decide review tasks |
+  | `supervisor1` | `Supervisor12` | operator + reviewer + supervisor | + receives SLA escalations |
+
 - API docs (Scalar): http://localhost:5000/scalar · Keycloak admin: http://localhost:8081 (admin / admin)
-- Camunda Operate (live BPMN process instances): http://localhost:8088 (**demo / demo**)
+- Camunda Operate + Tasklist (live BPMN instances & user tasks): http://localhost:8088 (**demo / demo**)
+- Demo SLA: an unactioned review escalates to a supervisor after **2 minutes** (configurable; 48 h prod-shaped default)
 
 First start takes a few minutes (Oracle initialises; the API waits for it, then creates the
 schema and seeds 100 persons). Auth is enabled for the container SPA via a mounted
@@ -274,7 +299,9 @@ migrations on startup, and seeds 100 persons (each with ID cards + passports) ou
 | `GET /api/v1/persons/{crn}` | Full profile incl. ID cards + passports |
 | `POST /api/v1/enrollments` · `PUT /api/v1/enrollments/{id}` | Create / edit an enrollment (starts the review workflow) |
 | `GET /api/v1/enrollments?status&page&pageSize` · `GET /api/v1/enrollments/{id}` | List (queue) / fetch one enrollment |
-| `POST /api/v1/enrollments/{id}/decision` | Approve / reject an under-review enrollment (correlates the Camunda decision) |
+| `POST /api/v1/enrollments/{id}/decision` | Approve / reject an under-review enrollment (reviewer role; reason required to reject) |
+| `GET /api/v1/review-tasks` · `POST /api/v1/review-tasks/{key}/claim` | The reviewer work queue (Camunda user tasks) |
+| `GET /api/v1/notifications` · `POST .../read` · `POST .../read-all` | Staff notification bell (review queued / decided / escalated) |
 | `GET /api/v1/audit/recent` | Recent audit-trail entries (operator-only) |
 | `GET /health/live` · `/health/ready` · `/health` | Liveness · readiness (DB) · full health |
 

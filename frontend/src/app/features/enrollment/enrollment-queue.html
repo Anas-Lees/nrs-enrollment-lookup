@@ -47,7 +47,12 @@
                 <td class="mono">{{ e.referenceNumber }}</td>
                 <td>{{ applicantName(e) }}</td>
                 <td>{{ i18n.t('enroll.type.' + e.type) }}</td>
-                <td><app-status-badge [status]="e.status" /></td>
+                <td>
+                  <app-status-badge [status]="e.status" />
+                  @if (e.escalatedAtUtc && e.status === 'UNDER_REVIEW') {
+                    <span class="chip-escalated">{{ i18n.t('queue.escalated') }}</span>
+                  }
+                </td>
                 <td>{{ e.createdAtUtc.substring(0, 10) | appDate: i18n.lang() }}</td>
                 <td class="col-actions">
                   <div class="row-actions">

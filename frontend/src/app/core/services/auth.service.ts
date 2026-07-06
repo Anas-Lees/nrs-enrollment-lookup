@@ -25,9 +25,32 @@ export class AuthService {
     : null;
 
   private readonly authed = signal(false);
+  private readonly realmRoles = signal<string[]>([]);
 
   /** True when auth is off, or when a valid session exists. */
   readonly isAuthenticated = computed(() => !this.enabled || this.authed());
+
+  /**
+   * The signed-in user's realm roles. With auth disabled (open POC) every role is granted,
+   * so one person can walk the whole operator → reviewer → supervisor journey.
+   */
+  readonly roles = computed<string[]>(() =>
+    this.enabled ? this.realmRoles() : ['operator', 'reviewer', 'supervisor'],
+  );
+
+  /** Reviewers decide applications; the review screen and queue actions are theirs. */
+  readonly isReviewer = computed(() => this.roles().includes('reviewer'));
+
+  /**
+   * The username the API sees for this session. With auth off the API resolves every caller
+   * as "anonymous", so we must match it — otherwise claim states ("mine" vs "other") would
+   * never line up in POC mode.
+   */
+  readonly username = computed(() =>
+    this.enabled ? (this.tokenUsername() ?? 'operator') : 'anonymous',
+  );
+
+  private readonly tokenUsername = signal<string | null>(null);
 
   /** Restore an existing session without forcing a redirect. Called at startup. */
   async init(): Promise<void> {
@@ -42,6 +65,15 @@ export class AuthService {
       checkLoginIframe: false,
     });
     this.authed.set(authenticated);
+    this.readTokenClaims();
+  }
+
+  /** Pull roles + username out of the parsed access token. */
+  private readTokenClaims(): void {
+    const parsed = this.keycloak?.tokenParsed as
+      { realm_access?: { roles?: string[] }; preferred_username?: string } | undefined;
+    this.realmRoles.set(parsed?.realm_access?.roles ?? []);
+    this.tokenUsername.set(parsed?.preferred_username ?? null);
   }
 
   getToken(): string | null {
@@ -60,6 +92,7 @@ export class AuthService {
     }
     try {
       await this.keycloak.updateToken(30);
+      this.readTokenClaims();
     } catch {
       void this.keycloak.login();
       return null;

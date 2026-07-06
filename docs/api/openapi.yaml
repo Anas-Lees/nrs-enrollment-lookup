@@ -337,11 +337,12 @@ paths:
     post:
       tags: [Enrollments]
       operationId: decideEnrollment
-      summary: Approve or reject an enrollment that is under review
+      summary: Approve or reject an enrollment that is under review (reviewer role)
       description: >
-        Records an operator's decision on an under-review enrollment. The decision is handed to
-        the review workflow (Camunda when configured, otherwise applied directly), which sets the
-        status to APPROVED or REJECTED. Only an enrollment currently UNDER_REVIEW can be decided.
+        Records a reviewer's decision on an under-review enrollment. A reason is required when
+        rejecting. The decision completes the Camunda review user task (or is applied directly
+        with no engine), which sets the status to APPROVED or REJECTED and stamps the decision
+        audit trail (decidedBy / decidedAtUtc / decisionNotes). Requires the reviewer role.
       parameters:
         - name: id
           in: path
@@ -383,6 +384,120 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+
+  /api/v1/review-tasks:
+    get:
+      tags: [Review tasks]
+      operationId: listReviewTasks
+      summary: List open review tasks, oldest first (reviewer role)
+      description: >
+        The reviewer's work queue: open Camunda review user tasks joined with their
+        enrollments. With no engine configured the list degrades to the UNDER_REVIEW
+        enrollments straight from the database (userTaskKey is then null).
+      responses:
+        "200":
+          description: Open review tasks, oldest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReviewTask"
+
+  /api/v1/review-tasks/{userTaskKey}/claim:
+    post:
+      tags: [Review tasks]
+      operationId: claimReviewTask
+      summary: Claim a review task for the signed-in reviewer (reviewer role)
+      parameters:
+        - name: userTaskKey
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The task is now assigned to the caller.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assignee:
+                    type: string
+        "404":
+          description: No workflow engine is configured, or the task no longer exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /api/v1/notifications:
+    get:
+      tags: [Notifications]
+      operationId: listNotifications
+      summary: List the caller's notifications (newest first) with the unread count
+      description: >
+        Notifications are addressed to a username (e.g. the operator who submitted an
+        application) or to a role (reviewer, supervisor); the caller sees the union of both.
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: The caller's notifications.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationList"
+
+  /api/v1/notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      operationId: markNotificationRead
+      summary: Mark one notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Marked read.
+        "404":
+          description: No notification with that id is addressed to the caller.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /api/v1/notifications/read-all:
+    post:
+      tags: [Notifications]
+      operationId: markAllNotificationsRead
+      summary: Mark all of the caller's notifications as read
+      responses:
+        "200":
+          description: How many notifications were marked.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  marked:
+                    type: integer
 
 components:
   schemas:
@@ -658,13 +773,82 @@ components:
 
     DecisionRequest:
       type: object
-      description: An operator's approve/reject decision on an under-review enrollment.
+      description: A reviewer's approve/reject decision on an under-review enrollment.
       required: [approved]
       properties:
         approved:
           type: boolean
           description: True to approve the application, false to reject it.
           example: true
+        notes:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Reviewer's reasoning — required when rejecting, optional when approving.
+          example: "Photo does not match the registry record."
+
+    ReviewTask:
+      type: object
+      description: One open item in the reviewer's work queue (a Camunda user task + its enrollment).
+      required: [taskCreatedAtUtc, enrollment]
+      properties:
+        userTaskKey:
+          type: string
+          nullable: true
+          description: Camunda user-task key (a string — int64), or null when no engine is configured.
+          example: "2251799813689085"
+        assignee:
+          type: string
+          nullable: true
+          description: Reviewer who claimed the task, or null while unclaimed.
+        taskCreatedAtUtc:
+          type: string
+          format: date-time
+        enrollment:
+          $ref: "#/components/schemas/Enrollment"
+
+    Notification:
+      type: object
+      description: One staff notification written by the enrollment review workflow.
+      required: [id, kind, messageEn, messageAr, createdAtUtc]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          description: Discriminator for icon/wording.
+          enum: [review-queued, decided, escalated]
+        enrollmentId:
+          type: string
+          format: uuid
+          nullable: true
+        referenceNumber:
+          type: string
+          nullable: true
+        messageEn:
+          type: string
+        messageAr:
+          type: string
+        createdAtUtc:
+          type: string
+          format: date-time
+        readAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+
+    NotificationList:
+      type: object
+      description: The bell payload — latest notifications plus the unread total for the badge.
+      required: [items, unreadCount]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        unreadCount:
+          type: integer
 
     EnrollmentSummary:
       type: object
@@ -713,6 +897,11 @@ components:
         updatedAtUtc:
           type: string
           format: date-time
+        escalatedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+          description: Set when the review breached its SLA and a supervisor was notified.
 
     Enrollment:
       description: Full enrollment application.
@@ -731,6 +920,29 @@ components:
               type: string
               description: Operator who created the application.
               example: "operator1"
+            decidedBy:
+              type: string
+              nullable: true
+              description: Who decided — a reviewer's username, or "auto-screening".
+            decidedAtUtc:
+              type: string
+              format: date-time
+              nullable: true
+            decisionNotes:
+              type: string
+              nullable: true
+              description: Reviewer's reasoning — always present for rejections.
+            screeningFlags:
+              type: array
+              description: Why automated screening routed this to a human (empty when clean).
+              items:
+                type: string
+                enum:
+                  - CRN_NOT_FOUND
+                  - REGISTRY_RECORD_NOT_ACTIVE
+                  - NAME_MISMATCH
+                  - DUPLICATE_PENDING
+                  - MINOR_APPLICANT
 
     PagedResultOfEnrollmentSummary:
       type: object
