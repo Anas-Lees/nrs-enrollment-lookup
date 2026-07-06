@@ -97,11 +97,24 @@ public sealed class CamundaClient(HttpClient http) : ICamundaClient
                 }
             }
 
+            var headers = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (job.TryGetProperty("customHeaders", out var ch) && ch.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var property in ch.EnumerateObject())
+                {
+                    if (property.Value.ValueKind == JsonValueKind.String)
+                    {
+                        headers[property.Name] = property.Value.GetString()!;
+                    }
+                }
+            }
+
             jobs.Add(new CamundaJob(
                 ParseKey(job.GetProperty("jobKey").GetString()),
                 job.GetProperty("type").GetString()!,
                 ParseKey(job.GetProperty("processInstanceKey").GetString()),
-                variables));
+                variables,
+                headers));
         }
 
         return jobs;
@@ -124,6 +137,91 @@ public sealed class CamundaClient(HttpClient http) : ICamundaClient
         // a brief window where the enrollment already reads UNDER_REVIEW but the message-catch
         // subscription has not opened — a transient race, not a hard failure. Let the caller retry.
         if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    public async Task<IReadOnlyList<CamundaUserTask>> SearchUserTasksAsync(
+        string state, string? processDefinitionId, long? processInstanceKey, CancellationToken cancellationToken)
+    {
+        // Only include the filters the caller supplied — the API rejects null filter values.
+        var filter = new Dictionary<string, object> { ["state"] = state };
+        if (processDefinitionId is not null)
+        {
+            filter["processDefinitionId"] = processDefinitionId;
+        }
+
+        if (processInstanceKey is not null)
+        {
+            filter["processInstanceKey"] = processInstanceKey.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        var payload = new Dictionary<string, object> { ["filter"] = filter, ["page"] = new { limit = 100 } };
+        using var response = await http.PostAsJsonAsync("v2/user-tasks/search", payload, Json, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        if (!doc.RootElement.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var tasks = new List<CamundaUserTask>(items.GetArrayLength());
+        foreach (var item in items.EnumerateArray())
+        {
+            var groups = new List<string>();
+            if (item.TryGetProperty("candidateGroups", out var cg) && cg.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var g in cg.EnumerateArray())
+                {
+                    if (g.GetString() is { } name)
+                    {
+                        groups.Add(name);
+                    }
+                }
+            }
+
+            tasks.Add(new CamundaUserTask(
+                ParseKey(item.GetProperty("userTaskKey").GetString()),
+                item.GetProperty("elementId").GetString()!,
+                item.TryGetProperty("assignee", out var a) && a.ValueKind == JsonValueKind.String ? a.GetString() : null,
+                ParseKey(item.GetProperty("processInstanceKey").GetString()),
+                item.GetProperty("creationDate").GetDateTimeOffset(),
+                groups));
+        }
+
+        return tasks;
+    }
+
+    public async Task<bool> AssignUserTaskAsync(long userTaskKey, string assignee, CancellationToken cancellationToken)
+    {
+        // allowOverride:false — claiming must not silently steal a colleague's task.
+        var payload = new { assignee, allowOverride = false };
+        using var response = await http.PostAsJsonAsync(
+            $"v2/user-tasks/{userTaskKey.ToString(CultureInfo.InvariantCulture)}/assignment", payload, Json, cancellationToken);
+
+        // Already claimed by someone else (409) or gone (404): the caller reports the conflict.
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Conflict)
+        {
+            return false;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    public async Task<bool> CompleteUserTaskAsync(long userTaskKey, object variables, CancellationToken cancellationToken)
+    {
+        var payload = new { variables };
+        using var response = await http.PostAsJsonAsync(
+            $"v2/user-tasks/{userTaskKey.ToString(CultureInfo.InvariantCulture)}/completion", payload, Json, cancellationToken);
+
+        // Gone or already completed/claimed-away: the caller decides how to react.
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Conflict)
         {
             return false;
         }

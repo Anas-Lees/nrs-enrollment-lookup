@@ -90,6 +90,38 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
         builder.Property(e => e.UpdatedAtUtc)
             .HasColumnName("UPDATED_AT_UTC");
 
+        // Review workflow columns — all nullable (added to a populated table; Oracle
+        // rejects mandatory columns there, see ORA-01758).
+        builder.Property(e => e.ProcessInstanceKey)
+            .HasColumnName("PROCESS_INSTANCE_KEY")
+            .IsRequired(false);
+
+        builder.Property(e => e.DecidedBy)
+            .HasColumnName("DECIDED_BY")
+            .HasMaxLength(100)
+            .IsUnicode(false)
+            .IsRequired(false);
+
+        builder.Property(e => e.DecidedAtUtc)
+            .HasColumnName("DECIDED_AT_UTC")
+            .IsRequired(false);
+
+        builder.Property(e => e.DecisionNotes)
+            .HasColumnName("DECISION_NOTES")
+            .HasMaxLength(1000)
+            .IsUnicode(true)
+            .IsRequired(false);
+
+        builder.Property(e => e.EscalatedAtUtc)
+            .HasColumnName("ESCALATED_AT_UTC")
+            .IsRequired(false);
+
+        builder.Property(e => e.ScreeningFlags)
+            .HasColumnName("SCREENING_FLAGS")
+            .HasMaxLength(200)
+            .IsUnicode(false)
+            .IsRequired(false);
+
         // Reference number is the human-facing unique handle for the application.
         builder.HasIndex(e => e.ReferenceNumber)
             .IsUnique()

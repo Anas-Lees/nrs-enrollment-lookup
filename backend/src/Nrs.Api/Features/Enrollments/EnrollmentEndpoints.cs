@@ -12,7 +12,12 @@ namespace Nrs.Api.Features.Enrollments;
 /// </summary>
 public static class EnrollmentEndpoints
 {
-    public static IEndpointRouteBuilder MapEnrollmentEndpoints(this IEndpointRouteBuilder app)
+    /// <summary>
+    /// <paramref name="enforceRoles"/> is true when auth is on: deciding and reviewing then
+    /// require the <c>reviewer</c> role ("CanReview" policy), not just any operator. With auth
+    /// off (local POC) no authorization middleware runs, so no policy metadata is attached.
+    /// </summary>
+    public static IEndpointRouteBuilder MapEnrollmentEndpoints(this IEndpointRouteBuilder app, bool enforceRoles)
     {
         var group = app.MapGroup("/api/v1/enrollments")
             .WithTags("Enrollments")
@@ -24,7 +29,7 @@ public static class EnrollmentEndpoints
                 HttpContext http,
                 CancellationToken cancellationToken) =>
             {
-                var dto = await handler.HandleAsync(request, ResolveOperator(http), cancellationToken);
+                var dto = await handler.HandleAsync(request, RequestUser.Username(http), cancellationToken);
                 return Results.Created($"/api/v1/enrollments/{dto.Id}", dto);
             })
             .AddEndpointFilter<ValidationFilter<CreateEnrollment.Request>>()
@@ -67,7 +72,7 @@ public static class EnrollmentEndpoints
                 HttpContext http,
                 CancellationToken cancellationToken) =>
             {
-                var dto = await handler.HandleAsync(id, request, ResolveOperator(http), cancellationToken);
+                var dto = await handler.HandleAsync(id, request, RequestUser.Username(http), cancellationToken);
                 return dto is null
                     ? Results.Problem(statusCode: StatusCodes.Status404NotFound,
                         title: "Enrollment not found", detail: $"No enrollment exists with id '{id}'.")
@@ -79,7 +84,7 @@ public static class EnrollmentEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        group.MapPost("{id:guid}/decision", async (
+        var decide = group.MapPost("{id:guid}/decision", async (
                 Guid id,
                 DecideEnrollment.Request request,
                 DecideEnrollment.Handler handler,
@@ -87,7 +92,7 @@ public static class EnrollmentEndpoints
                 CancellationToken cancellationToken) =>
             {
                 var (outcome, enrollment) = await handler.HandleAsync(
-                    id, request, ResolveOperator(http), cancellationToken);
+                    id, request, RequestUser.Username(http), cancellationToken);
                 return outcome switch
                 {
                     DecideEnrollment.Outcome.Applied => Results.Ok(enrollment),
@@ -96,24 +101,68 @@ public static class EnrollmentEndpoints
                     DecideEnrollment.Outcome.NotFound => Results.Problem(
                         statusCode: StatusCodes.Status404NotFound,
                         title: "Enrollment not found", detail: $"No enrollment exists with id '{id}'."),
+                    DecideEnrollment.Outcome.Conflict => Results.Problem(
+                        statusCode: StatusCodes.Status409Conflict,
+                        title: "Decided by another reviewer",
+                        detail: "Another reviewer decided this application first; your decision was not recorded."),
                     _ => Results.Problem(
                         statusCode: StatusCodes.Status409Conflict,
                         title: "Enrollment is not under review",
                         detail: "Only an enrollment that is currently under review can be approved or rejected."),
                 };
             })
-            .WithSummary("Approve or reject an enrollment that is under review")
+            .AddEndpointFilter<ValidationFilter<DecideEnrollment.Request>>()
+            .WithSummary("Approve or reject an enrollment that is under review (reviewer role)")
             .Produces<EnrollmentDto>()
             .Produces<EnrollmentDto>(StatusCodes.Status202Accepted)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        if (enforceRoles)
+        {
+            decide.RequireAuthorization("CanReview");
+        }
+
+        // --- The reviewer work queue (Camunda user tasks) -------------------------------
+        var review = app.MapGroup("/api/v1/review-tasks")
+            .WithTags("Review tasks")
+            .RequireRateLimiting("lookup");
+        if (enforceRoles)
+        {
+            review.RequireAuthorization("CanReview");
+        }
+
+        review.MapGet("", async (
+                ReviewTasks.ListHandler handler,
+                CancellationToken cancellationToken) =>
+                Results.Ok(await handler.HandleAsync(cancellationToken)))
+            .WithSummary("List open review tasks, oldest first (reviewer role)")
+            .Produces<IReadOnlyList<ReviewTasks.ReviewTaskDto>>();
+
+        review.MapPost("{userTaskKey:long}/claim", async (
+                long userTaskKey,
+                ReviewTasks.ClaimHandler handler,
+                HttpContext http,
+                CancellationToken cancellationToken) =>
+            {
+                var outcome = await handler.HandleAsync(
+                    userTaskKey, RequestUser.Username(http), cancellationToken);
+                return outcome switch
+                {
+                    ReviewTasks.ClaimOutcome.Claimed => Results.Ok(new { assignee = RequestUser.Username(http) }),
+                    ReviewTasks.ClaimOutcome.Taken => Results.Problem(
+                        statusCode: StatusCodes.Status409Conflict,
+                        title: "Task already claimed",
+                        detail: "Another reviewer claimed this task first, or it no longer exists."),
+                    _ => Results.Problem(statusCode: StatusCodes.Status404NotFound,
+                        title: "Task not found",
+                        detail: "No workflow engine is configured."),
+                };
+            })
+            .WithSummary("Claim a review task (reviewer role)")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         return app;
     }
-
-    /// <summary>Authenticated operator's username, or "anonymous" when auth is off.</summary>
-    private static string ResolveOperator(HttpContext http) =>
-        http.User.FindFirst("preferred_username")?.Value
-        ?? http.User.Identity?.Name
-        ?? "anonymous";
 }

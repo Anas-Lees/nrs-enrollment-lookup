@@ -158,6 +158,16 @@ public static class ServiceCollectionExtensions
                 .RequireAuthenticatedUser()
                 .RequireRole(OperatorRole)
                 .Build();
+
+            // Stepped-up policies for the review workflow: any operator can capture and edit
+            // applications, but only reviewers may decide them, and supervisors own
+            // escalations. Endpoints opt in via RequireAuthorization("CanReview"/"CanSupervise").
+            options.AddPolicy("CanReview", policy => policy
+                .RequireAuthenticatedUser()
+                .RequireRole(Features.RequestUser.ReviewerRole));
+            options.AddPolicy("CanSupervise", policy => policy
+                .RequireAuthenticatedUser()
+                .RequireRole(Features.RequestUser.SupervisorRole));
         });
 
         return true;

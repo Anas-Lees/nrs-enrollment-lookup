@@ -21,7 +21,15 @@
     "realm": [
       {
         "name": "operator",
-        "description": "Enrollment counter operator"
+        "description": "Enrollment counter operator — captures and edits applications"
+      },
+      {
+        "name": "reviewer",
+        "description": "Back-office reviewer — claims and decides enrollment reviews"
+      },
+      {
+        "name": "supervisor",
+        "description": "Supervisor — receives and handles escalated reviews"
       }
     ]
   },
@@ -76,6 +84,40 @@
         }
       ],
       "realmRoles": ["operator"]
+    },
+    {
+      "username": "reviewer1",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "reviewer1@nrs.example.om",
+      "firstName": "Demo",
+      "lastName": "Reviewer",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Reviewer1234",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["operator", "reviewer"]
+    },
+    {
+      "username": "supervisor1",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "supervisor1@nrs.example.om",
+      "firstName": "Demo",
+      "lastName": "Supervisor",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Supervisor12",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["operator", "reviewer", "supervisor"]
     }
   ]
 }

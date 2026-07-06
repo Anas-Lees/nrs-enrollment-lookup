@@ -46,4 +46,28 @@ public class Enrollment
     public DateTimeOffset CreatedAtUtc { get; set; }
 
     public DateTimeOffset UpdatedAtUtc { get; set; }
+
+    // --- Review workflow (Camunda) ------------------------------------------------------
+    // All nullable: they arrive as the review progresses, and Oracle cannot add mandatory
+    // columns to a populated table anyway.
+
+    /// <summary>Key of the Camunda process instance orchestrating this review, when one exists.</summary>
+    public long? ProcessInstanceKey { get; set; }
+
+    /// <summary>Who decided: a reviewer's username, or "auto-screening" for straight-through approvals.</summary>
+    public string? DecidedBy { get; set; }
+
+    public DateTimeOffset? DecidedAtUtc { get; set; }
+
+    /// <summary>Reviewer's reasoning — required for rejections, optional for approvals.</summary>
+    public string? DecisionNotes { get; set; }
+
+    /// <summary>Set when the review sat unactioned past the SLA and a supervisor was notified.</summary>
+    public DateTimeOffset? EscalatedAtUtc { get; set; }
+
+    /// <summary>
+    /// Comma-separated screening flag tokens (e.g. "CRN_NOT_FOUND,DUPLICATE_PENDING") — why
+    /// the automated screening routed this application to a human. Null when clean.
+    /// </summary>
+    public string? ScreeningFlags { get; set; }
 }

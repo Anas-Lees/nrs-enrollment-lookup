@@ -18,16 +18,20 @@ public interface IEnrollmentWorkflow
     Task OnSubmittedAsync(Enrollment enrollment, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Records an operator's approve/reject decision and returns the enrollment as it stands
-    /// afterwards. The caller has already checked the enrollment exists and is under review.
+    /// Records a reviewer's approve/reject decision (with who decided and their notes) and
+    /// returns the enrollment as it stands afterwards. The caller has already checked the
+    /// enrollment exists and is under review.
     /// </summary>
-    Task<DecisionResult> DecideAsync(Guid enrollmentId, bool approved, CancellationToken cancellationToken);
+    Task<DecisionResult> DecideAsync(
+        Guid enrollmentId, bool approved, string decidedBy, string? notes, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// The result of a decision: the enrollment as it stands, and whether its status has actually
-/// <paramref name="Settled"/> to APPROVED/REJECTED. With Camunda the status is applied
-/// asynchronously by the job worker, so a decision can be accepted but not yet settled — the
-/// direct-to-database fallback always settles synchronously.
+/// The result of a decision: the enrollment as it stands, whether its status has actually
+/// <paramref name="Settled"/> to APPROVED/REJECTED, and whether this caller's decision was
+/// actually <paramref name="Recorded"/>. With Camunda the status is applied asynchronously by
+/// the job worker, so a decision can be accepted but not yet settled; and when two reviewers
+/// race for the same task, the loser's decision is NOT recorded — the caller must report that
+/// honestly (409) rather than pretend the loser's choice won.
 /// </summary>
-public sealed record DecisionResult(EnrollmentDto Enrollment, bool Settled);
+public sealed record DecisionResult(EnrollmentDto Enrollment, bool Settled, bool Recorded = true);

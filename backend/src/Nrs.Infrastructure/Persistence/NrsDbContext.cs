@@ -25,6 +25,8 @@ public class NrsDbContext(DbContextOptions<NrsDbContext> options) : DbContext(op
 
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
 
+    public DbSet<Notification> Notifications => Set<Notification>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Apply every IEntityTypeConfiguration in this assembly (Person/IdCard/Passport).

@@ -41,6 +41,20 @@ public record EnrollmentDto
     public DateTimeOffset CreatedAtUtc { get; init; }
 
     public DateTimeOffset UpdatedAtUtc { get; init; }
+
+    /// <summary>Who decided (a reviewer, or "auto-screening"), once the review concluded.</summary>
+    public string? DecidedBy { get; init; }
+
+    public DateTimeOffset? DecidedAtUtc { get; init; }
+
+    /// <summary>Reviewer's reasoning — always present for rejections.</summary>
+    public string? DecisionNotes { get; init; }
+
+    /// <summary>Set when the review breached its SLA and a supervisor was notified.</summary>
+    public DateTimeOffset? EscalatedAtUtc { get; init; }
+
+    /// <summary>Why automated screening routed this to a human (empty when clean).</summary>
+    public IReadOnlyList<string> ScreeningFlags { get; init; } = [];
 }
 
 /// <summary>
@@ -71,6 +85,9 @@ public record EnrollmentSummaryDto
     public DateTimeOffset CreatedAtUtc { get; init; }
 
     public DateTimeOffset UpdatedAtUtc { get; init; }
+
+    /// <summary>Set when the review breached its SLA (drives the "escalated" chip in the queue).</summary>
+    public DateTimeOffset? EscalatedAtUtc { get; init; }
 }
 
 /// <summary>Maps the <see cref="Enrollment"/> entity to its outbound DTOs.</summary>
@@ -93,6 +110,11 @@ public static class EnrollmentMappingExtensions
         CreatedBy = e.CreatedBy,
         CreatedAtUtc = e.CreatedAtUtc,
         UpdatedAtUtc = e.UpdatedAtUtc,
+        DecidedBy = e.DecidedBy,
+        DecidedAtUtc = e.DecidedAtUtc,
+        DecisionNotes = e.DecisionNotes,
+        EscalatedAtUtc = e.EscalatedAtUtc,
+        ScreeningFlags = string.IsNullOrEmpty(e.ScreeningFlags) ? [] : e.ScreeningFlags.Split(','),
     };
 
     public static EnrollmentSummaryDto ToSummaryDto(this Enrollment e) => new()
@@ -109,5 +131,6 @@ public static class EnrollmentMappingExtensions
         Status = e.Status,
         CreatedAtUtc = e.CreatedAtUtc,
         UpdatedAtUtc = e.UpdatedAtUtc,
+        EscalatedAtUtc = e.EscalatedAtUtc,
     };
 }

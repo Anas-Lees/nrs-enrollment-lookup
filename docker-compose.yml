@@ -119,6 +119,9 @@ services:
     volumes:
       - camunda-data:/usr/local/camunda/data
     ports:
+      # LOCAL DEMO ONLY: the /v2 REST API is unprotected (see camunda-config below), and it can
+      # complete review tasks — anyone who can reach this port can decide enrollments. Never
+      # expose it like this beyond localhost; production puts Camunda behind its own OIDC.
       - "8088:8080"     # REST API (/v2) + Operate / Tasklist UI (login demo / demo)
       - "26500:26500"   # Zeebe gRPC (unused — we use the REST API)
       - "9600:9600"     # health / actuator
@@ -155,6 +158,8 @@ services:
       # When set, Camunda owns the review lifecycle; the simple RabbitMQ review consumer
       # steps aside. The worker connects with retry, so a slow Camunda boot is fine.
       Camunda__RestAddress: "http://camunda:8080"
+      # Demo-friendly SLA: reviews escalate to a supervisor after 2 minutes (prod default: 48h).
+      Camunda__ReviewEscalationAfter: "PT2M"
       Auth__Enabled: "true"
       Auth__Authority: http://localhost:8081/realms/nrs
       Auth__Audience: nrs-api

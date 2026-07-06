@@ -205,7 +205,27 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
     }
 
     [OracleFact]
-    public async Task Decide_Reject_WhenUnderReview_Returns200_Rejected()
+    public async Task Decide_Reject_WhenUnderReview_Returns200_Rejected_WithAudit()
+    {
+        var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
+            .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        await SetUnderReviewAsync(created!.Id);
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/enrollments/{created.Id}/decision",
+            new { approved = false, notes = "Photo does not match the registry record." });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var dto = await response.Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        Assert.Equal("REJECTED", dto!.Status);
+        // The decision audit trail: who, when and why.
+        Assert.Equal("anonymous", dto.DecidedBy);
+        Assert.NotNull(dto.DecidedAtUtc);
+        Assert.Equal("Photo does not match the registry record.", dto.DecisionNotes);
+    }
+
+    [OracleFact]
+    public async Task Decide_Reject_WithoutReason_Returns400()
     {
         var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
             .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
@@ -214,9 +234,38 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
         var response = await _client.PostAsJsonAsync(
             $"/api/v1/enrollments/{created.Id}/decision", new { approved = false });
 
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [OracleFact]
+    public async Task ReviewTasks_WithNoEngine_ListsUnderReviewEnrollments()
+    {
+        var created = await (await _client.PostAsJsonAsync("/api/v1/enrollments", NewApplicant()))
+            .Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
+        await SetUnderReviewAsync(created!.Id);
+
+        var response = await _client.GetAsync("/api/v1/review-tasks");
+
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var dto = await response.Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
-        Assert.Equal("REJECTED", dto!.Status);
+        var body = await response.Content.ReadAsStringAsync();
+        // No Camunda in the test host: the list degrades to UNDER_REVIEW rows, keyless.
+        Assert.Contains(created.ReferenceNumber, body);
+        Assert.Contains("\"userTaskKey\":null", body);
+    }
+
+    [OracleFact]
+    public async Task Notifications_ListAndMarkAllRead_Work()
+    {
+        var list = await _client.GetFromJsonAsync<NotificationList>(
+            "/api/v1/notifications?limit=5", JsonOptions);
+        Assert.NotNull(list);
+
+        var readAll = await _client.PostAsync("/api/v1/notifications/read-all", null);
+        Assert.Equal(HttpStatusCode.OK, readAll.StatusCode);
+
+        var after = await _client.GetFromJsonAsync<NotificationList>(
+            "/api/v1/notifications", JsonOptions);
+        Assert.Equal(0, after!.UnreadCount);
     }
 
     [OracleFact]
@@ -264,6 +313,14 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
         public string Type { get; init; } = null!;
         public string Status { get; init; } = null!;
         public string? Notes { get; init; }
+        public string? DecidedBy { get; init; }
+        public DateTimeOffset? DecidedAtUtc { get; init; }
+        public string? DecisionNotes { get; init; }
+    }
+
+    private sealed record NotificationList
+    {
+        public int UnreadCount { get; init; }
     }
 
     private sealed record EnrollmentSummary

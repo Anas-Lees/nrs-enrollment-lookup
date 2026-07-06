@@ -6,96 +6,184 @@ using Nrs.Infrastructure.Persistence;
 namespace Nrs.Api.Features.Enrollments.Workflow;
 
 /// <summary>
-/// Drives the enrollment review through Camunda 8. Submitting starts a
-/// <c>enrollment-review</c> process instance; deciding correlates the <c>enrollment-decision</c>
-/// message the instance is waiting on. The actual status writes are done by
-/// <see cref="EnrollmentProcessWorker"/> as it completes the process's service-task jobs, so
-/// after correlating we briefly wait for that write to land before returning — giving the
-/// operator a synchronous-feeling result for what is really an asynchronous engine.
+/// Drives the enrollment review through Camunda 8. Submitting starts an
+/// <c>enrollment-review</c> process instance (whose key is remembered on the enrollment row);
+/// deciding completes the reviewer <em>user task</em> the instance is waiting on. The actual
+/// status writes are done by <see cref="EnrollmentProcessWorker"/> as it completes the
+/// process's service-task jobs, so after completing the task we briefly wait for that write
+/// to land before returning — giving the reviewer a synchronous-feeling result for what is
+/// really an asynchronous engine.
 /// </summary>
 public sealed partial class CamundaEnrollmentWorkflow(
     ICamundaClient camunda,
     NrsDbContext db,
+    IConfiguration configuration,
     ILogger<CamundaEnrollmentWorkflow> logger) : IEnrollmentWorkflow
 {
-    /// <summary>The BPMN process id (see enrollment-review.bpmn) and its decision message name.</summary>
+    /// <summary>The BPMN process id and the reviewer user-task element (see enrollment-review.bpmn).</summary>
     public const string ProcessId = "enrollment-review";
-    public const string DecisionMessage = "enrollment-decision";
+    public const string ReviewTaskElementId = "Activity_Review";
 
     public async Task OnSubmittedAsync(Enrollment enrollment, CancellationToken cancellationToken)
     {
         try
         {
+            // The escalation SLA rides on the instance so the BPMN timer can read it.
+            // Production-shaped default; the demo compose sets a couple of minutes.
+            var escalationAfter = configuration["Camunda:ReviewEscalationAfter"] ?? "PT48H";
+
             var instanceKey = await camunda.CreateProcessInstanceAsync(
                 ProcessId,
-                // enrollmentId is the message correlation key (see the BPMN subscription).
-                new { enrollmentId = enrollment.Id.ToString(), referenceNumber = enrollment.ReferenceNumber },
+                new
+                {
+                    enrollmentId = enrollment.Id.ToString(),
+                    referenceNumber = enrollment.ReferenceNumber,
+                    submittedBy = enrollment.CreatedBy,
+                    escalationAfter,
+                },
                 cancellationToken);
+
+            // Remember the instance so the decision endpoint can find the review user task
+            // without guessing (searching by variables is slower and lag-prone).
+            enrollment.ProcessInstanceKey = instanceKey;
+            await db.SaveChangesAsync(cancellationToken);
             LogStarted(logger, enrollment.ReferenceNumber, instanceKey);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
             // Best-effort, like the event publisher: the enrollment is already saved, so a
             // Camunda blip must not fail the operator's request. It simply stays SUBMITTED.
+            // Note the filter: an HttpClient timeout throws TaskCanceledException (an
+            // OperationCanceledException), so filtering on the exception TYPE would let an
+            // engine hang escape and 500 the create — only real caller cancellation may.
             LogStartFailed(logger, enrollment.ReferenceNumber, ex);
         }
     }
 
-    public async Task<DecisionResult> DecideAsync(Guid enrollmentId, bool approved, CancellationToken cancellationToken)
+    public async Task<DecisionResult> DecideAsync(
+        Guid enrollmentId, bool approved, string decidedBy, string? notes, CancellationToken cancellationToken)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+        var enrollment = await db.Enrollments.FirstAsync(e => e.Id == enrollmentId, cancellationToken);
 
-        // Correlate the decision message. Just after the process starts there is a brief window
-        // where the enrollment already reads UNDER_REVIEW but the message-catch subscription has
-        // not opened yet (404). Retry briefly rather than failing the operator's click — the real
-        // race is sub-second, so a persistent 404 means no instance is waiting at all.
-        var correlateDeadline = DateTimeOffset.UtcNow.AddSeconds(2);
-        var correlated = false;
-        while (!correlated && DateTimeOffset.UtcNow < correlateDeadline)
+        // Find the open reviewer task on this enrollment's process instance. The search is
+        // Elasticsearch-backed, so a just-created task can lag a moment — retry briefly. If
+        // Camunda itself is unreachable, the reviewer's decision must not be lost: degrade to
+        // the direct write, same as the orphan path.
+        CamundaUserTask? reviewTask = null;
+        var camundaHealthy = true;
+        if (enrollment.ProcessInstanceKey is { } instanceKey)
         {
-            correlated = await camunda.CorrelateMessageAsync(
-                DecisionMessage, enrollmentId.ToString(), new { approved }, cancellationToken);
-            if (!correlated)
+            try
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken);
+                var searchDeadline = DateTimeOffset.UtcNow.AddSeconds(3);
+                while (reviewTask is null && DateTimeOffset.UtcNow < searchDeadline)
+                {
+                    var tasks = await camunda.SearchUserTasksAsync(
+                        "CREATED", ProcessId, instanceKey, cancellationToken);
+                    reviewTask = tasks.FirstOrDefault(t => t.ElementId == ReviewTaskElementId);
+                    if (reviewTask is null)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken);
+                    }
+                }
+            }
+            catch (Exception ex) when (
+                ex is HttpRequestException or TaskCanceledException
+                && !cancellationToken.IsCancellationRequested)
+            {
+                camundaHealthy = false;
+                LogEngineUnavailable(logger, enrollment.ReferenceNumber, ex.Message);
             }
         }
 
-        if (!correlated)
+        if (reviewTask is null)
         {
-            // No instance is waiting for this decision. That means the enrollment is orphaned —
-            // it reached UNDER_REVIEW outside Camunda (the RabbitMQ-consumer era, or its instance
-            // was lost to an engine restart). The operator's decision must still count, so apply
-            // it directly to the database, exactly like the no-engine fallback.
-            LogOrphanedDecision(logger, enrollmentId);
-            var enrollmentToSettle = await db.Enrollments
-                .FirstAsync(e => e.Id == enrollmentId, cancellationToken);
-            enrollmentToSettle.Status = approved ? EnrollmentStatus.APPROVED : EnrollmentStatus.REJECTED;
-            enrollmentToSettle.UpdatedAtUtc = DateTimeOffset.UtcNow;
-            await db.SaveChangesAsync(cancellationToken);
-            return new DecisionResult(enrollmentToSettle.ToDto(), Settled: true);
+            // No task is waiting: the enrollment reached UNDER_REVIEW outside Camunda, its
+            // instance was lost to an engine restart, or the engine is down right now. The
+            // reviewer's decision still counts, so apply it directly.
+            if (camundaHealthy)
+            {
+                LogOrphanedDecision(logger, enrollmentId);
+            }
+
+            return await ApplyDirectlyAsync(enrollment, approved, decidedBy, notes, cancellationToken);
         }
 
-        // The worker applies APPROVED/REJECTED as it completes the follow-on job — normally
-        // sub-second. Poll a fresh read briefly so the response reflects the settled status.
-        Enrollment enrollment;
+        bool completed;
+        try
+        {
+            completed = await camunda.CompleteUserTaskAsync(
+                reviewTask.UserTaskKey,
+                new { approved, decidedBy, decisionNotes = notes },
+                cancellationToken);
+        }
+        catch (Exception ex) when (
+            ex is HttpRequestException or TaskCanceledException
+            && !cancellationToken.IsCancellationRequested)
+        {
+            LogEngineUnavailable(logger, enrollment.ReferenceNumber, ex.Message);
+            return await ApplyDirectlyAsync(enrollment, approved, decidedBy, notes, cancellationToken);
+        }
+
+        if (!completed)
+        {
+            // Another reviewer finished the task between our search and completion. THEIR
+            // decision stands; this one was never recorded — report the conflict honestly
+            // (after a short poll so the response carries the winner's settled outcome).
+            LogLostRace(logger, enrollment.ReferenceNumber);
+            var losing = await PollForSettleAsync(enrollmentId, deadline, cancellationToken);
+            return losing with { Recorded = false };
+        }
+
+        return await PollForSettleAsync(enrollmentId, deadline, cancellationToken);
+    }
+
+    /// <summary>
+    /// The worker applies APPROVED/REJECTED as it completes the follow-on job — normally
+    /// sub-second. Poll a fresh read briefly so the response reflects the settled status.
+    /// </summary>
+    private async Task<DecisionResult> PollForSettleAsync(
+        Guid enrollmentId, DateTimeOffset deadline, CancellationToken cancellationToken)
+    {
+        Enrollment current;
         do
         {
-            enrollment = await db.Enrollments.AsNoTracking()
+            current = await db.Enrollments.AsNoTracking()
                 .FirstAsync(e => e.Id == enrollmentId, cancellationToken);
-            if (enrollment.Status is EnrollmentStatus.APPROVED or EnrollmentStatus.REJECTED)
+            if (current.Status is EnrollmentStatus.APPROVED or EnrollmentStatus.REJECTED)
             {
-                return new DecisionResult(enrollment.ToDto(), Settled: true);
+                return new DecisionResult(current.ToDto(), Settled: true);
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken);
         }
         while (DateTimeOffset.UtcNow < deadline);
 
-        // Correlated, but the status write has not landed yet: accepted, not settled. The queue
-        // list will show the final status on its next refresh.
+        // Accepted, but the status write has not landed yet. The queue catches up on refresh.
         LogDecisionPending(logger, enrollmentId);
-        return new DecisionResult(enrollment.ToDto(), Settled: false);
+        return new DecisionResult(current.ToDto(), Settled: false);
+    }
+
+    private async Task<DecisionResult> ApplyDirectlyAsync(
+        Enrollment enrollment, bool approved, string decidedBy, string? notes, CancellationToken cancellationToken)
+    {
+        // Someone else settled it while we were degrading — their decision stands.
+        if (enrollment.Status is EnrollmentStatus.APPROVED or EnrollmentStatus.REJECTED)
+        {
+            return new DecisionResult(enrollment.ToDto(), Settled: true, Recorded: false);
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        enrollment.Status = approved ? EnrollmentStatus.APPROVED : EnrollmentStatus.REJECTED;
+        enrollment.DecidedBy = decidedBy;
+        enrollment.DecisionNotes = notes;
+        enrollment.DecidedAtUtc = now;
+        enrollment.UpdatedAtUtc = now;
+        // The Camunda worker normally tells the submitting operator; on the direct path we do.
+        db.Notifications.Add(DecisionNotifications.Decided(enrollment, now));
+        await db.SaveChangesAsync(cancellationToken);
+        return new DecisionResult(enrollment.ToDto(), Settled: true);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Started Camunda review for enrollment {ReferenceNumber} (instance {InstanceKey}).")]
@@ -104,9 +192,15 @@ public sealed partial class CamundaEnrollmentWorkflow(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not start Camunda review for enrollment {ReferenceNumber} (best-effort; enrollment already saved).")]
     private static partial void LogStartFailed(ILogger logger, string referenceNumber, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Decision for enrollment {EnrollmentId} correlated but the status had not settled yet.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Decision for enrollment {EnrollmentId} was recorded but the status had not settled yet.")]
     private static partial void LogDecisionPending(ILogger logger, Guid enrollmentId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "No Camunda instance was waiting for a decision on enrollment {EnrollmentId} (orphaned); applied it directly to the database.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No Camunda review task was waiting for enrollment {EnrollmentId} (orphaned); applied the decision directly to the database.")]
     private static partial void LogOrphanedDecision(ILogger logger, Guid enrollmentId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Review task for enrollment {ReferenceNumber} was completed by someone else first.")]
+    private static partial void LogLostRace(ILogger logger, string referenceNumber);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Camunda unreachable while deciding enrollment {ReferenceNumber} ({Error}); applying the decision directly.")]
+    private static partial void LogEngineUnavailable(ILogger logger, string referenceNumber, string error);
 }

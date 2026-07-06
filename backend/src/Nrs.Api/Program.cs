@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Nrs.Api.Errors;
 using Nrs.Api.Extensions;
 using Nrs.Api.Features.Enrollments;
+using Nrs.Api.Features.Notifications;
 using Nrs.Api.Middleware;
 using Nrs.Infrastructure.Persistence;
 using Nrs.Infrastructure.Seed;
@@ -261,8 +262,12 @@ app.UseRateLimiter();
 
 app.MapControllers();
 
-// Enrollment vertical-slice endpoints (minimal APIs under /api/v1/enrollments).
-app.MapEnrollmentEndpoints();
+// Enrollment vertical-slice endpoints (minimal APIs under /api/v1/enrollments and
+// /api/v1/review-tasks). Role policies (reviewer/supervisor) apply only with auth on.
+app.MapEnrollmentEndpoints(enforceRoles: authEnabled);
+
+// Staff notification bell (written by the review workflow's workers).
+app.MapNotificationEndpoints();
 
 // Health endpoints for probes — always reachable, even when auth is on.
 //   /health/live  — liveness: the process is up (no dependency checks).
