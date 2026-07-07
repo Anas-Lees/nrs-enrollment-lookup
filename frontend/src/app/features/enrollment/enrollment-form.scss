@@ -1,6 +1,8 @@
 .page {
-  // Use the full content width (the form has many two-column rows) instead of a narrow column.
-  max-width: 1120px;
+  // A centred, comfortable column — the form reads as one tidy card between the sidebar and the
+  // page edge, rather than a full-bleed sheet with the fields stretched too wide.
+  max-width: 860px;
+  margin-inline: auto;
 }
 
 .topbar {

@@ -39,25 +39,41 @@
   }
 
   &__panel {
-    // Fixed, not absolute: the sidebar scrolls (overflow-y: auto), which would clip an
-    // absolutely-positioned panel to the sidebar's 256px width. Fixed positioning escapes
-    // that clip; logical inset keeps it on the sidebar's side in RTL too.
+    // A dropdown that opens *upward* from the bell (the bell lives near the bottom of the
+    // sidebar). Fixed, not absolute: the sidebar scrolls (overflow-y: auto), which would clip an
+    // absolutely-positioned panel to the sidebar's width. Fixed positioning escapes that clip;
+    // logical insets keep it on the sidebar's side in RTL too. The bottom is anchored just above
+    // the Notifications button; the panel grows up to a capped height, then scrolls internally.
     position: fixed;
-    inset-block-start: 1.5rem;
-    inset-block-end: 5rem;
+    inset-block-end: 14.25rem;
     inset-inline-start: 0.75rem;
     // Above every page element (the date-of-birth picker and any select popups).
     z-index: 200;
-    width: 22rem;
+    width: 20rem;
     max-width: calc(100vw - 1.5rem);
-    // Stretch the full available height instead of cutting off mid-list; the list inside scrolls.
+    max-height: min(60vh, 26rem);
     display: flex;
     flex-direction: column;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    box-shadow: 0 12px 32px rgb(0 0 0 / 25%);
+    box-shadow: 0 14px 36px rgb(0 0 0 / 28%);
     overflow: hidden;
+    // Rise into place — reinforces that it drops up from the button.
+    transform-origin: bottom left;
+    animation: bell-pop 0.13s ease-out;
+  }
+
+  @keyframes bell-pop {
+    from {
+      opacity: 0;
+      transform: translateY(0.4rem) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
   &__panel-head {

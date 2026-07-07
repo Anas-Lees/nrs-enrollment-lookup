@@ -1,5 +1,8 @@
 .page {
+  // Centre the record between the sidebar and the page edge so the cards sit as a balanced
+  // column instead of hugging the left with empty space on the right.
   max-width: 960px;
+  margin-inline: auto;
 }
 
 .back-link {
