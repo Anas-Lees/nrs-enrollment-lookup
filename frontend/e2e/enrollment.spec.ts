@@ -37,6 +37,6 @@ test.describe('Enrollment — create and queue', () => {
 
     // Submitting navigates to the queue, where the new enrollment is listed.
     await expect(page).toHaveURL(/\/enrollment\/queue/);
-    await expect(page.locator('.queue-table')).toContainText(family);
+    await expect(page.locator('.q-list')).toContainText(family);
   });
 });
