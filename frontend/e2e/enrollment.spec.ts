@@ -17,6 +17,7 @@ test.describe('Enrollment — create and queue', () => {
     await page.locator('#familyNameEn').fill(family);
     await page.locator('#firstNameAr').fill('اختبار');
     await page.locator('#familyNameAr').fill('تجريبي');
+    await page.locator('#gender').selectOption('M');
 
     // Custom date picker: open, step back one month (a guaranteed past date), pick the 15th.
     await page.locator('.df__input').click();
