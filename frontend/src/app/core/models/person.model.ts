@@ -50,6 +50,22 @@ export interface UpdateContactDetailsRequest {
   email: string | null;
 }
 
+/** Residential address, edited independently of contact. */
+export interface UpdateAddressRequest {
+  governorate: string;
+  wilayat: string;
+  village: string | null;
+  street: string | null;
+  buildingNumber: string | null;
+  postalCode: string | null;
+}
+
+/** Contact details, edited independently of the address. */
+export interface UpdateContactRequest {
+  mobile: string | null;
+  email: string | null;
+}
+
 export interface IdCard {
   idCardId: number;
   civilNumber: string;

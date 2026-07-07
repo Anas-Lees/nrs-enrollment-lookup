@@ -216,22 +216,16 @@
   font-size: 0.85rem;
 }
 
-// The edit form takes the full width of the panels grid.
-.panel--edit {
-  grid-column: 1 / -1;
-}
-
-.contact-form {
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
+// In-place edit form inside a panel — fields stack vertically so the 3-panel grid is kept.
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 
   &__actions {
     display: flex;
-    gap: 0.75rem;
-    margin-top: 1.25rem;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
   }
 }
 
@@ -264,8 +258,8 @@
   }
 }
 
-.contact-form .form-error {
-  margin: 1rem 0 0;
+.edit-form .form-error {
+  margin: 0.2rem 0 0;
   padding: 0.6rem 0.8rem;
   border-radius: var(--radius-sm);
   background: rgb(140 29 43 / 8%);
@@ -274,7 +268,7 @@
   font-size: 0.85rem;
 }
 
-.contact-form__actions {
+.edit-form__actions {
   .btn-primary,
   .btn-secondary {
     border-radius: var(--radius-sm);

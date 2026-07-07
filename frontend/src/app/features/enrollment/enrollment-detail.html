@@ -137,6 +137,36 @@
           <dt>{{ i18n.t('detail.nationality') }}</dt>
           <dd>{{ e.nationalityCode }}</dd>
         </div>
+        @if (e.placeOfBirthEn || e.placeOfBirthAr) {
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.placeOfBirth') }}</dt>
+            <dd>{{ pick(e.placeOfBirthEn, e.placeOfBirthAr) }}</dd>
+          </div>
+        }
+        @if (e.motherNameEn || e.motherNameAr) {
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.motherName') }}</dt>
+            <dd>{{ pick(e.motherNameEn, e.motherNameAr) }}</dd>
+          </div>
+        }
+        @if (e.maritalStatus) {
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.maritalStatus') }}</dt>
+            <dd>{{ i18n.t('marital.' + e.maritalStatus) }}</dd>
+          </div>
+        }
+        @if (e.bloodType) {
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.bloodType') }}</dt>
+            <dd>{{ e.bloodType }}</dd>
+          </div>
+        }
+        @if (e.occupationEn || e.occupationAr) {
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.occupation') }}</dt>
+            <dd>{{ pick(e.occupationEn, e.occupationAr) }}</dd>
+          </div>
+        }
         <div class="kv__row">
           <dt>{{ i18n.t('detail.type') }}</dt>
           <dd>{{ i18n.t('enroll.type.' + e.type) }}</dd>
@@ -149,6 +179,87 @@
         </div>
       }
     </section>
+
+    <!-- Captured address -->
+    @if (hasAddress(e)) {
+      <section class="detail-card">
+        <h2>{{ i18n.t('enroll.section.address') }}</h2>
+        <dl class="kv kv--grid">
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.governorate') }}</dt>
+            <dd>{{ e.governorate ?? '—' }}</dd>
+          </div>
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.wilayat') }}</dt>
+            <dd>{{ e.wilayat ?? '—' }}</dd>
+          </div>
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.village') }}</dt>
+            <dd>{{ e.village ?? '—' }}</dd>
+          </div>
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.street') }}</dt>
+            <dd>{{ e.street ?? '—' }}</dd>
+          </div>
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.building') }}</dt>
+            <dd>{{ e.buildingNumber ?? '—' }}</dd>
+          </div>
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.postalCode') }}</dt>
+            <dd>{{ e.postalCode ?? '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+
+    <!-- Captured contact -->
+    @if (hasContact(e)) {
+      <section class="detail-card">
+        <h2>{{ i18n.t('enroll.section.contact') }}</h2>
+        <dl class="kv kv--grid">
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.mobile') }}</dt>
+            <dd class="mono" dir="ltr">{{ e.mobile ?? '—' }}</dd>
+          </div>
+          <div class="kv__row">
+            <dt>{{ i18n.t('profile.email') }}</dt>
+            <dd dir="ltr">{{ e.email ?? '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+
+    <!-- Captured passport -->
+    @if (e.passportNumber) {
+      <section class="detail-card">
+        <h2>{{ i18n.t('enroll.section.passport') }}</h2>
+        <dl class="kv kv--grid">
+          <div class="kv__row">
+            <dt>{{ i18n.t('enroll.field.passportNumber') }}</dt>
+            <dd class="mono" dir="ltr">{{ e.passportNumber }}</dd>
+          </div>
+          @if (e.passportType) {
+            <div class="kv__row">
+              <dt>{{ i18n.t('enroll.field.passportType') }}</dt>
+              <dd>{{ i18n.t('passportType.' + e.passportType) }}</dd>
+            </div>
+          }
+          @if (e.passportIssueDate) {
+            <div class="kv__row">
+              <dt>{{ i18n.t('enroll.field.passportIssue') }}</dt>
+              <dd>{{ e.passportIssueDate | appDate: i18n.lang() }}</dd>
+            </div>
+          }
+          @if (e.passportExpiryDate) {
+            <div class="kv__row">
+              <dt>{{ i18n.t('enroll.field.passportExpiry') }}</dt>
+              <dd>{{ e.passportExpiryDate | appDate: i18n.lang() }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+    }
 
     <!-- Why it was routed to a human -->
     @if (e.screeningFlags.length > 0) {

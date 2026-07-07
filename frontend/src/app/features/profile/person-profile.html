@@ -74,99 +74,82 @@
         </dl>
       </section>
 
-      @if (editing()) {
-        <section class="panel panel--edit">
-          <h2>{{ i18n.t('profile.edit.title') }}</h2>
-          <form class="contact-form" (ngSubmit)="save()" #f="ngForm">
-            <div class="contact-form__grid">
-              <label class="cf-field">
-                <span>{{ i18n.t('profile.governorate') }} *</span>
-                <select name="governorate" [(ngModel)]="form.governorate" required>
-                  <option value="" disabled>{{ i18n.t('profile.edit.selectGovernorate') }}</option>
-                  @for (g of governorates; track g.value) {
-                    <option [value]="g.value">{{ governorateLabel(g) }}</option>
-                  }
-                </select>
-              </label>
-              <label class="cf-field">
-                <span>{{ i18n.t('profile.wilayat') }} *</span>
-                <input name="wilayat" [(ngModel)]="form.wilayat" required maxlength="50" />
-              </label>
-              <label class="cf-field">
-                <span>{{ i18n.t('profile.village') }}</span>
-                <input name="village" [(ngModel)]="form.village" maxlength="80" />
-              </label>
-              <label class="cf-field">
-                <span>{{ i18n.t('profile.street') }}</span>
-                <input name="street" [(ngModel)]="form.street" maxlength="120" />
-              </label>
-              <label class="cf-field">
-                <span>{{ i18n.t('profile.building') }}</span>
-                <input name="buildingNumber" [(ngModel)]="form.buildingNumber" maxlength="20" />
-              </label>
-              <label class="cf-field">
-                <span>{{ i18n.t('profile.postalCode') }}</span>
-                <input
-                  name="postalCode"
-                  [(ngModel)]="form.postalCode"
-                  maxlength="10"
-                  inputmode="numeric"
-                />
-              </label>
-              <label class="cf-field">
-                <span>{{ i18n.t('profile.mobile') }}</span>
-                <input
-                  name="mobile"
-                  [(ngModel)]="form.mobile"
-                  maxlength="20"
-                  dir="ltr"
-                  placeholder="+96891234567"
-                />
-              </label>
-              <label class="cf-field">
-                <span>{{ i18n.t('profile.email') }}</span>
-                <input
-                  name="email"
-                  type="email"
-                  [(ngModel)]="form.email"
-                  maxlength="120"
-                  dir="ltr"
-                />
-              </label>
-            </div>
+      <!-- Address panel — view, or edit in place (keeps the 3-panel layout) -->
+      <section class="panel">
+        <div class="panel__head">
+          <h2>{{ i18n.t('profile.address') }}</h2>
+          @if (!editingAddress()) {
+            <button type="button" class="edit-link" (click)="startEditAddress()">
+              {{ i18n.t('profile.edit.button') }}
+            </button>
+          }
+        </div>
 
-            @if (saveError()) {
-              <p class="form-error" role="alert">{{ saveError() }}</p>
+        @if (editingAddress()) {
+          <form class="edit-form" (ngSubmit)="saveAddress()">
+            <label class="cf-field">
+              <span>{{ i18n.t('profile.governorate') }} *</span>
+              <select name="governorate" [(ngModel)]="addressForm.governorate" required>
+                <option value="" disabled>{{ i18n.t('profile.edit.selectGovernorate') }}</option>
+                @for (g of governorates; track g.value) {
+                  <option [value]="g.value">{{ governorateLabel(g) }}</option>
+                }
+              </select>
+            </label>
+            <label class="cf-field">
+              <span>{{ i18n.t('profile.wilayat') }} *</span>
+              <input name="wilayat" [(ngModel)]="addressForm.wilayat" required maxlength="50" />
+            </label>
+            <label class="cf-field">
+              <span>{{ i18n.t('profile.village') }}</span>
+              <input name="village" [(ngModel)]="addressForm.village" maxlength="80" />
+            </label>
+            <label class="cf-field">
+              <span>{{ i18n.t('profile.street') }}</span>
+              <input name="street" [(ngModel)]="addressForm.street" maxlength="120" />
+            </label>
+            <label class="cf-field">
+              <span>{{ i18n.t('profile.building') }}</span>
+              <input
+                name="buildingNumber"
+                [(ngModel)]="addressForm.buildingNumber"
+                maxlength="20"
+              />
+            </label>
+            <label class="cf-field">
+              <span>{{ i18n.t('profile.postalCode') }}</span>
+              <input
+                name="postalCode"
+                [(ngModel)]="addressForm.postalCode"
+                maxlength="10"
+                inputmode="numeric"
+              />
+            </label>
+            @if (addressError()) {
+              <p class="form-error" role="alert">{{ addressError() }}</p>
             }
-
-            <div class="contact-form__actions">
+            <div class="edit-form__actions">
               <button
                 type="submit"
                 class="btn-primary"
-                [disabled]="saving() || !form.governorate || !form.wilayat.trim()"
+                [disabled]="
+                  savingAddress() || !addressForm.governorate || !addressForm.wilayat.trim()
+                "
               >
-                {{ saving() ? i18n.t('profile.edit.saving') : i18n.t('profile.edit.save') }}
+                {{ savingAddress() ? i18n.t('profile.edit.saving') : i18n.t('profile.edit.save') }}
               </button>
               <button
                 type="button"
                 class="btn-secondary"
-                (click)="cancelEdit()"
-                [disabled]="saving()"
+                (click)="cancelEditAddress()"
+                [disabled]="savingAddress()"
               >
                 {{ i18n.t('profile.edit.cancel') }}
               </button>
             </div>
           </form>
-        </section>
-      } @else {
-        <section class="panel">
-          <div class="panel__head">
-            <h2>{{ i18n.t('profile.address') }}</h2>
-            <button type="button" class="edit-link" (click)="startEdit()">
-              {{ i18n.t('profile.edit.button') }}
-            </button>
-          </div>
-          @if (missingContact()) {
+        } @else {
+          @if (missingAddress()) {
             <p class="edit-hint">{{ i18n.t('profile.edit.hint') }}</p>
           }
           @if (p.address; as a) {
@@ -199,10 +182,63 @@
           } @else {
             <p class="muted">{{ i18n.t('profile.noAddress') }}</p>
           }
-        </section>
+        }
+      </section>
 
-        <section class="panel">
+      <!-- Contact panel — view, or edit in place -->
+      <section class="panel">
+        <div class="panel__head">
           <h2>{{ i18n.t('profile.contact') }}</h2>
+          @if (!editingContact()) {
+            <button type="button" class="edit-link" (click)="startEditContact()">
+              {{ i18n.t('profile.edit.button') }}
+            </button>
+          }
+        </div>
+
+        @if (editingContact()) {
+          <form class="edit-form" (ngSubmit)="saveContact()">
+            <label class="cf-field">
+              <span>{{ i18n.t('profile.mobile') }}</span>
+              <input
+                name="mobile"
+                [(ngModel)]="contactForm.mobile"
+                maxlength="20"
+                dir="ltr"
+                placeholder="+96891234567"
+              />
+            </label>
+            <label class="cf-field">
+              <span>{{ i18n.t('profile.email') }}</span>
+              <input
+                name="email"
+                type="email"
+                [(ngModel)]="contactForm.email"
+                maxlength="120"
+                dir="ltr"
+              />
+            </label>
+            @if (contactError()) {
+              <p class="form-error" role="alert">{{ contactError() }}</p>
+            }
+            <div class="edit-form__actions">
+              <button type="submit" class="btn-primary" [disabled]="savingContact()">
+                {{ savingContact() ? i18n.t('profile.edit.saving') : i18n.t('profile.edit.save') }}
+              </button>
+              <button
+                type="button"
+                class="btn-secondary"
+                (click)="cancelEditContact()"
+                [disabled]="savingContact()"
+              >
+                {{ i18n.t('profile.edit.cancel') }}
+              </button>
+            </div>
+          </form>
+        } @else {
+          @if (missingContact()) {
+            <p class="edit-hint">{{ i18n.t('profile.edit.hint') }}</p>
+          }
           @if (p.contact; as c) {
             <dl class="fields">
               <div class="field">
@@ -217,8 +253,8 @@
           } @else {
             <p class="muted">{{ i18n.t('profile.noContact') }}</p>
           }
-        </section>
-      }
+        }
+      </section>
     </div>
 
     <section class="panel documents">

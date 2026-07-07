@@ -38,7 +38,7 @@ public static class EnrollmentProvisioning
         {
             // Brand-new applicant → register them as a person with a fresh CRN.
             crn = await GenerateUniqueCrnAsync(db, ct);
-            db.Persons.Add(BuildPerson(enrollment, crn));
+            db.Persons.Add(BuildPerson(enrollment, crn, today));
 
             // Link the application to the person it created, so the detail page can open the
             // profile and screening no longer treats it as an unknown CRN.
@@ -48,22 +48,23 @@ public static class EnrollmentProvisioning
         else
         {
             crn = enrollment.CivilNumber;
-            var person = await db.Persons.FirstOrDefaultAsync(p => p.CivilNumber == crn, ct);
+            var person = await db.Persons
+                .Include(p => p.Address)
+                .Include(p => p.Contact)
+                .Include(p => p.Passports)
+                .FirstOrDefaultAsync(p => p.CivilNumber == crn, ct);
             if (person is null)
             {
                 // The referenced record does not exist — the reviewer approved despite a
                 // CRN-not-found screening flag. Register the applicant under that CRN now rather
                 // than issue a card against a non-existent person.
-                db.Persons.Add(BuildPerson(enrollment, crn));
+                db.Persons.Add(BuildPerson(enrollment, crn, today));
             }
-            else if (enrollment.Type == EnrollmentType.CORRECTION)
+            else
             {
-                // A correction is precisely a request to fix the registry — apply the captured names.
-                person.FirstNameEn = enrollment.FirstNameEn;
-                person.FamilyNameEn = enrollment.FamilyNameEn;
-                person.FirstNameAr = enrollment.FirstNameAr;
-                person.FamilyNameAr = enrollment.FamilyNameAr;
-                person.NameSearch = BuildNameSearch(enrollment);
+                // The operator re-captured the applicant's details at the counter, so refresh the
+                // registry with them (a correction also rewrites the name).
+                RefreshExistingPerson(person, enrollment, today);
             }
         }
 
@@ -129,19 +130,138 @@ public static class EnrollmentProvisioning
         return true;
     }
 
-    private static Person BuildPerson(Enrollment e, string crn) => new()
+    private static Person BuildPerson(Enrollment e, string crn, DateOnly today)
     {
-        CivilNumber = crn,
-        FirstNameEn = e.FirstNameEn,
-        FamilyNameEn = e.FamilyNameEn,
-        FirstNameAr = e.FirstNameAr,
-        FamilyNameAr = e.FamilyNameAr,
-        NameSearch = BuildNameSearch(e),
-        DateOfBirth = e.DateOfBirth,
-        Gender = string.IsNullOrWhiteSpace(e.Gender) ? "M" : e.Gender!,
-        NationalityCode = e.NationalityCode,
-        Status = PersonStatus.ACTIVE,
-    };
+        var person = new Person
+        {
+            CivilNumber = crn,
+            FirstNameEn = e.FirstNameEn,
+            FamilyNameEn = e.FamilyNameEn,
+            FirstNameAr = e.FirstNameAr,
+            FamilyNameAr = e.FamilyNameAr,
+            NameSearch = BuildNameSearch(e),
+            DateOfBirth = e.DateOfBirth,
+            Gender = string.IsNullOrWhiteSpace(e.Gender) ? "M" : e.Gender!,
+            NationalityCode = e.NationalityCode,
+            Status = PersonStatus.ACTIVE,
+            // Full biographic record captured at enrollment — so the profile isn't a shell.
+            PlaceOfBirthEn = e.PlaceOfBirthEn,
+            PlaceOfBirthAr = e.PlaceOfBirthAr,
+            MotherNameEn = e.MotherNameEn,
+            MotherNameAr = e.MotherNameAr,
+            MaritalStatus = e.MaritalStatus,
+            BloodType = e.BloodType,
+            OccupationEn = e.OccupationEn,
+            OccupationAr = e.OccupationAr,
+            PhotoPath = $"/photos/{crn}.jpg",
+        };
+
+        // Address and contact share the CRN; attaching them inserts the rows with the person.
+        if (BuildAddress(e, crn) is { } address)
+        {
+            person.Address = address;
+        }
+        if (BuildContact(e, crn) is { } contact)
+        {
+            person.Contact = contact;
+        }
+        if (BuildPassport(e, crn, today) is { } passport)
+        {
+            person.Passports.Add(passport);
+        }
+
+        return person;
+    }
+
+    /// <summary>
+    /// Refreshes an already-registered person from the freshly-captured enrollment: a correction
+    /// rewrites the name; the biographic fields, address and contact are updated to the values the
+    /// operator just verified (only overwriting where the enrollment supplies a value, so an
+    /// unfilled optional never blanks an existing one); a newly-supplied passport is added.
+    /// </summary>
+    private static void RefreshExistingPerson(Person person, Enrollment e, DateOnly today)
+    {
+        if (e.Type == EnrollmentType.CORRECTION)
+        {
+            person.FirstNameEn = e.FirstNameEn;
+            person.FamilyNameEn = e.FamilyNameEn;
+            person.FirstNameAr = e.FirstNameAr;
+            person.FamilyNameAr = e.FamilyNameAr;
+            person.NameSearch = BuildNameSearch(e);
+        }
+
+        person.PlaceOfBirthEn = e.PlaceOfBirthEn ?? person.PlaceOfBirthEn;
+        person.PlaceOfBirthAr = e.PlaceOfBirthAr ?? person.PlaceOfBirthAr;
+        person.MotherNameEn = e.MotherNameEn ?? person.MotherNameEn;
+        person.MotherNameAr = e.MotherNameAr ?? person.MotherNameAr;
+        person.MaritalStatus = e.MaritalStatus ?? person.MaritalStatus;
+        person.BloodType = e.BloodType ?? person.BloodType;
+        person.OccupationEn = e.OccupationEn ?? person.OccupationEn;
+        person.OccupationAr = e.OccupationAr ?? person.OccupationAr;
+
+        if (!string.IsNullOrWhiteSpace(e.Governorate))
+        {
+            person.Address ??= new Address { CivilNumber = person.CivilNumber };
+            person.Address.Governorate = e.Governorate!;
+            person.Address.Wilayat = e.Wilayat ?? person.Address.Wilayat;
+            person.Address.Village = e.Village ?? person.Address.Village;
+            person.Address.Street = e.Street ?? person.Address.Street;
+            person.Address.BuildingNumber = e.BuildingNumber ?? person.Address.BuildingNumber;
+            person.Address.PostalCode = e.PostalCode ?? person.Address.PostalCode;
+        }
+
+        if (!string.IsNullOrWhiteSpace(e.Mobile) || !string.IsNullOrWhiteSpace(e.Email))
+        {
+            person.Contact ??= new Contact { CivilNumber = person.CivilNumber };
+            person.Contact.Mobile = e.Mobile ?? person.Contact.Mobile;
+            person.Contact.Email = e.Email ?? person.Contact.Email;
+        }
+
+        // Add the captured passport if it's new to this person.
+        if (!string.IsNullOrWhiteSpace(e.PassportNumber)
+            && !person.Passports.Any(p => p.PassportNumber == e.PassportNumber)
+            && BuildPassport(e, person.CivilNumber, today) is { } passport)
+        {
+            person.Passports.Add(passport);
+        }
+    }
+
+    /// <summary>An address row from the enrollment, or null when no governorate was captured.</summary>
+    private static Address? BuildAddress(Enrollment e, string crn) =>
+        string.IsNullOrWhiteSpace(e.Governorate)
+            ? null
+            : new Address
+            {
+                CivilNumber = crn,
+                Governorate = e.Governorate!,
+                Wilayat = e.Wilayat ?? string.Empty,
+                Village = e.Village,
+                Street = e.Street,
+                BuildingNumber = e.BuildingNumber,
+                PostalCode = e.PostalCode,
+            };
+
+    /// <summary>A contact row from the enrollment, or null when neither mobile nor email was given.</summary>
+    private static Contact? BuildContact(Enrollment e, string crn) =>
+        string.IsNullOrWhiteSpace(e.Mobile) && string.IsNullOrWhiteSpace(e.Email)
+            ? null
+            : new Contact { CivilNumber = crn, Mobile = e.Mobile, Email = e.Email };
+
+    /// <summary>A passport row from the enrollment, or null when none was captured.</summary>
+    private static Passport? BuildPassport(Enrollment e, string crn, DateOnly today) =>
+        string.IsNullOrWhiteSpace(e.PassportNumber)
+            ? null
+            : new Passport
+            {
+                CivilNumber = crn,
+                PassportNumber = e.PassportNumber!,
+                PassportType = e.PassportType ?? Nrs.Domain.Enums.PassportType.ORDINARY,
+                IssueDate = e.PassportIssueDate,
+                ExpiryDate = e.PassportExpiryDate,
+                Status = e.PassportExpiryDate is { } exp && exp < today
+                    ? PassportStatus.EXPIRED
+                    : PassportStatus.ACTIVE,
+            };
 
     private static string BuildNameSearch(Enrollment e)
     {

@@ -37,6 +37,28 @@ public record EnrollmentDto
 
     public EnrollmentStatus Status { get; init; }
 
+    // --- Captured applicant profile ---
+    public string? PlaceOfBirthEn { get; init; }
+    public string? PlaceOfBirthAr { get; init; }
+    public string? MotherNameEn { get; init; }
+    public string? MotherNameAr { get; init; }
+    public MaritalStatus? MaritalStatus { get; init; }
+    public string? BloodType { get; init; }
+    public string? OccupationEn { get; init; }
+    public string? OccupationAr { get; init; }
+    public string? Governorate { get; init; }
+    public string? Wilayat { get; init; }
+    public string? Village { get; init; }
+    public string? Street { get; init; }
+    public string? BuildingNumber { get; init; }
+    public string? PostalCode { get; init; }
+    public string? Mobile { get; init; }
+    public string? Email { get; init; }
+    public string? PassportNumber { get; init; }
+    public PassportType? PassportType { get; init; }
+    public DateOnly? PassportIssueDate { get; init; }
+    public DateOnly? PassportExpiryDate { get; init; }
+
     public string? Notes { get; init; }
 
     public string CreatedBy { get; init; } = null!;
@@ -128,6 +150,26 @@ public static class EnrollmentMappingExtensions
         NationalityCode = e.NationalityCode,
         Type = e.Type,
         Status = e.Status,
+        PlaceOfBirthEn = e.PlaceOfBirthEn,
+        PlaceOfBirthAr = e.PlaceOfBirthAr,
+        MotherNameEn = e.MotherNameEn,
+        MotherNameAr = e.MotherNameAr,
+        MaritalStatus = e.MaritalStatus,
+        BloodType = e.BloodType,
+        OccupationEn = e.OccupationEn,
+        OccupationAr = e.OccupationAr,
+        Governorate = e.Governorate,
+        Wilayat = e.Wilayat,
+        Village = e.Village,
+        Street = e.Street,
+        BuildingNumber = e.BuildingNumber,
+        PostalCode = e.PostalCode,
+        Mobile = e.Mobile,
+        Email = e.Email,
+        PassportNumber = e.PassportNumber,
+        PassportType = e.PassportType,
+        PassportIssueDate = e.PassportIssueDate,
+        PassportExpiryDate = e.PassportExpiryDate,
         Notes = e.Notes,
         CreatedBy = e.CreatedBy,
         CreatedAtUtc = e.CreatedAtUtc,

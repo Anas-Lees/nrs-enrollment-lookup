@@ -87,6 +87,32 @@ public sealed class CachedPersonLookupService(
         return updated;
     }
 
+    /// <inheritdoc />
+    public async Task<PersonDto?> UpdateAddressAsync(
+        string crn, UpdateAddressRequest request, CancellationToken cancellationToken = default)
+    {
+        var updated = await inner.UpdateAddressAsync(crn, request, cancellationToken);
+        if (updated is not null)
+        {
+            await TryRemoveAsync(KeyPrefix + crn, cancellationToken);
+        }
+
+        return updated;
+    }
+
+    /// <inheritdoc />
+    public async Task<PersonDto?> UpdateContactAsync(
+        string crn, UpdateContactRequest request, CancellationToken cancellationToken = default)
+    {
+        var updated = await inner.UpdateContactAsync(crn, request, cancellationToken);
+        if (updated is not null)
+        {
+            await TryRemoveAsync(KeyPrefix + crn, cancellationToken);
+        }
+
+        return updated;
+    }
+
     private async Task<string?> TryGetAsync(string key, CancellationToken ct)
     {
         try

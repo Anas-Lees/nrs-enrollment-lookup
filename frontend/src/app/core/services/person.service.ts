@@ -4,7 +4,13 @@ import { Observable } from 'rxjs';
 
 import { APP_CONFIG } from '../config/app-config';
 import { PagedResult, PersonSearchCriteria } from '../models/paged-result.model';
-import { Person, PersonSummary, UpdateContactDetailsRequest } from '../models/person.model';
+import {
+  Person,
+  PersonSummary,
+  UpdateAddressRequest,
+  UpdateContactDetailsRequest,
+  UpdateContactRequest,
+} from '../models/person.model';
 
 /**
  * Talks to the Applicant Lookup API. The single place HTTP calls to /persons live,
@@ -58,5 +64,15 @@ export class PersonService {
       `${this.baseUrl}/${encodeURIComponent(crn)}/contact-details`,
       request,
     );
+  }
+
+  /** Set a person's address alone. */
+  updateAddress(crn: string, request: UpdateAddressRequest): Observable<Person> {
+    return this.http.put<Person>(`${this.baseUrl}/${encodeURIComponent(crn)}/address`, request);
+  }
+
+  /** Set a person's contact details alone. */
+  updateContact(crn: string, request: UpdateContactRequest): Observable<Person> {
+    return this.http.put<Person>(`${this.baseUrl}/${encodeURIComponent(crn)}/contact`, request);
   }
 }

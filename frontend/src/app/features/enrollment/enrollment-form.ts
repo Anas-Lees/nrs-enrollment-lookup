@@ -5,9 +5,15 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { TranslationService } from '../../core/i18n/translation.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
-import { EnrollmentRequest, EnrollmentType } from '../../core/models/enrollment.model';
+import {
+  EnrollmentRequest,
+  EnrollmentType,
+  MaritalStatus,
+  PassportType,
+} from '../../core/models/enrollment.model';
 import { DateField } from '../../shared/components/date-field';
 import { navigateBack } from '../../shared/navigate-back';
+import { OMAN_GOVERNORATES, GovernorateOption } from '../../shared/oman';
 
 interface NationalityOption {
   code: string;
@@ -69,10 +75,89 @@ export class EnrollmentForm {
       nonNullable: true,
       validators: [Validators.required],
     }),
+
+    // --- Biographic (required essentials + optional extras) ---
+    placeOfBirthEn: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(80)],
+    }),
+    placeOfBirthAr: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(80)],
+    }),
+    motherNameEn: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(150)],
+    }),
+    motherNameAr: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(150)],
+    }),
+    maritalStatus: new FormControl<MaritalStatus | ''>('', { nonNullable: true }),
+    bloodType: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(3)] }),
+    occupationEn: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(100)],
+    }),
+    occupationAr: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(100)],
+    }),
+
+    // --- Address ---
+    governorate: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    wilayat: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(50)],
+    }),
+    village: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(80)] }),
+    street: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(120)] }),
+    buildingNumber: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(20)],
+    }),
+    postalCode: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.pattern(/^[0-9]{3,10}$/)],
+    }),
+
+    // --- Contact ---
+    mobile: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/^\+?[0-9][0-9\s]{6,18}$/)],
+    }),
+    email: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.email, Validators.maxLength(120)],
+    }),
+
+    // --- Passport (optional) ---
+    passportNumber: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(20)],
+    }),
+    passportType: new FormControl<PassportType | ''>('', { nonNullable: true }),
+    passportIssueDate: new FormControl('', { nonNullable: true }),
+    passportExpiryDate: new FormControl('', { nonNullable: true }),
+
     notes: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(1000)] }),
   });
 
   readonly types: EnrollmentType[] = ['NEW_CARD', 'RENEWAL', 'REPLACEMENT', 'CORRECTION'];
+  readonly governorates: readonly GovernorateOption[] = OMAN_GOVERNORATES;
+  readonly maritalStatuses: MaritalStatus[] = ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'];
+  readonly passportTypes: PassportType[] = [
+    'ORDINARY',
+    'DIPLOMATIC',
+    'SERVICE',
+    'SPECIAL',
+    'ROYAL_DIPLOMATIC',
+  ];
+
+  /** The Arabic-or-English label for a governorate value. */
+  governorateLabel(g: GovernorateOption): string {
+    return this.i18n.lang() === 'ar' ? g.ar : g.value;
+  }
 
   readonly nationalityOptions: NationalityOption[] = [
     { code: 'OMN', label: 'Oman' },
@@ -118,6 +203,26 @@ export class EnrollmentForm {
           gender: e.gender ?? '',
           nationalityCode: e.nationalityCode,
           type: e.type,
+          placeOfBirthEn: e.placeOfBirthEn ?? '',
+          placeOfBirthAr: e.placeOfBirthAr ?? '',
+          motherNameEn: e.motherNameEn ?? '',
+          motherNameAr: e.motherNameAr ?? '',
+          maritalStatus: e.maritalStatus ?? '',
+          bloodType: e.bloodType ?? '',
+          occupationEn: e.occupationEn ?? '',
+          occupationAr: e.occupationAr ?? '',
+          governorate: e.governorate ?? '',
+          wilayat: e.wilayat ?? '',
+          village: e.village ?? '',
+          street: e.street ?? '',
+          buildingNumber: e.buildingNumber ?? '',
+          postalCode: e.postalCode ?? '',
+          mobile: e.mobile ?? '',
+          email: e.email ?? '',
+          passportNumber: e.passportNumber ?? '',
+          passportType: e.passportType ?? '',
+          passportIssueDate: e.passportIssueDate ?? '',
+          passportExpiryDate: e.passportExpiryDate ?? '',
           notes: e.notes ?? '',
         });
         this.loading.set(false);
@@ -146,8 +251,9 @@ export class EnrollmentForm {
     }
 
     const v = this.form.getRawValue();
+    const clean = (s: string) => s.trim() || null;
     const body: EnrollmentRequest = {
-      civilNumber: v.civilNumber.trim() || null,
+      civilNumber: clean(v.civilNumber),
       firstNameEn: v.firstNameEn.trim(),
       familyNameEn: v.familyNameEn.trim(),
       firstNameAr: v.firstNameAr.trim(),
@@ -156,7 +262,27 @@ export class EnrollmentForm {
       gender: v.gender || null,
       nationalityCode: v.nationalityCode,
       type: v.type,
-      notes: v.notes.trim() || null,
+      placeOfBirthEn: clean(v.placeOfBirthEn),
+      placeOfBirthAr: clean(v.placeOfBirthAr),
+      motherNameEn: clean(v.motherNameEn),
+      motherNameAr: clean(v.motherNameAr),
+      maritalStatus: v.maritalStatus || null,
+      bloodType: clean(v.bloodType),
+      occupationEn: clean(v.occupationEn),
+      occupationAr: clean(v.occupationAr),
+      governorate: v.governorate || null,
+      wilayat: clean(v.wilayat),
+      village: clean(v.village),
+      street: clean(v.street),
+      buildingNumber: clean(v.buildingNumber),
+      postalCode: clean(v.postalCode),
+      mobile: clean(v.mobile),
+      email: clean(v.email),
+      passportNumber: clean(v.passportNumber),
+      passportType: v.passportType || null,
+      passportIssueDate: clean(v.passportIssueDate),
+      passportExpiryDate: clean(v.passportExpiryDate),
+      notes: clean(v.notes),
     };
 
     this.saving.set(true);

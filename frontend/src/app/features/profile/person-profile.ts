@@ -9,26 +9,25 @@ import { navigateBack } from '../../shared/navigate-back';
 
 import { TranslationService } from '../../core/i18n/translation.service';
 import { PersonService } from '../../core/services/person.service';
-import { Person, UpdateContactDetailsRequest } from '../../core/models/person.model';
+import { Person } from '../../core/models/person.model';
 import { DocumentTable } from '../../shared/components/document-table';
 import { StatusBadge } from '../../shared/components/status-badge';
 import { AppDatePipe } from '../../shared/app-date.pipe';
 import { avatarColor, personInitials } from '../../shared/avatar';
+import { OMAN_GOVERNORATES, GovernorateOption } from '../../shared/oman';
 
-/** Oman's 11 governorates: the stored English value plus the Arabic label to show in RTL. */
-interface GovernorateOption {
-  value: string;
-  ar: string;
-}
-
-/** The editable address + contact fields, bound to the inline form. */
-interface ContactForm {
+/** The editable address fields, bound to the in-place address form. */
+interface AddressForm {
   governorate: string;
   wilayat: string;
   village: string;
   street: string;
   buildingNumber: string;
   postalCode: string;
+}
+
+/** The editable contact fields, bound to the in-place contact form. */
+interface ContactForm {
   mobile: string;
   email: string;
 }
@@ -52,28 +51,26 @@ export class PersonProfile {
   readonly notFound = signal(false);
   readonly error = signal(false);
 
-  // --- Address + contact editing ---
-  readonly editing = signal(false);
-  readonly saving = signal(false);
-  readonly saveError = signal<string | null>(null);
+  // --- In-place editing (address and contact are edited independently, each in its own panel) ---
+  readonly editingAddress = signal(false);
+  readonly editingContact = signal(false);
+  readonly savingAddress = signal(false);
+  readonly savingContact = signal(false);
+  readonly addressError = signal<string | null>(null);
+  readonly contactError = signal<string | null>(null);
 
-  /** The 11 governorates of Oman (English value stored; Arabic label shown in RTL). */
-  readonly governorates: readonly GovernorateOption[] = [
-    { value: 'Muscat', ar: 'مسقط' },
-    { value: 'Dhofar', ar: 'ظفار' },
-    { value: 'Musandam', ar: 'مسندم' },
-    { value: 'Al Buraimi', ar: 'البريمي' },
-    { value: 'Ad Dakhiliyah', ar: 'الداخلية' },
-    { value: 'Al Batinah North', ar: 'شمال الباطنة' },
-    { value: 'Al Batinah South', ar: 'جنوب الباطنة' },
-    { value: 'Ash Sharqiyah North', ar: 'شمال الشرقية' },
-    { value: 'Ash Sharqiyah South', ar: 'جنوب الشرقية' },
-    { value: 'Adh Dhahirah', ar: 'الظاهرة' },
-    { value: 'Al Wusta', ar: 'الوسطى' },
-  ];
+  readonly governorates = OMAN_GOVERNORATES;
 
-  /** Bound to the inline edit form; seeded from the person on open. */
-  form: ContactForm = PersonProfile.emptyForm();
+  /** Bound to the in-place forms; seeded from the person on open. */
+  addressForm: AddressForm = {
+    governorate: '',
+    wilayat: '',
+    village: '',
+    street: '',
+    buildingNumber: '',
+    postalCode: '',
+  };
+  contactForm: ContactForm = { mobile: '', email: '' };
 
   readonly initials = computed(() => {
     const p = this.person();
@@ -132,91 +129,116 @@ export class PersonProfile {
     navigateBack(this.location, this.router, '/search');
   }
 
-  // --- address + contact editing ---
+  // --- address + contact editing (each panel edits in place, independently) ---
 
-  /** Whether the record has no address or contact yet — the freshly-registered case. */
-  readonly missingContact = computed(() => {
+  /** No address on file yet — flagged so the operator knows to complete it. */
+  readonly missingAddress = computed(() => {
     const p = this.person();
-    return !!p && (p.address === null || p.contact === null);
+    return !!p && p.address === null;
   });
 
-  /** The Arabic-or-English label for a governorate value (falls back to the raw value). */
+  /** No contact on file yet. */
+  readonly missingContact = computed(() => {
+    const p = this.person();
+    return !!p && p.contact === null;
+  });
+
+  /** The Arabic-or-English label for a governorate value. */
   governorateLabel(g: GovernorateOption): string {
     return this.i18n.lang() === 'ar' ? g.ar : g.value;
   }
 
-  /** Open the inline form, seeded from the current address/contact (blank if none yet). */
-  startEdit(): void {
+  startEditAddress(): void {
+    const a = this.person()?.address;
+    this.addressForm = {
+      governorate: a?.governorate ?? '',
+      wilayat: a?.wilayat ?? '',
+      village: a?.village ?? '',
+      street: a?.street ?? '',
+      buildingNumber: a?.buildingNumber ?? '',
+      postalCode: a?.postalCode ?? '',
+    };
+    this.addressError.set(null);
+    this.editingAddress.set(true);
+  }
+
+  cancelEditAddress(): void {
+    this.editingAddress.set(false);
+    this.addressError.set(null);
+  }
+
+  saveAddress(): void {
     const p = this.person();
-    if (!p) {
+    if (!p || this.savingAddress()) {
       return;
     }
-    this.form = {
-      governorate: p.address?.governorate ?? '',
-      wilayat: p.address?.wilayat ?? '',
-      village: p.address?.village ?? '',
-      street: p.address?.street ?? '',
-      buildingNumber: p.address?.buildingNumber ?? '',
-      postalCode: p.address?.postalCode ?? '',
-      mobile: p.contact?.mobile ?? '',
-      email: p.contact?.email ?? '',
-    };
-    this.saveError.set(null);
-    this.editing.set(true);
+    this.savingAddress.set(true);
+    this.addressError.set(null);
+    this.personService
+      .updateAddress(p.civilNumber, {
+        governorate: this.addressForm.governorate,
+        wilayat: this.addressForm.wilayat.trim(),
+        village: PersonProfile.orNull(this.addressForm.village),
+        street: PersonProfile.orNull(this.addressForm.street),
+        buildingNumber: PersonProfile.orNull(this.addressForm.buildingNumber),
+        postalCode: PersonProfile.orNull(this.addressForm.postalCode),
+      })
+      .subscribe({
+        next: (updated) => {
+          this.person.set(updated);
+          this.savingAddress.set(false);
+          this.editingAddress.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.savingAddress.set(false);
+          this.addressError.set(
+            err.status === 400
+              ? this.i18n.t('profile.edit.invalid')
+              : this.i18n.t('profile.edit.error'),
+          );
+        },
+      });
   }
 
-  cancelEdit(): void {
-    this.editing.set(false);
-    this.saveError.set(null);
+  startEditContact(): void {
+    const c = this.person()?.contact;
+    this.contactForm = { mobile: c?.mobile ?? '', email: c?.email ?? '' };
+    this.contactError.set(null);
+    this.editingContact.set(true);
   }
 
-  save(): void {
+  cancelEditContact(): void {
+    this.editingContact.set(false);
+    this.contactError.set(null);
+  }
+
+  saveContact(): void {
     const p = this.person();
-    if (!p || this.saving()) {
+    if (!p || this.savingContact()) {
       return;
     }
-
-    const request: UpdateContactDetailsRequest = {
-      governorate: this.form.governorate,
-      wilayat: this.form.wilayat.trim(),
-      village: PersonProfile.orNull(this.form.village),
-      street: PersonProfile.orNull(this.form.street),
-      buildingNumber: PersonProfile.orNull(this.form.buildingNumber),
-      postalCode: PersonProfile.orNull(this.form.postalCode),
-      mobile: PersonProfile.orNull(this.form.mobile),
-      email: PersonProfile.orNull(this.form.email),
-    };
-
-    this.saving.set(true);
-    this.saveError.set(null);
-    this.personService.updateContactDetails(p.civilNumber, request).subscribe({
-      next: (updated) => {
-        this.person.set(updated);
-        this.saving.set(false);
-        this.editing.set(false);
-      },
-      error: (err: HttpErrorResponse) => {
-        this.saving.set(false);
-        this.saveError.set(
-          err.status === 400
-            ? this.i18n.t('profile.edit.invalid')
-            : this.i18n.t('profile.edit.error'),
-        );
-      },
-    });
-  }
-
-  private static emptyForm(): ContactForm {
-    return {
-      governorate: '',
-      wilayat: '',
-      village: '',
-      street: '',
-      buildingNumber: '',
-      postalCode: '',
-      mobile: '',
-      email: '',
-    };
+    this.savingContact.set(true);
+    this.contactError.set(null);
+    this.personService
+      .updateContact(p.civilNumber, {
+        mobile: PersonProfile.orNull(this.contactForm.mobile),
+        email: PersonProfile.orNull(this.contactForm.email),
+      })
+      .subscribe({
+        next: (updated) => {
+          this.person.set(updated);
+          this.savingContact.set(false);
+          this.editingContact.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.savingContact.set(false);
+          this.contactError.set(
+            err.status === 400
+              ? this.i18n.t('profile.edit.invalid')
+              : this.i18n.t('profile.edit.error'),
+          );
+        },
+      });
   }
 
   private static orNull(value: string): string | null {

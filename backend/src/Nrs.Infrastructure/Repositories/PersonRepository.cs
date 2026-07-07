@@ -150,4 +150,48 @@ public class PersonRepository(NrsDbContext db) : IPersonRepository
         // Re-read (no-tracking, all includes) so the caller gets the full profile to map.
         return await GetByCrnAsync(crn, cancellationToken);
     }
+
+    /// <summary>Upserts the person's address alone (creating the row if absent), then re-reads the profile.</summary>
+    public async Task<Person?> UpdateAddressAsync(
+        string crn, UpdateAddressRequest request, CancellationToken cancellationToken = default)
+    {
+        var person = await db.Persons
+            .Include(p => p.Address)
+            .FirstOrDefaultAsync(p => p.CivilNumber == crn, cancellationToken);
+        if (person is null)
+        {
+            return null;
+        }
+
+        person.Address ??= new Address { CivilNumber = crn };
+        person.Address.Governorate = request.Governorate;
+        person.Address.Wilayat = request.Wilayat;
+        person.Address.Village = request.Village;
+        person.Address.Street = request.Street;
+        person.Address.BuildingNumber = request.BuildingNumber;
+        person.Address.PostalCode = request.PostalCode;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return await GetByCrnAsync(crn, cancellationToken);
+    }
+
+    /// <summary>Upserts the person's contact alone (creating the row if absent), then re-reads the profile.</summary>
+    public async Task<Person?> UpdateContactAsync(
+        string crn, UpdateContactRequest request, CancellationToken cancellationToken = default)
+    {
+        var person = await db.Persons
+            .Include(p => p.Contact)
+            .FirstOrDefaultAsync(p => p.CivilNumber == crn, cancellationToken);
+        if (person is null)
+        {
+            return null;
+        }
+
+        person.Contact ??= new Contact { CivilNumber = crn };
+        person.Contact.Mobile = request.Mobile;
+        person.Contact.Email = request.Email;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return await GetByCrnAsync(crn, cancellationToken);
+    }
 }

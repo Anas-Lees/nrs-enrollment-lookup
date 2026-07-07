@@ -91,4 +91,66 @@ public class PersonLookupController(IPersonLookupService service) : ControllerBa
                 detail: $"No person exists with CRN '{crn}'.")
             : Ok(updated);
     }
+
+    /// <summary>Sets a person's residential address alone (independent of contact).</summary>
+    [HttpPut("{crn:regex(^\\d{{1,9}}$)}/address")]
+    [ProducesResponseType(typeof(PersonDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PersonDto>> UpdateAddress(
+        string crn,
+        [FromBody] UpdateAddressRequest request,
+        [FromServices] IValidator<UpdateAddressRequest> validator,
+        CancellationToken cancellationToken)
+    {
+        var validation = await validator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors)
+            {
+                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        var updated = await service.UpdateAddressAsync(crn, request, cancellationToken);
+        return updated is null
+            ? Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Person not found",
+                detail: $"No person exists with CRN '{crn}'.")
+            : Ok(updated);
+    }
+
+    /// <summary>Sets a person's contact details alone (independent of the address).</summary>
+    [HttpPut("{crn:regex(^\\d{{1,9}}$)}/contact")]
+    [ProducesResponseType(typeof(PersonDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PersonDto>> UpdateContact(
+        string crn,
+        [FromBody] UpdateContactRequest request,
+        [FromServices] IValidator<UpdateContactRequest> validator,
+        CancellationToken cancellationToken)
+    {
+        var validation = await validator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors)
+            {
+                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        var updated = await service.UpdateContactAsync(crn, request, cancellationToken);
+        return updated is null
+            ? Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Person not found",
+                detail: $"No person exists with CRN '{crn}'.")
+            : Ok(updated);
+    }
 }

@@ -44,6 +44,32 @@ public class PersonLookupService(IPersonRepository repository) : IPersonLookupSe
         return person?.ToDto();
     }
 
+    /// <inheritdoc />
+    public async Task<PersonDto?> UpdateAddressAsync(
+        string crn, UpdateAddressRequest request, CancellationToken cancellationToken = default)
+    {
+        var trimmed = request with
+        {
+            Governorate = request.Governorate.Trim(),
+            Wilayat = request.Wilayat.Trim(),
+            Village = Blank(request.Village),
+            Street = Blank(request.Street),
+            BuildingNumber = Blank(request.BuildingNumber),
+            PostalCode = Blank(request.PostalCode),
+        };
+        var person = await repository.UpdateAddressAsync(crn, trimmed, cancellationToken);
+        return person?.ToDto();
+    }
+
+    /// <inheritdoc />
+    public async Task<PersonDto?> UpdateContactAsync(
+        string crn, UpdateContactRequest request, CancellationToken cancellationToken = default)
+    {
+        var trimmed = request with { Mobile = Blank(request.Mobile), Email = Blank(request.Email) };
+        var person = await repository.UpdateContactAsync(crn, trimmed, cancellationToken);
+        return person?.ToDto();
+    }
+
     // Trim free-text input and fold blank optionals to null so the stored record is clean
     // (Oracle also treats an empty string as NULL, so this keeps C# and the database aligned).
     private static UpdateContactDetailsRequest Trim(UpdateContactDetailsRequest r) => r with

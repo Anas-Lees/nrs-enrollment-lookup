@@ -150,6 +150,48 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             .IsUnicode(false)
             .IsRequired(false);
 
+        // --- Captured applicant profile (all nullable; Latin columns non-Unicode, Arabic Unicode) ---
+        builder.Property(e => e.PlaceOfBirthEn)
+            .HasColumnName("PLACE_OF_BIRTH_EN").HasMaxLength(80).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.PlaceOfBirthAr)
+            .HasColumnName("PLACE_OF_BIRTH_AR").HasMaxLength(80).IsUnicode(true).IsRequired(false);
+        builder.Property(e => e.MotherNameEn)
+            .HasColumnName("MOTHER_NAME_EN").HasMaxLength(150).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.MotherNameAr)
+            .HasColumnName("MOTHER_NAME_AR").HasMaxLength(150).IsUnicode(true).IsRequired(false);
+        builder.Property(e => e.MaritalStatus)
+            .HasColumnName("MARITAL_STATUS").HasMaxLength(10).IsUnicode(false).HasConversion<string>().IsRequired(false);
+        builder.Property(e => e.BloodType)
+            .HasColumnName("BLOOD_TYPE").HasMaxLength(3).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.OccupationEn)
+            .HasColumnName("OCCUPATION_EN").HasMaxLength(100).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.OccupationAr)
+            .HasColumnName("OCCUPATION_AR").HasMaxLength(100).IsUnicode(true).IsRequired(false);
+        builder.Property(e => e.Governorate)
+            .HasColumnName("GOVERNORATE").HasMaxLength(50).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.Wilayat)
+            .HasColumnName("WILAYAT").HasMaxLength(50).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.Village)
+            .HasColumnName("VILLAGE").HasMaxLength(80).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.Street)
+            .HasColumnName("STREET").HasMaxLength(120).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.BuildingNumber)
+            .HasColumnName("BUILDING_NO").HasMaxLength(20).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.PostalCode)
+            .HasColumnName("POSTAL_CODE").HasMaxLength(10).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.Mobile)
+            .HasColumnName("MOBILE").HasMaxLength(20).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.Email)
+            .HasColumnName("EMAIL").HasMaxLength(120).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.PassportNumber)
+            .HasColumnName("PASSPORT_NUMBER").HasMaxLength(20).IsUnicode(false).IsRequired(false);
+        builder.Property(e => e.PassportType)
+            .HasColumnName("PASSPORT_TYPE").HasMaxLength(20).IsUnicode(false).HasConversion<string>().IsRequired(false);
+        builder.Property(e => e.PassportIssueDate)
+            .HasColumnName("PASSPORT_ISSUE_DATE").IsRequired(false);
+        builder.Property(e => e.PassportExpiryDate)
+            .HasColumnName("PASSPORT_EXPIRY_DATE").IsRequired(false);
+
         // Reference number is the human-facing unique handle for the application.
         builder.HasIndex(e => e.ReferenceNumber)
             .IsUnique()

@@ -268,6 +268,78 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /api/v1/persons/{crn}/address:
+    put:
+      tags: [Persons]
+      operationId: updatePersonAddress
+      summary: Set a person's residential address (independent of contact)
+      parameters:
+        - name: crn
+          in: path
+          required: true
+          schema: { type: string, maxLength: 9, example: "12345678" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAddressRequest"
+      responses:
+        "200":
+          description: The person's refreshed full profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+        "400":
+          description: Invalid address.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: No person exists with the supplied CRN.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /api/v1/persons/{crn}/contact:
+    put:
+      tags: [Persons]
+      operationId: updatePersonContact
+      summary: Set a person's contact details (independent of address)
+      parameters:
+        - name: crn
+          in: path
+          required: true
+          schema: { type: string, maxLength: 9, example: "12345678" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactRequest"
+      responses:
+        "200":
+          description: The person's refreshed full profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+        "400":
+          description: Invalid contact details.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: No person exists with the supplied CRN.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
   /api/v1/enrollments:
     post:
       tags: [Enrollments]
@@ -1100,6 +1172,25 @@ components:
           maxLength: 120
           example: "applicant@example.com"
 
+    UpdateAddressRequest:
+      type: object
+      description: Operator-supplied residential address (edited independently of contact).
+      required: [governorate, wilayat]
+      properties:
+        governorate: { type: string, maxLength: 50, example: "Muscat" }
+        wilayat: { type: string, maxLength: 50, example: "Seeb" }
+        village: { type: string, nullable: true, maxLength: 80 }
+        street: { type: string, nullable: true, maxLength: 120 }
+        buildingNumber: { type: string, nullable: true, maxLength: 20 }
+        postalCode: { type: string, nullable: true, maxLength: 10 }
+
+    UpdateContactRequest:
+      type: object
+      description: Operator-supplied contact details (edited independently of the address).
+      properties:
+        mobile: { type: string, nullable: true, maxLength: 20, example: "+96891234567" }
+        email: { type: string, nullable: true, maxLength: 120 }
+
     PagedResultOfPersonSummary:
       type: object
       description: A page of results plus the total count for pagination controls.
@@ -1125,8 +1216,27 @@ components:
 
     CreateEnrollmentRequest:
       type: object
-      description: Body for creating or editing an enrollment application.
-      required: [firstNameEn, familyNameEn, firstNameAr, familyNameAr, dateOfBirth, nationalityCode, type]
+      description: >
+        Body for creating or editing an enrollment application. Captures the full applicant
+        record so an approved application provisions a complete registry person (no empty
+        fields): biographic data, residential address, contact, and an optional passport.
+      required:
+        [
+          firstNameEn,
+          familyNameEn,
+          firstNameAr,
+          familyNameAr,
+          dateOfBirth,
+          nationalityCode,
+          type,
+          placeOfBirthEn,
+          placeOfBirthAr,
+          motherNameEn,
+          motherNameAr,
+          governorate,
+          wilayat,
+          mobile,
+        ]
       properties:
         civilNumber:
           type: string
@@ -1149,6 +1259,11 @@ components:
           type: string
           format: date
           example: "1990-05-14"
+        gender:
+          type: string
+          nullable: true
+          enum: [M, F]
+          example: "M"
         nationalityCode:
           type: string
           minLength: 3
@@ -1156,6 +1271,86 @@ components:
           example: "OMN"
         type:
           $ref: "#/components/schemas/EnrollmentType"
+        placeOfBirthEn:
+          type: string
+          maxLength: 80
+          example: "Muscat"
+        placeOfBirthAr:
+          type: string
+          maxLength: 80
+          example: "مسقط"
+        motherNameEn:
+          type: string
+          maxLength: 150
+          example: "Fatma Al-Saadi"
+        motherNameAr:
+          type: string
+          maxLength: 150
+          example: "فاطمة السعدي"
+        maritalStatus:
+          nullable: true
+          allOf: [{ $ref: "#/components/schemas/MaritalStatus" }]
+        bloodType:
+          type: string
+          nullable: true
+          maxLength: 3
+          example: "O+"
+        occupationEn:
+          type: string
+          nullable: true
+          maxLength: 100
+        occupationAr:
+          type: string
+          nullable: true
+          maxLength: 100
+        governorate:
+          type: string
+          maxLength: 50
+          description: One of Oman's 11 governorates (English name).
+          example: "Muscat"
+        wilayat:
+          type: string
+          maxLength: 50
+          example: "Seeb"
+        village:
+          type: string
+          nullable: true
+          maxLength: 80
+        street:
+          type: string
+          nullable: true
+          maxLength: 120
+        buildingNumber:
+          type: string
+          nullable: true
+          maxLength: 20
+        postalCode:
+          type: string
+          nullable: true
+          maxLength: 10
+        mobile:
+          type: string
+          maxLength: 20
+          example: "+96891234567"
+        email:
+          type: string
+          nullable: true
+          maxLength: 120
+        passportNumber:
+          type: string
+          nullable: true
+          maxLength: 20
+        passportType:
+          nullable: true
+          allOf: [{ $ref: "#/components/schemas/PassportType" }]
+        passportIssueDate:
+          type: string
+          format: date
+          nullable: true
+        passportExpiryDate:
+          type: string
+          format: date
+          nullable: true
         notes:
           type: string
           nullable: true
@@ -1412,6 +1607,30 @@ components:
               nullable: true
               enum: [M, F]
               description: Captured so an approved new applicant can be registered as a person.
+            placeOfBirthEn: { type: string, nullable: true }
+            placeOfBirthAr: { type: string, nullable: true }
+            motherNameEn: { type: string, nullable: true }
+            motherNameAr: { type: string, nullable: true }
+            maritalStatus:
+              nullable: true
+              allOf: [{ $ref: "#/components/schemas/MaritalStatus" }]
+            bloodType: { type: string, nullable: true }
+            occupationEn: { type: string, nullable: true }
+            occupationAr: { type: string, nullable: true }
+            governorate: { type: string, nullable: true }
+            wilayat: { type: string, nullable: true }
+            village: { type: string, nullable: true }
+            street: { type: string, nullable: true }
+            buildingNumber: { type: string, nullable: true }
+            postalCode: { type: string, nullable: true }
+            mobile: { type: string, nullable: true }
+            email: { type: string, nullable: true }
+            passportNumber: { type: string, nullable: true }
+            passportType:
+              nullable: true
+              allOf: [{ $ref: "#/components/schemas/PassportType" }]
+            passportIssueDate: { type: string, format: date, nullable: true }
+            passportExpiryDate: { type: string, format: date, nullable: true }
             notes:
               type: string
               nullable: true

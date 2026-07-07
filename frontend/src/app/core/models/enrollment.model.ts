@@ -2,6 +2,8 @@
 // Dates are ISO strings; enums are string unions matching the API.
 
 export type EnrollmentType = 'NEW_CARD' | 'RENEWAL' | 'REPLACEMENT' | 'CORRECTION';
+export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED';
+export type PassportType = 'ORDINARY' | 'DIPLOMATIC' | 'SERVICE' | 'SPECIAL' | 'ROYAL_DIPLOMATIC';
 export type EnrollmentStatus =
   | 'DRAFT'
   | 'SUBMITTED'
@@ -45,8 +47,32 @@ export interface EnrollmentSummary {
   escalatedAtUtc: string | null;
 }
 
+/** The captured applicant profile carried on an enrollment (and echoed back on the DTO). */
+export interface ApplicantProfile {
+  placeOfBirthEn: string | null;
+  placeOfBirthAr: string | null;
+  motherNameEn: string | null;
+  motherNameAr: string | null;
+  maritalStatus: MaritalStatus | null;
+  bloodType: string | null;
+  occupationEn: string | null;
+  occupationAr: string | null;
+  governorate: string | null;
+  wilayat: string | null;
+  village: string | null;
+  street: string | null;
+  buildingNumber: string | null;
+  postalCode: string | null;
+  mobile: string | null;
+  email: string | null;
+  passportNumber: string | null;
+  passportType: PassportType | null;
+  passportIssueDate: string | null;
+  passportExpiryDate: string | null;
+}
+
 /** A full enrollment application. */
-export interface Enrollment extends EnrollmentSummary {
+export interface Enrollment extends EnrollmentSummary, ApplicantProfile {
   dateOfBirth: string;
   /** "M"/"F", captured so an approved new applicant can be registered as a person. */
   gender: string | null;
@@ -83,5 +109,26 @@ export interface EnrollmentRequest {
   gender?: string | null;
   nationalityCode: string;
   type: EnrollmentType;
+  // Full captured profile (see ApplicantProfile). Essentials required by the API.
+  placeOfBirthEn?: string | null;
+  placeOfBirthAr?: string | null;
+  motherNameEn?: string | null;
+  motherNameAr?: string | null;
+  maritalStatus?: MaritalStatus | null;
+  bloodType?: string | null;
+  occupationEn?: string | null;
+  occupationAr?: string | null;
+  governorate?: string | null;
+  wilayat?: string | null;
+  village?: string | null;
+  street?: string | null;
+  buildingNumber?: string | null;
+  postalCode?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  passportNumber?: string | null;
+  passportType?: PassportType | null;
+  passportIssueDate?: string | null;
+  passportExpiryDate?: string | null;
   notes?: string | null;
 }

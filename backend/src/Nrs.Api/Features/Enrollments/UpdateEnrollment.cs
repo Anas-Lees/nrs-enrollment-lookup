@@ -35,6 +35,28 @@ public static class UpdateEnrollment
 
         public EnrollmentType Type { get; init; }
 
+        // --- Captured applicant profile (mirrors create; editable until the review concludes) ---
+        public string? PlaceOfBirthEn { get; init; }
+        public string? PlaceOfBirthAr { get; init; }
+        public string? MotherNameEn { get; init; }
+        public string? MotherNameAr { get; init; }
+        public MaritalStatus? MaritalStatus { get; init; }
+        public string? BloodType { get; init; }
+        public string? OccupationEn { get; init; }
+        public string? OccupationAr { get; init; }
+        public string? Governorate { get; init; }
+        public string? Wilayat { get; init; }
+        public string? Village { get; init; }
+        public string? Street { get; init; }
+        public string? BuildingNumber { get; init; }
+        public string? PostalCode { get; init; }
+        public string? Mobile { get; init; }
+        public string? Email { get; init; }
+        public string? PassportNumber { get; init; }
+        public PassportType? PassportType { get; init; }
+        public DateOnly? PassportIssueDate { get; init; }
+        public DateOnly? PassportExpiryDate { get; init; }
+
         public string? Notes { get; init; }
     }
 
@@ -58,6 +80,36 @@ public static class UpdateEnrollment
                 .WithMessage("Gender must be 'M' or 'F'.");
             RuleFor(x => x.Type).IsInEnum();
             RuleFor(x => x.Notes).MaximumLength(1000);
+
+            // Same full-record rules as create — an edit must keep the essentials complete.
+            RuleFor(x => x.PlaceOfBirthEn).NotEmpty().MaximumLength(80);
+            RuleFor(x => x.PlaceOfBirthAr).NotEmpty().MaximumLength(80);
+            RuleFor(x => x.MotherNameEn).NotEmpty().MaximumLength(150);
+            RuleFor(x => x.MotherNameAr).NotEmpty().MaximumLength(150);
+            RuleFor(x => x.Governorate).NotEmpty()
+                .Must(g => g is not null && Persons.UpdateContactDetailsRequestValidator.Governorates.Contains(g))
+                .WithMessage("Governorate must be one of Oman's 11 governorates.");
+            RuleFor(x => x.Wilayat).NotEmpty().MaximumLength(50);
+            RuleFor(x => x.Mobile).NotEmpty()
+                .Matches(@"^\+?[0-9][0-9\s]{6,18}$")
+                .WithMessage("Enter a valid mobile number, e.g. +96891234567.");
+            RuleFor(x => x.MaritalStatus).IsInEnum().When(x => x.MaritalStatus.HasValue);
+            RuleFor(x => x.BloodType).MaximumLength(3);
+            RuleFor(x => x.OccupationEn).MaximumLength(100);
+            RuleFor(x => x.OccupationAr).MaximumLength(100);
+            RuleFor(x => x.Village).MaximumLength(80);
+            RuleFor(x => x.Street).MaximumLength(120);
+            RuleFor(x => x.BuildingNumber).MaximumLength(20);
+            RuleFor(x => x.PostalCode).Matches("^[0-9]{3,10}$")
+                .When(x => !string.IsNullOrWhiteSpace(x.PostalCode))
+                .WithMessage("Postal code must be 3–10 digits.");
+            RuleFor(x => x.Email).EmailAddress().MaximumLength(120)
+                .When(x => !string.IsNullOrWhiteSpace(x.Email));
+            RuleFor(x => x.PassportNumber).MaximumLength(20);
+            RuleFor(x => x.PassportType).NotNull()
+                .When(x => !string.IsNullOrWhiteSpace(x.PassportNumber))
+                .WithMessage("Select the passport type.");
+            RuleFor(x => x.PassportType).IsInEnum().When(x => x.PassportType.HasValue);
         }
     }
 
@@ -82,6 +134,26 @@ public static class UpdateEnrollment
             enrollment.Gender = EnrollmentRules.TrimToNull(request.Gender)?.ToUpperInvariant();
             enrollment.NationalityCode = request.NationalityCode.Trim().ToUpperInvariant();
             enrollment.Type = request.Type;
+            enrollment.PlaceOfBirthEn = EnrollmentRules.TrimToNull(request.PlaceOfBirthEn);
+            enrollment.PlaceOfBirthAr = EnrollmentRules.TrimToNull(request.PlaceOfBirthAr);
+            enrollment.MotherNameEn = EnrollmentRules.TrimToNull(request.MotherNameEn);
+            enrollment.MotherNameAr = EnrollmentRules.TrimToNull(request.MotherNameAr);
+            enrollment.MaritalStatus = request.MaritalStatus;
+            enrollment.BloodType = EnrollmentRules.TrimToNull(request.BloodType);
+            enrollment.OccupationEn = EnrollmentRules.TrimToNull(request.OccupationEn);
+            enrollment.OccupationAr = EnrollmentRules.TrimToNull(request.OccupationAr);
+            enrollment.Governorate = EnrollmentRules.TrimToNull(request.Governorate);
+            enrollment.Wilayat = EnrollmentRules.TrimToNull(request.Wilayat);
+            enrollment.Village = EnrollmentRules.TrimToNull(request.Village);
+            enrollment.Street = EnrollmentRules.TrimToNull(request.Street);
+            enrollment.BuildingNumber = EnrollmentRules.TrimToNull(request.BuildingNumber);
+            enrollment.PostalCode = EnrollmentRules.TrimToNull(request.PostalCode);
+            enrollment.Mobile = EnrollmentRules.TrimToNull(request.Mobile);
+            enrollment.Email = EnrollmentRules.TrimToNull(request.Email);
+            enrollment.PassportNumber = EnrollmentRules.TrimToNull(request.PassportNumber);
+            enrollment.PassportType = request.PassportType;
+            enrollment.PassportIssueDate = request.PassportIssueDate;
+            enrollment.PassportExpiryDate = request.PassportExpiryDate;
             enrollment.Notes = EnrollmentRules.TrimToNull(request.Notes);
             enrollment.UpdatedAtUtc = DateTimeOffset.UtcNow;
 

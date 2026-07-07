@@ -108,25 +108,234 @@
           </div>
         </div>
 
-        <p class="form-section">{{ i18n.t('enroll.section.details') }}</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="placeOfBirthEn">{{ i18n.t('enroll.field.placeOfBirthEn') }} *</label>
+            <input
+              id="placeOfBirthEn"
+              type="text"
+              formControlName="placeOfBirthEn"
+              [class.is-invalid]="invalid('placeOfBirthEn')"
+            />
+            @if (invalid('placeOfBirthEn')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+          <div class="field">
+            <label for="placeOfBirthAr">{{ i18n.t('enroll.field.placeOfBirthAr') }} *</label>
+            <input
+              id="placeOfBirthAr"
+              type="text"
+              dir="rtl"
+              formControlName="placeOfBirthAr"
+              [class.is-invalid]="invalid('placeOfBirthAr')"
+            />
+            @if (invalid('placeOfBirthAr')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+        </div>
 
         <div class="grid-2">
           <div class="field">
-            <label for="nationalityCode">{{ i18n.t('enroll.field.nationality') }}</label>
-            <select id="nationalityCode" formControlName="nationalityCode">
-              @for (opt of nationalityOptions; track opt.code) {
-                <option [value]="opt.code">{{ i18n.t('nationality.' + opt.code) }}</option>
+            <label for="motherNameEn">{{ i18n.t('enroll.field.motherNameEn') }} *</label>
+            <input
+              id="motherNameEn"
+              type="text"
+              formControlName="motherNameEn"
+              [class.is-invalid]="invalid('motherNameEn')"
+            />
+            @if (invalid('motherNameEn')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+          <div class="field">
+            <label for="motherNameAr">{{ i18n.t('enroll.field.motherNameAr') }} *</label>
+            <input
+              id="motherNameAr"
+              type="text"
+              dir="rtl"
+              formControlName="motherNameAr"
+              [class.is-invalid]="invalid('motherNameAr')"
+            />
+            @if (invalid('motherNameAr')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="nationalityCode">{{ i18n.t('enroll.field.nationality') }}</label>
+          <select id="nationalityCode" formControlName="nationalityCode">
+            @for (opt of nationalityOptions; track opt.code) {
+              <option [value]="opt.code">{{ i18n.t('nationality.' + opt.code) }}</option>
+            }
+          </select>
+        </div>
+
+        <p class="form-section">{{ i18n.t('enroll.section.personal') }}</p>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="maritalStatus">{{ i18n.t('enroll.field.maritalStatus') }}</label>
+            <select id="maritalStatus" formControlName="maritalStatus">
+              <option value="">{{ i18n.t('enroll.field.optional') }}</option>
+              @for (m of maritalStatuses; track m) {
+                <option [value]="m">{{ i18n.t('marital.' + m) }}</option>
               }
             </select>
           </div>
           <div class="field">
-            <label for="type">{{ i18n.t('enroll.field.type') }}</label>
-            <select id="type" formControlName="type">
-              @for (t of types; track t) {
-                <option [value]="t">{{ i18n.t('enroll.type.' + t) }}</option>
+            <label for="bloodType">{{ i18n.t('enroll.field.bloodType') }}</label>
+            <input id="bloodType" type="text" formControlName="bloodType" placeholder="O+" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="occupationEn">{{ i18n.t('enroll.field.occupationEn') }}</label>
+            <input id="occupationEn" type="text" formControlName="occupationEn" />
+          </div>
+          <div class="field">
+            <label for="occupationAr">{{ i18n.t('enroll.field.occupationAr') }}</label>
+            <input id="occupationAr" type="text" dir="rtl" formControlName="occupationAr" />
+          </div>
+        </div>
+
+        <p class="form-section">{{ i18n.t('enroll.section.address') }}</p>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="governorate">{{ i18n.t('enroll.field.governorate') }} *</label>
+            <select
+              id="governorate"
+              formControlName="governorate"
+              [class.is-invalid]="invalid('governorate')"
+            >
+              <option value="" disabled>{{ i18n.t('enroll.field.selectGovernorate') }}</option>
+              @for (g of governorates; track g.value) {
+                <option [value]="g.value">{{ governorateLabel(g) }}</option>
+              }
+            </select>
+            @if (invalid('governorate')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+          <div class="field">
+            <label for="wilayat">{{ i18n.t('enroll.field.wilayat') }} *</label>
+            <input
+              id="wilayat"
+              type="text"
+              formControlName="wilayat"
+              [class.is-invalid]="invalid('wilayat')"
+            />
+            @if (invalid('wilayat')) {
+              <span class="field-error">{{ i18n.t('enroll.required') }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="village">{{ i18n.t('enroll.field.village') }}</label>
+            <input id="village" type="text" formControlName="village" />
+          </div>
+          <div class="field">
+            <label for="street">{{ i18n.t('enroll.field.street') }}</label>
+            <input id="street" type="text" formControlName="street" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="buildingNumber">{{ i18n.t('enroll.field.building') }}</label>
+            <input id="buildingNumber" type="text" formControlName="buildingNumber" />
+          </div>
+          <div class="field">
+            <label for="postalCode">{{ i18n.t('enroll.field.postalCode') }}</label>
+            <input
+              id="postalCode"
+              type="text"
+              inputmode="numeric"
+              formControlName="postalCode"
+              [class.is-invalid]="invalid('postalCode')"
+            />
+            @if (invalid('postalCode')) {
+              <span class="field-error">{{ i18n.t('enroll.field.postalHint') }}</span>
+            }
+          </div>
+        </div>
+
+        <p class="form-section">{{ i18n.t('enroll.section.contact') }}</p>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="mobile">{{ i18n.t('enroll.field.mobile') }} *</label>
+            <input
+              id="mobile"
+              type="text"
+              dir="ltr"
+              formControlName="mobile"
+              placeholder="+96891234567"
+              [class.is-invalid]="invalid('mobile')"
+            />
+            @if (invalid('mobile')) {
+              <span class="field-error">{{ i18n.t('enroll.field.mobileHint') }}</span>
+            }
+          </div>
+          <div class="field">
+            <label for="email">{{ i18n.t('enroll.field.email') }}</label>
+            <input
+              id="email"
+              type="email"
+              dir="ltr"
+              formControlName="email"
+              [class.is-invalid]="invalid('email')"
+            />
+            @if (invalid('email')) {
+              <span class="field-error">{{ i18n.t('enroll.field.emailHint') }}</span>
+            }
+          </div>
+        </div>
+
+        <p class="form-section">{{ i18n.t('enroll.section.passport') }}</p>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="passportNumber">{{ i18n.t('enroll.field.passportNumber') }}</label>
+            <input id="passportNumber" type="text" dir="ltr" formControlName="passportNumber" />
+          </div>
+          <div class="field">
+            <label for="passportType">{{ i18n.t('enroll.field.passportType') }}</label>
+            <select id="passportType" formControlName="passportType">
+              <option value="">{{ i18n.t('enroll.field.optional') }}</option>
+              @for (p of passportTypes; track p) {
+                <option [value]="p">{{ i18n.t('passportType.' + p) }}</option>
               }
             </select>
           </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="passportIssueDate">{{ i18n.t('enroll.field.passportIssue') }}</label>
+            <input id="passportIssueDate" type="date" formControlName="passportIssueDate" />
+          </div>
+          <div class="field">
+            <label for="passportExpiryDate">{{ i18n.t('enroll.field.passportExpiry') }}</label>
+            <input id="passportExpiryDate" type="date" formControlName="passportExpiryDate" />
+          </div>
+        </div>
+
+        <p class="form-section">{{ i18n.t('enroll.section.details') }}</p>
+
+        <div class="field">
+          <label for="type">{{ i18n.t('enroll.field.type') }}</label>
+          <select id="type" formControlName="type">
+            @for (t of types; track t) {
+              <option [value]="t">{{ i18n.t('enroll.type.' + t) }}</option>
+            }
+          </select>
         </div>
 
         <div class="field">

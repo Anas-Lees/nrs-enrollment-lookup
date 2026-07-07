@@ -130,5 +130,19 @@ public class CachedPersonLookupServiceTests
             UpdateContactCalls++;
             return Task.FromResult(Result);
         }
+
+        public Task<PersonDto?> UpdateAddressAsync(
+            string crn, UpdateAddressRequest request, CancellationToken cancellationToken = default)
+        {
+            UpdateContactCalls++;
+            return Task.FromResult(Result);
+        }
+
+        public Task<PersonDto?> UpdateContactAsync(
+            string crn, UpdateContactRequest request, CancellationToken cancellationToken = default)
+        {
+            UpdateContactCalls++;
+            return Task.FromResult(Result);
+        }
     }
 }

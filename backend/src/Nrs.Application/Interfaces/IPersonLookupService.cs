@@ -36,4 +36,16 @@ public interface IPersonLookupService
         string crn,
         UpdateContactDetailsRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Sets a person's residential address alone, returning the refreshed profile (null if unknown CRN).</summary>
+    Task<PersonDto?> UpdateAddressAsync(
+        string crn,
+        UpdateAddressRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Sets a person's contact details alone, returning the refreshed profile (null if unknown CRN).</summary>
+    Task<PersonDto?> UpdateContactAsync(
+        string crn,
+        UpdateContactRequest request,
+        CancellationToken cancellationToken = default);
 }

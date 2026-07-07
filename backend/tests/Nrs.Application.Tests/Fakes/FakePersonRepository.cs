@@ -43,4 +43,12 @@ internal sealed class FakePersonRepository : IPersonRepository
         LastContactRequest = request;
         return Task.FromResult(UpdateContactResult);
     }
+
+    public Task<Person?> UpdateAddressAsync(
+        string crn, UpdateAddressRequest request, CancellationToken cancellationToken = default)
+        => Task.FromResult(UpdateContactResult);
+
+    public Task<Person?> UpdateContactAsync(
+        string crn, UpdateContactRequest request, CancellationToken cancellationToken = default)
+        => Task.FromResult(UpdateContactResult);
 }

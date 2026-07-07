@@ -37,4 +37,16 @@ public interface IPersonRepository
         string crn,
         UpdateContactDetailsRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Upserts the person's address alone; returns the refreshed person or null if unknown.</summary>
+    Task<Person?> UpdateAddressAsync(
+        string crn,
+        UpdateAddressRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Upserts the person's contact alone; returns the refreshed person or null if unknown.</summary>
+    Task<Person?> UpdateContactAsync(
+        string crn,
+        UpdateContactRequest request,
+        CancellationToken cancellationToken = default);
 }

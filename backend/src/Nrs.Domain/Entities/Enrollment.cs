@@ -43,6 +43,63 @@ public class Enrollment
 
     public EnrollmentStatus Status { get; set; }
 
+    // --- Captured applicant profile ------------------------------------------------------
+    // The full biographic + residential record collected at the counter, so an approved
+    // application provisions a COMPLETE person (not a shell with empty fields). All nullable
+    // at the column level (Oracle can't add mandatory columns to a populated table); the
+    // operationally-essential ones are enforced as required at the API boundary instead.
+
+    /// <summary>Place of birth, English.</summary>
+    public string? PlaceOfBirthEn { get; set; }
+
+    /// <summary>Place of birth, Arabic.</summary>
+    public string? PlaceOfBirthAr { get; set; }
+
+    /// <summary>Mother's full name, English.</summary>
+    public string? MotherNameEn { get; set; }
+
+    /// <summary>Mother's full name, Arabic.</summary>
+    public string? MotherNameAr { get; set; }
+
+    /// <summary>Marital status (optional — not collected for minors).</summary>
+    public MaritalStatus? MaritalStatus { get; set; }
+
+    /// <summary>ABO/Rh blood group, e.g. "O+" (optional).</summary>
+    public string? BloodType { get; set; }
+
+    /// <summary>Occupation, English (optional — not collected for minors).</summary>
+    public string? OccupationEn { get; set; }
+
+    /// <summary>Occupation, Arabic (optional).</summary>
+    public string? OccupationAr { get; set; }
+
+    // Residential address.
+    public string? Governorate { get; set; }
+
+    public string? Wilayat { get; set; }
+
+    public string? Village { get; set; }
+
+    public string? Street { get; set; }
+
+    public string? BuildingNumber { get; set; }
+
+    public string? PostalCode { get; set; }
+
+    // Contact details.
+    public string? Mobile { get; set; }
+
+    public string? Email { get; set; }
+
+    // Passport (optional — a passport is a separate document, not required for an ID card).
+    public string? PassportNumber { get; set; }
+
+    public PassportType? PassportType { get; set; }
+
+    public DateOnly? PassportIssueDate { get; set; }
+
+    public DateOnly? PassportExpiryDate { get; set; }
+
     /// <summary>Optional free-text note from the operator.</summary>
     public string? Notes { get; set; }
 

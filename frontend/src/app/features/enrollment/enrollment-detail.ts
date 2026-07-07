@@ -108,6 +108,29 @@ export class EnrollmentDetail {
     return translated === key ? flag : translated;
   }
 
+  /** Pick the language-appropriate value, falling back to the other script or a dash. */
+  pick(en: string | null, ar: string | null): string {
+    const v = this.i18n.lang() === 'ar' ? (ar ?? en) : (en ?? ar);
+    return v && v.length > 0 ? v : '—';
+  }
+
+  /** Does the enrollment carry any residential address? */
+  hasAddress(e: Enrollment): boolean {
+    return !!(
+      e.governorate ||
+      e.wilayat ||
+      e.village ||
+      e.street ||
+      e.buildingNumber ||
+      e.postalCode
+    );
+  }
+
+  /** Does the enrollment carry any contact detail? */
+  hasContact(e: Enrollment): boolean {
+    return !!(e.mobile || e.email);
+  }
+
   resubmit(): void {
     const e = this.enrollment();
     if (!e || this.busy()) {
