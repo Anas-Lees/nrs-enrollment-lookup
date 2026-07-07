@@ -275,6 +275,8 @@
   "notif.close": "Close notifications",
   "notif.empty": "Nothing yet — you're all caught up.",
   "notif.markAll": "Mark all read",
+  "notif.open": "Open",
+  "notif.openAria": "Open enrollment:",
   "gender.M": "Male",
   "gender.F": "Female",
   "marital.SINGLE": "Single",

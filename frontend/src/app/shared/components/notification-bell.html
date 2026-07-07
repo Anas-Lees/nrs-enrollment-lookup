@@ -44,7 +44,11 @@
                 type="button"
                 class="bell__item"
                 [class.is-unread]="!n.readAtUtc"
-                (click)="markRead(n)"
+                [class.is-openable]="n.enrollmentId"
+                (click)="openEnrollment(n)"
+                [attr.aria-label]="
+                  n.enrollmentId ? i18n.t('notif.openAria') + ' ' + message(n) : message(n)
+                "
               >
                 <span class="bell__item-kind" [attr.data-kind]="n.kind" aria-hidden="true">
                   @switch (n.kind) {
@@ -71,7 +75,12 @@
                     }
                   }
                 </span>
-                <span class="bell__item-text">{{ message(n) }}</span>
+                <span class="bell__item-body">
+                  <span class="bell__item-text">{{ message(n) }}</span>
+                  @if (n.enrollmentId) {
+                    <span class="bell__item-open">{{ i18n.t('notif.open') }} ›</span>
+                  }
+                </span>
                 @if (!n.readAtUtc) {
                   <span class="bell__item-dot" aria-hidden="true"></span>
                 }

@@ -275,6 +275,8 @@
   "notif.close": "إغلاق الإشعارات",
   "notif.empty": "لا جديد — أنت على اطلاع بكل شيء.",
   "notif.markAll": "تعليم الكل كمقروء",
+  "notif.open": "فتح",
+  "notif.openAria": "فتح التسجيل:",
   "gender.M": "ذكر",
   "gender.F": "أنثى",
   "marital.SINGLE": "أعزب",

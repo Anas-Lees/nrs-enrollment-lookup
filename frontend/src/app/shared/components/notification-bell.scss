@@ -129,11 +129,32 @@
       background: rgb(30 100 60 / 6%);
       font-weight: 600;
     }
+
+    // Openable items reveal their "Open ›" cue on hover/focus.
+    &.is-openable:hover .bell__item-open,
+    &.is-openable:focus-visible .bell__item-open {
+      opacity: 1;
+    }
+  }
+
+  &__item-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
   }
 
   &__item-text {
-    flex: 1;
     line-height: 1.35;
+  }
+
+  &__item-open {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--rop-green);
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
   }
 
   &__item-dot {

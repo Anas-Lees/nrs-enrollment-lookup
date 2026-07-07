@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { TranslationService } from '../../core/i18n/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -28,6 +29,7 @@ export class NotificationBell implements OnInit {
   protected readonly i18n = inject(TranslationService);
   protected readonly notifications = inject(NotificationService);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly router = inject(Router);
 
   readonly open = signal(false);
 
@@ -66,9 +68,18 @@ export class NotificationBell implements OnInit {
     return this.i18n.lang() === 'ar' ? n.messageAr : n.messageEn;
   }
 
-  markRead(n: AppNotification): void {
+  /**
+   * Opening a notification takes you to the enrollment it is about (to review or just view it)
+   * and marks it read on the way. A notification with no enrollment (should not happen today)
+   * simply gets marked read.
+   */
+  openEnrollment(n: AppNotification): void {
     if (!n.readAtUtc) {
       this.notifications.markRead(n.id);
+    }
+    this.close();
+    if (n.enrollmentId) {
+      this.router.navigate(['/enrollment', n.enrollmentId]);
     }
   }
 
