@@ -43,12 +43,14 @@
     // absolutely-positioned panel to the sidebar's 256px width. Fixed positioning escapes
     // that clip; logical inset keeps it on the sidebar's side in RTL too.
     position: fixed;
+    inset-block-start: 1.5rem;
     inset-block-end: 5rem;
     inset-inline-start: 0.75rem;
-    z-index: 50;
-    width: 21rem;
+    // Above every page element (the date-of-birth picker and any select popups).
+    z-index: 200;
+    width: 22rem;
     max-width: calc(100vw - 1.5rem);
-    max-height: 24rem;
+    // Stretch the full available height instead of cutting off mid-list; the list inside scrolls.
     display: flex;
     flex-direction: column;
     background: var(--color-surface);
@@ -103,6 +105,9 @@
     margin: 0;
     padding: 0;
     list-style: none;
+    // Fill the (now full-height) panel and scroll internally.
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
   }
 

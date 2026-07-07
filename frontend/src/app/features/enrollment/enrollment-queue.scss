@@ -28,13 +28,24 @@
   color: var(--color-muted);
 
   select {
-    padding: 0.45rem 0.7rem;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0.45rem 1.9rem 0.45rem 0.7rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    background: var(--color-surface);
+    background-color: var(--color-surface);
     color: var(--color-text);
     font: inherit;
+    cursor: pointer;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%235b635e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
   }
+}
+
+:host-context([dir='rtl']) .filter select {
+  padding: 0.45rem 0.7rem 0.45rem 1.9rem;
+  background-position: left 0.6rem center;
 }
 
 .btn-primary {
@@ -75,56 +86,118 @@
   color: var(--color-danger);
 }
 
-.table-wrap {
-  overflow-x: auto;
+/* ---- Applicant cards (roomier list, styled like the Applicant Lookup) ---- */
+.q-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.q-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
-}
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
 
-.queue-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-
-  thead th {
-    text-align: start;
-    padding: 0.75rem 1rem;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--color-muted);
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface-alt);
+  &:hover {
+    border-color: var(--rop-green-600);
+    box-shadow: var(--shadow-card-lg);
   }
 
-  tbody td {
-    padding: 0.7rem 1rem;
-    border-bottom: 1px solid var(--color-border);
+  &__avatar {
+    flex: 0 0 auto;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  &__main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__names {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  &__name {
+    font-weight: 600;
+    font-size: 1.02rem;
     color: var(--color-text);
   }
 
-  tbody tr:last-child td {
-    border-bottom: none;
+  &__name-ar {
+    color: var(--color-muted);
+    font-size: 0.92rem;
   }
 
-  .row {
-    cursor: pointer;
+  &__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.25rem;
+    font-size: 0.82rem;
+    color: var(--color-muted-2);
+  }
 
-    &:hover {
-      background: var(--color-surface-alt);
+  &__ref {
+    color: var(--color-text);
+  }
+
+  &__dot {
+    color: var(--color-border);
+  }
+
+  &__status {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &__actions {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.9rem;
+    justify-content: flex-end;
+    min-width: 5rem;
+  }
+
+  // Stack the status + actions under the name on narrow screens.
+  @media (max-width: 760px) {
+    flex-wrap: wrap;
+
+    .q-card__status,
+    .q-card__actions {
+      margin-inline-start: 3.7rem;
     }
   }
 }
 
 .mono {
   font-family: var(--font-mono);
-}
-
-.col-actions {
-  text-align: end;
-  white-space: nowrap;
 }
 
 .link-btn {

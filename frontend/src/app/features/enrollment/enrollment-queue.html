@@ -32,61 +32,59 @@
     @if (r.items.length === 0) {
       <p class="empty">{{ i18n.t('queue.empty') }}</p>
     } @else {
-      <div class="table-wrap">
-        <table class="queue-table">
-          <thead>
-            <tr>
-              <th>{{ i18n.t('queue.col.reference') }}</th>
-              <th>{{ i18n.t('queue.col.applicant') }}</th>
-              <th>{{ i18n.t('queue.col.type') }}</th>
-              <th>{{ i18n.t('queue.col.status') }}</th>
-              <th>{{ i18n.t('queue.col.created') }}</th>
-              <th class="col-actions">
-                <span class="sr-only">{{ i18n.t('queue.col.actions') }}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (e of r.items; track e.id) {
-              <tr (click)="openDetail(e)" class="row">
-                <td class="mono">{{ e.referenceNumber }}</td>
-                <td>{{ applicantName(e) }}</td>
-                <td>{{ i18n.t('enroll.type.' + e.type) }}</td>
-                <td>
-                  <app-status-badge [status]="e.status" />
-                  @if (
-                    e.escalatedAtUtc &&
-                    (e.status === 'PENDING_REVIEW' || e.status === 'UNDER_REVIEW')
-                  ) {
-                    <span class="chip-escalated">{{ i18n.t('queue.escalated') }}</span>
-                  }
-                </td>
-                <td>{{ e.createdAtUtc | appDate: i18n.lang() : true }}</td>
-                <td class="col-actions">
-                  <div class="row-actions">
-                    <button
-                      type="button"
-                      class="link-btn"
-                      (click)="openDetail(e); $event.stopPropagation()"
-                    >
-                      {{ i18n.t('queue.view') }}
-                    </button>
-                    @if (canEdit(e)) {
-                      <button
-                        type="button"
-                        class="link-btn"
-                        (click)="openEdit(e); $event.stopPropagation()"
-                      >
-                        {{ i18n.t('queue.edit') }}
-                      </button>
-                    }
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      <ul class="q-list">
+        @for (e of r.items; track e.id) {
+          <li>
+            <article class="q-card" (click)="openDetail(e)">
+              <span class="q-card__avatar" [style.background]="color(e)" aria-hidden="true">
+                {{ initials(e) }}
+              </span>
+
+              <div class="q-card__main">
+                <div class="q-card__names">
+                  <span class="q-card__name">{{ e.firstNameEn }} {{ e.familyNameEn }}</span>
+                  <span class="q-card__name-ar" dir="rtl">
+                    {{ e.firstNameAr }} {{ e.familyNameAr }}
+                  </span>
+                </div>
+                <div class="q-card__meta">
+                  <span class="q-card__ref mono">{{ e.referenceNumber }}</span>
+                  <span class="q-card__dot" aria-hidden="true">·</span>
+                  <span>{{ i18n.t('enroll.type.' + e.type) }}</span>
+                  <span class="q-card__dot" aria-hidden="true">·</span>
+                  <span>{{ e.createdAtUtc | appDate: i18n.lang() : true }}</span>
+                </div>
+              </div>
+
+              <div class="q-card__status">
+                <app-status-badge [status]="e.status" />
+                @if (showEscalated(e)) {
+                  <span class="chip-escalated">{{ i18n.t('queue.escalated') }}</span>
+                }
+              </div>
+
+              <div class="q-card__actions">
+                <button
+                  type="button"
+                  class="link-btn"
+                  (click)="openDetail(e); $event.stopPropagation()"
+                >
+                  {{ i18n.t('queue.view') }}
+                </button>
+                @if (canEdit(e)) {
+                  <button
+                    type="button"
+                    class="link-btn"
+                    (click)="openEdit(e); $event.stopPropagation()"
+                  >
+                    {{ i18n.t('queue.edit') }}
+                  </button>
+                }
+              </div>
+            </article>
+          </li>
+        }
+      </ul>
 
       <app-pagination
         [page]="r.page"

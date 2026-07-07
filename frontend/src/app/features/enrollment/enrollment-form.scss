@@ -1,5 +1,6 @@
 .page {
-  max-width: 780px;
+  // Use the full content width (the form has many two-column rows) instead of a narrow column.
+  max-width: 1120px;
 }
 
 .topbar {

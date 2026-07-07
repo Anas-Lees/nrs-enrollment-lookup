@@ -10,6 +10,7 @@ import { Pagination } from '../../shared/components/pagination';
 import { StatusBadge } from '../../shared/components/status-badge';
 import { SortSelect, SortOption } from '../../shared/components/sort-select';
 import { AppDatePipe } from '../../shared/app-date.pipe';
+import { avatarColor, personInitials } from '../../shared/avatar';
 
 /**
  * The operator's enrollment register: a paged, status-filterable list of applications, newest
@@ -174,5 +175,25 @@ export class EnrollmentQueue {
     return this.i18n.lang() === 'ar'
       ? `${e.firstNameAr} ${e.familyNameAr}`
       : `${e.firstNameEn} ${e.familyNameEn}`;
+  }
+
+  /** Coloured avatar initials for the applicant (language-aware, seeded by reference). */
+  initials(e: EnrollmentSummary): string {
+    return personInitials(
+      e.firstNameEn,
+      e.familyNameEn,
+      e.firstNameAr,
+      e.familyNameAr,
+      this.i18n.lang(),
+    );
+  }
+
+  color(e: EnrollmentSummary): string {
+    return avatarColor(e.civilNumber ?? e.referenceNumber);
+  }
+
+  /** Escalated chip shows only while the application is still awaiting/under review. */
+  showEscalated(e: EnrollmentSummary): boolean {
+    return !!e.escalatedAtUtc && (e.status === 'PENDING_REVIEW' || e.status === 'UNDER_REVIEW');
   }
 }
