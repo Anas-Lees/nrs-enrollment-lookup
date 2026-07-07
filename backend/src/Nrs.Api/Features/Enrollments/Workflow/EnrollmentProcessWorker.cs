@@ -33,6 +33,10 @@ public sealed partial class EnrollmentProcessWorker(
     private const string ApplyCorrectionsJob = "apply-corrections-requested";
     private const string ApplyAbandonedJob = "apply-abandoned";
     private const string ApplyWithdrawnJob = "apply-withdrawn";
+    // Post-approval card fulfilment.
+    private const string ProvisionJob = "provision-registry";
+    private const string DispatchCardJob = "dispatch-card";
+    private const string ActivateCardJob = "activate-card";
     private const string NotificationJob = "send-notification";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -52,6 +56,9 @@ public sealed partial class EnrollmentProcessWorker(
             PollLoopAsync(ApplyCorrectionsJob, stoppingToken),
             PollLoopAsync(ApplyAbandonedJob, stoppingToken),
             PollLoopAsync(ApplyWithdrawnJob, stoppingToken),
+            PollLoopAsync(ProvisionJob, stoppingToken),
+            PollLoopAsync(DispatchCardJob, stoppingToken),
+            PollLoopAsync(ActivateCardJob, stoppingToken),
             PollLoopAsync(NotificationJob, stoppingToken));
     }
 
@@ -178,6 +185,9 @@ public sealed partial class EnrollmentProcessWorker(
             ApplyCorrectionsJob => await ApplyCorrectionsRequestedAsync(db, enrollment, job, stoppingToken),
             ApplyAbandonedJob => await ApplyAbandonedAsync(db, enrollment, stoppingToken),
             ApplyWithdrawnJob => await ApplyWithdrawnAsync(db, enrollment, job, stoppingToken),
+            ProvisionJob => await ProvisionAsync(db, enrollment, stoppingToken),
+            DispatchCardJob => await DispatchCardAsync(db, enrollment, stoppingToken),
+            ActivateCardJob => await ActivateCardAsync(db, enrollment, stoppingToken),
             NotificationJob => await SendNotificationAsync(db, enrollment, job, stoppingToken),
             _ => null,
         };
@@ -332,6 +342,44 @@ public sealed partial class EnrollmentProcessWorker(
         return null;
     }
 
+    // --- Post-approval card fulfilment --------------------------------------------------
+
+    /// <summary>Turn the approved application into a registry person (if new) + a card in production.</summary>
+    private async Task<object?> ProvisionAsync(NrsDbContext db, Enrollment enrollment, CancellationToken ct)
+    {
+        var crn = await EnrollmentProvisioning.ProvisionAsync(db, enrollment, ct);
+        LogProvisioned(logger, enrollment.ReferenceNumber, crn);
+        return null;
+    }
+
+    /// <summary>The card has been printed — mark it ready and tell the operator to collect it.</summary>
+    private async Task<object?> DispatchCardAsync(NrsDbContext db, Enrollment enrollment, CancellationToken ct)
+    {
+        // Notify only when the status actually changed, so a re-delivered job does not double-notify.
+        if (await EnrollmentProvisioning.SetCardStatusAsync(
+                db, enrollment, CardStatus.IN_PRODUCTION, CardStatus.READY_FOR_COLLECTION, ct))
+        {
+            db.Notifications.Add(DecisionNotifications.CardReadyForCollection(enrollment, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync(ct);
+            LogCardStage(logger, enrollment.ReferenceNumber, nameof(CardStatus.READY_FOR_COLLECTION));
+        }
+
+        return null;
+    }
+
+    /// <summary>The applicant collected the card — activate it (superseding any old card) and close out.</summary>
+    private async Task<object?> ActivateCardAsync(NrsDbContext db, Enrollment enrollment, CancellationToken ct)
+    {
+        if (await EnrollmentProvisioning.ActivateCardAsync(db, enrollment, ct))
+        {
+            db.Notifications.Add(DecisionNotifications.CardIssued(enrollment, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync(ct);
+            LogCardStage(logger, enrollment.ReferenceNumber, nameof(CardStatus.ACTIVE));
+        }
+
+        return null;
+    }
+
     /// <summary>Process-driven notices; the BPMN task's "kind" header says which one.</summary>
     private async Task<object?> SendNotificationAsync(
         NrsDbContext db, Enrollment enrollment, CamundaJob job, CancellationToken ct)
@@ -407,6 +455,12 @@ public sealed partial class EnrollmentProcessWorker(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Enrollment {ReferenceNumber} moved to {Status} by the workflow.")]
     private static partial void LogApplied(ILogger logger, string referenceNumber, EnrollmentStatus status);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Provisioned registry for enrollment {ReferenceNumber} under CRN {Crn}; card in production.")]
+    private static partial void LogProvisioned(ILogger logger, string referenceNumber, string crn);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Card for enrollment {ReferenceNumber} moved to {CardStatus}.")]
+    private static partial void LogCardStage(ILogger logger, string referenceNumber, string cardStatus);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Enrollment {ReferenceNumber} screened: autoApprove={AutoApprove}, flags=[{Flags}].")]
     private static partial void LogScreened(ILogger logger, string referenceNumber, bool autoApprove, string flags);

@@ -23,5 +23,12 @@ public class IdCard
 
     public CardType CardType { get; set; }
 
+    /// <summary>
+    /// The enrollment that produced this card, when it was issued through the review workflow.
+    /// Null for cards that predate the workflow (e.g. seeded data). Used by the card office to
+    /// find the card's Camunda process instance while it is being produced/collected.
+    /// </summary>
+    public Guid? EnrollmentId { get; set; }
+
     public Person? Person { get; set; }
 }

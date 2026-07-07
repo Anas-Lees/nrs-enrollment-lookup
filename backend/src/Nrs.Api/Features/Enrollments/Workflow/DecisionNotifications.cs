@@ -65,4 +65,30 @@ public static class DecisionNotifications
         MessageAr = $"أُغلق التسجيل {enrollment.ReferenceNumber} — لم تُستلم التصحيحات في الوقت المحدد.",
         CreatedAtUtc = now,
     };
+
+    /// <summary>Tells the operator the printed card is ready for the applicant to collect.</summary>
+    public static Notification CardReadyForCollection(Enrollment enrollment, DateTimeOffset now) => new()
+    {
+        Id = Guid.NewGuid(),
+        Recipient = enrollment.CreatedBy,
+        Kind = "card-ready",
+        EnrollmentId = enrollment.Id,
+        ReferenceNumber = enrollment.ReferenceNumber,
+        MessageEn = $"The card for {enrollment.ReferenceNumber} is printed and ready for collection.",
+        MessageAr = $"بطاقة التسجيل {enrollment.ReferenceNumber} طُبعت وجاهزة للاستلام.",
+        CreatedAtUtc = now,
+    };
+
+    /// <summary>Confirms to the operator the card was collected and is now active.</summary>
+    public static Notification CardIssued(Enrollment enrollment, DateTimeOffset now) => new()
+    {
+        Id = Guid.NewGuid(),
+        Recipient = enrollment.CreatedBy,
+        Kind = "card-issued",
+        EnrollmentId = enrollment.Id,
+        ReferenceNumber = enrollment.ReferenceNumber,
+        MessageEn = $"The card for {enrollment.ReferenceNumber} was collected and is now active.",
+        MessageAr = $"استُلمت بطاقة التسجيل {enrollment.ReferenceNumber} وأصبحت نشطة.",
+        CreatedAtUtc = now,
+    };
 }

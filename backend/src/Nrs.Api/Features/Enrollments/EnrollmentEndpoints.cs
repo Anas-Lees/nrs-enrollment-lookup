@@ -298,6 +298,56 @@ public static class EnrollmentEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        // --- The card office: physical fulfilment of an approved application ----------------
+        // Operator work (the fallback authorization policy already requires the operator role
+        // when auth is on), so no explicit policy override here.
+        var cards = app.MapGroup("/api/v1/card-office")
+            .WithTags("Card office")
+            .RequireRateLimiting("lookup");
+
+        cards.MapGet("", async (
+                CardOffice.ListHandler handler,
+                CancellationToken cancellationToken) =>
+                Results.Ok(await handler.HandleAsync(cancellationToken)))
+            .WithSummary("List cards in production and awaiting collection")
+            .Produces<IReadOnlyList<CardOffice.CardTaskDto>>();
+
+        cards.MapPost("{cardId:long}/printed", async (
+                long cardId,
+                CardOffice.MarkPrintedHandler handler,
+                CancellationToken cancellationToken) =>
+                CardActionResult(await handler.HandleAsync(cardId, cancellationToken), cardId))
+            .WithSummary("Mark a card printed — it becomes ready for collection")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        cards.MapPost("{cardId:long}/collected", async (
+                long cardId,
+                CardOffice.MarkCollectedHandler handler,
+                CancellationToken cancellationToken) =>
+                CardActionResult(await handler.HandleAsync(cardId, cancellationToken), cardId))
+            .WithSummary("Mark a card collected — it becomes active")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         return app;
     }
+
+    private static IResult CardActionResult(CardOffice.Outcome outcome, long cardId) => outcome switch
+    {
+        CardOffice.Outcome.Advanced => Results.Ok(),
+        CardOffice.Outcome.Accepted => Results.Accepted($"/api/v1/card-office"),
+        CardOffice.Outcome.WrongStatus => Results.Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Card not in the expected state",
+            detail: "This card is not at the stage this action expects; the queue has moved on."),
+        _ => Results.Problem(
+            statusCode: StatusCodes.Status404NotFound,
+            title: "Card not found",
+            detail: $"No workflow-issued card exists with id '{cardId}'."),
+    };
 }

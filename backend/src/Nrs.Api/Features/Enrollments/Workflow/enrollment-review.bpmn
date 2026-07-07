@@ -71,10 +71,6 @@
       <bpmn:outgoing>Flow_Auto_End</bpmn:outgoing>
     </bpmn:serviceTask>
 
-    <bpmn:endEvent id="Event_AutoApproved" name="Auto-approved">
-      <bpmn:incoming>Flow_Auto_End</bpmn:incoming>
-    </bpmn:endEvent>
-
     <bpmn:serviceTask id="Activity_MarkReview" name="Queue for review">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="queue-for-review" />
@@ -151,12 +147,59 @@
       <bpmn:outgoing>Flow_Reject_End</bpmn:outgoing>
     </bpmn:serviceTask>
 
-    <bpmn:endEvent id="Event_Approved" name="Approved">
-      <bpmn:incoming>Flow_Approve_End</bpmn:incoming>
-    </bpmn:endEvent>
-
     <bpmn:endEvent id="Event_Rejected" name="Rejected">
       <bpmn:incoming>Flow_Reject_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Post-approval card fulfilment: both the auto-approve and human-approve paths converge
+         here. Register the person + issue a card, then the card office prints it, marks it ready,
+         hands it over, and activates it. Two human user tasks (print, collect) plus service-task
+         side effects on the ID_CARD row. -->
+    <bpmn:serviceTask id="Activity_Provision" name="Provision registry">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="provision-registry" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Auto_End</bpmn:incoming>
+      <bpmn:incoming>Flow_Approve_End</bpmn:incoming>
+      <bpmn:outgoing>Flow_Provision_Print</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Activity_PrintCard" name="Print card">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="operator" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Provision_Print</bpmn:incoming>
+      <bpmn:outgoing>Flow_Print_Dispatch</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Activity_Dispatch" name="Ready for collection">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="dispatch-card" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Print_Dispatch</bpmn:incoming>
+      <bpmn:outgoing>Flow_Dispatch_Collect</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Activity_Collect" name="Hand over card">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="operator" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Dispatch_Collect</bpmn:incoming>
+      <bpmn:outgoing>Flow_Collect_Activate</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Activity_ActivateCard" name="Activate card">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="activate-card" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Collect_Activate</bpmn:incoming>
+      <bpmn:outgoing>Flow_Activate_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="Event_CardIssued" name="Card issued">
+      <bpmn:incoming>Flow_Activate_End</bpmn:incoming>
     </bpmn:endEvent>
 
     <!-- Corrections: mark NEEDS_CORRECTION + tell the operator, then wait. -->
@@ -227,7 +270,7 @@
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=autoApprove = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_Gw_Review" name="no" sourceRef="Gateway_Auto" targetRef="Activity_MarkReview" />
-    <bpmn:sequenceFlow id="Flow_Auto_End" sourceRef="Activity_AutoApprove" targetRef="Event_AutoApproved" />
+    <bpmn:sequenceFlow id="Flow_Auto_End" sourceRef="Activity_AutoApprove" targetRef="Activity_Provision" />
     <bpmn:sequenceFlow id="Flow_Mark_Notify" sourceRef="Activity_MarkReview" targetRef="Activity_NotifyReviewers" />
     <bpmn:sequenceFlow id="Flow_Notify_Review" sourceRef="Activity_NotifyReviewers" targetRef="Activity_Review" />
     <bpmn:sequenceFlow id="Flow_Review_Gw" sourceRef="Activity_Review" targetRef="Gateway_Outcome" />
@@ -240,8 +283,13 @@
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=outcome = "corrections"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_Gw_Reject" name="reject" sourceRef="Gateway_Outcome" targetRef="Activity_Reject" />
-    <bpmn:sequenceFlow id="Flow_Approve_End" sourceRef="Activity_Approve" targetRef="Event_Approved" />
+    <bpmn:sequenceFlow id="Flow_Approve_End" sourceRef="Activity_Approve" targetRef="Activity_Provision" />
     <bpmn:sequenceFlow id="Flow_Reject_End" sourceRef="Activity_Reject" targetRef="Event_Rejected" />
+    <bpmn:sequenceFlow id="Flow_Provision_Print" sourceRef="Activity_Provision" targetRef="Activity_PrintCard" />
+    <bpmn:sequenceFlow id="Flow_Print_Dispatch" sourceRef="Activity_PrintCard" targetRef="Activity_Dispatch" />
+    <bpmn:sequenceFlow id="Flow_Dispatch_Collect" sourceRef="Activity_Dispatch" targetRef="Activity_Collect" />
+    <bpmn:sequenceFlow id="Flow_Collect_Activate" sourceRef="Activity_Collect" targetRef="Activity_ActivateCard" />
+    <bpmn:sequenceFlow id="Flow_Activate_End" sourceRef="Activity_ActivateCard" targetRef="Event_CardIssued" />
     <bpmn:sequenceFlow id="Flow_Corr_EventGw" sourceRef="Activity_RequestCorrections" targetRef="Gateway_Corrections" />
     <bpmn:sequenceFlow id="Flow_Gw_Corr_Msg" sourceRef="Gateway_Corrections" targetRef="Event_CorrectionsSubmitted" />
     <bpmn:sequenceFlow id="Flow_Gw_Corr_Timer" sourceRef="Gateway_Corrections" targetRef="Event_CorrectionDeadline" />
@@ -265,10 +313,6 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_AutoApprove_di" bpmnElement="Activity_AutoApprove">
         <dc:Bounds x="520" y="120" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_AutoApproved_di" bpmnElement="Event_AutoApproved">
-        <dc:Bounds x="682" y="142" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="663" y="185" width="75" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_MarkReview_di" bpmnElement="Activity_MarkReview">
         <dc:Bounds x="500" y="260" width="100" height="80" />
@@ -297,9 +341,24 @@
       <bpmndi:BPMNShape id="Activity_Approve_di" bpmnElement="Activity_Approve">
         <dc:Bounds x="1100" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_Approved_di" bpmnElement="Event_Approved">
-        <dc:Bounds x="1262" y="162" width="36" height="36" />
-        <bpmndi:BPMNLabel><dc:Bounds x="1257" y="205" width="47" height="14" /></bpmndi:BPMNLabel>
+      <bpmndi:BPMNShape id="Activity_Provision_di" bpmnElement="Activity_Provision">
+        <dc:Bounds x="1360" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_PrintCard_di" bpmnElement="Activity_PrintCard">
+        <dc:Bounds x="1520" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Dispatch_di" bpmnElement="Activity_Dispatch">
+        <dc:Bounds x="1680" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_Collect_di" bpmnElement="Activity_Collect">
+        <dc:Bounds x="1840" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_ActivateCard_di" bpmnElement="Activity_ActivateCard">
+        <dc:Bounds x="2000" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CardIssued_di" bpmnElement="Event_CardIssued">
+        <dc:Bounds x="2162" y="282" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2149" y="325" width="62" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_Reject_di" bpmnElement="Activity_Reject">
         <dc:Bounds x="1100" y="400" width="100" height="80" />
@@ -362,7 +421,7 @@
         <bpmndi:BPMNLabel><dc:Bounds x="469" y="282" width="14" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Auto_End_di" bpmnElement="Flow_Auto_End">
-        <di:waypoint x="620" y="160" /><di:waypoint x="682" y="160" />
+        <di:waypoint x="620" y="160" /><di:waypoint x="1410" y="160" /><di:waypoint x="1410" y="260" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Mark_Notify_di" bpmnElement="Flow_Mark_Notify">
         <di:waypoint x="600" y="300" /><di:waypoint x="660" y="300" />
@@ -392,10 +451,25 @@
         <bpmndi:BPMNLabel><dc:Bounds x="1021" y="446" width="34" height="14" /></bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Approve_End_di" bpmnElement="Flow_Approve_End">
-        <di:waypoint x="1200" y="180" /><di:waypoint x="1262" y="180" />
+        <di:waypoint x="1200" y="180" /><di:waypoint x="1410" y="180" /><di:waypoint x="1410" y="260" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Reject_End_di" bpmnElement="Flow_Reject_End">
         <di:waypoint x="1200" y="440" /><di:waypoint x="1262" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Provision_Print_di" bpmnElement="Flow_Provision_Print">
+        <di:waypoint x="1460" y="300" /><di:waypoint x="1520" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Print_Dispatch_di" bpmnElement="Flow_Print_Dispatch">
+        <di:waypoint x="1620" y="300" /><di:waypoint x="1680" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Dispatch_Collect_di" bpmnElement="Flow_Dispatch_Collect">
+        <di:waypoint x="1780" y="300" /><di:waypoint x="1840" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Collect_Activate_di" bpmnElement="Flow_Collect_Activate">
+        <di:waypoint x="1940" y="300" /><di:waypoint x="2000" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Activate_End_di" bpmnElement="Flow_Activate_End">
+        <di:waypoint x="2100" y="300" /><di:waypoint x="2162" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Corr_EventGw_di" bpmnElement="Flow_Corr_EventGw">
         <di:waypoint x="1200" y="300" /><di:waypoint x="1265" y="300" />

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Nrs.Infrastructure.Persistence;
 using Oracle.EntityFrameworkCore.Metadata;
@@ -11,9 +12,11 @@ using Oracle.EntityFrameworkCore.Metadata;
 namespace Nrs.Infrastructure.Migrations
 {
     [DbContext(typeof(NrsDbContext))]
-    partial class NrsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707004126_CardFulfilment")]
+    partial class CardFulfilment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -382,10 +385,6 @@ namespace Nrs.Infrastructure.Migrations
 
                     b.HasIndex("CivilNumber")
                         .HasDatabaseName("IX_ID_CARD_CIVIL_NUMBER");
-
-                    b.HasIndex("EnrollmentId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ID_CARD_ENROLLMENT");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_ID_CARD_STATUS");

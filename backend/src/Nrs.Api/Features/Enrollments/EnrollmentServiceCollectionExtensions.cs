@@ -28,6 +28,10 @@ public static class EnrollmentServiceCollectionExtensions
         services.AddScoped<RequestCorrections.Handler>();
         services.AddScoped<ResubmitEnrollment.Handler>();
         services.AddScoped<WithdrawEnrollment.Handler>();
+        services.AddScoped<Workflow.CardFulfilment>();
+        services.AddScoped<CardOffice.ListHandler>();
+        services.AddScoped<CardOffice.MarkPrintedHandler>();
+        services.AddScoped<CardOffice.MarkCollectedHandler>();
         services.AddScoped<Notifications.NotificationsFeature.ListHandler>();
         services.AddScoped<Notifications.NotificationsFeature.MarkReadHandler>();
         services.AddScoped<Reports.ReportsFeature.Handler>();

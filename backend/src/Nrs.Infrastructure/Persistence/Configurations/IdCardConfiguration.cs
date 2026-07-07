@@ -48,6 +48,21 @@ public class IdCardConfiguration : IEntityTypeConfiguration<IdCard>
             .IsUnicode(false)
             .HasConversion<string>();
 
+        builder.Property(c => c.EnrollmentId)
+            .HasColumnName("ENROLLMENT_ID")
+            .IsRequired(false);
+
         builder.HasIndex(c => c.CivilNumber).HasDatabaseName("IX_ID_CARD_CIVIL_NUMBER");
+
+        // The card office lists cards by production status; keep that lookup cheap.
+        builder.HasIndex(c => c.Status).HasDatabaseName("IX_ID_CARD_STATUS");
+
+        // One card per enrollment — the guard behind provisioning's idempotency. Oracle does not
+        // index all-null keys, so the many seeded cards (null EnrollmentId) are unaffected; a
+        // concurrent second provision for the same enrollment fails fast and self-heals on retry.
+        builder.HasIndex(c => c.EnrollmentId)
+            .IsUnique()
+            .HasFilter(null) // Oracle already excludes NULL keys; no SQL-Server-style filtered index.
+            .HasDatabaseName("UX_ID_CARD_ENROLLMENT");
     }
 }
