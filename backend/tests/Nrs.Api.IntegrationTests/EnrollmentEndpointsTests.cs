@@ -63,8 +63,17 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
         firstNameAr = "سالم",
         familyNameAr = "الحارثي",
         dateOfBirth = "1990-05-14",
+        gender = "M",
         nationalityCode = "OMN",
         type,
+        // Full-record essentials (now required by the API).
+        placeOfBirthEn = "Muscat",
+        placeOfBirthAr = "مسقط",
+        motherNameEn = "Fatma Al-Saadi",
+        motherNameAr = "فاطمة السعدي",
+        governorate = "Muscat",
+        wilayat = "Seeb",
+        mobile = "+96891234567",
         notes = "Walk-in at Muscat HQ",
     };
 
@@ -96,6 +105,13 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
             dateOfBirth = "1993-01-09",
             nationalityCode = "omn",
             type = "RENEWAL",
+            placeOfBirthEn = "Sohar",
+            placeOfBirthAr = "صحار",
+            motherNameEn = "Mariam Al-Balushi",
+            motherNameAr = "مريم البلوشي",
+            governorate = "Muscat",
+            wilayat = "Bawshar",
+            mobile = "+96899887766",
         });
 
         var dto = await response.Content.ReadFromJsonAsync<EnrollmentDto>(JsonOptions);
@@ -159,6 +175,13 @@ public class EnrollmentEndpointsTests : IClassFixture<NrsApiFactory>
             dateOfBirth = "1990-05-14",
             nationalityCode = "OMN",
             type = "CORRECTION",
+            placeOfBirthEn = "Muscat",
+            placeOfBirthAr = "مسقط",
+            motherNameEn = "Fatma Al-Saadi",
+            motherNameAr = "فاطمة السعدي",
+            governorate = "Muscat",
+            wilayat = "Seeb",
+            mobile = "+96891234567",
             notes = "Corrected surname spelling",
         });
 
