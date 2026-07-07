@@ -18,6 +18,10 @@ internal sealed class FakePersonRepository : IPersonRepository
 
     public Person? GetByCrnResult { get; set; }
 
+    public Person? UpdateContactResult { get; set; }
+
+    public UpdateContactDetailsRequest? LastContactRequest { get; private set; }
+
     public PersonSearchCriteria? LastCriteria { get; private set; }
 
     public Task<(IReadOnlyList<Person> Items, int TotalCount)> SearchAsync(
@@ -30,4 +34,13 @@ internal sealed class FakePersonRepository : IPersonRepository
 
     public Task<Person?> GetByCrnAsync(string crn, CancellationToken cancellationToken = default)
         => Task.FromResult(GetByCrnResult);
+
+    public Task<Person?> UpdateContactDetailsAsync(
+        string crn,
+        UpdateContactDetailsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        LastContactRequest = request;
+        return Task.FromResult(UpdateContactResult);
+    }
 }

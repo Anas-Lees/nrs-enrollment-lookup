@@ -38,6 +38,18 @@ export interface Contact {
   email: string | null;
 }
 
+/** Operator-supplied address + contact details, sent when filling in or correcting a record. */
+export interface UpdateContactDetailsRequest {
+  governorate: string;
+  wilayat: string;
+  village: string | null;
+  street: string | null;
+  buildingNumber: string | null;
+  postalCode: string | null;
+  mobile: string | null;
+  email: string | null;
+}
+
 export interface IdCard {
   idCardId: number;
   civilNumber: string;

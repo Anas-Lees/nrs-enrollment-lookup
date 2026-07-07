@@ -74,57 +74,151 @@
         </dl>
       </section>
 
-      <section class="panel">
-        <h2>{{ i18n.t('profile.address') }}</h2>
-        @if (p.address; as a) {
-          <dl class="fields">
-            <div class="field">
-              <dt>{{ i18n.t('profile.governorate') }}</dt>
-              <dd>{{ value(a.governorate) }}</dd>
+      @if (editing()) {
+        <section class="panel panel--edit">
+          <h2>{{ i18n.t('profile.edit.title') }}</h2>
+          <form class="contact-form" (ngSubmit)="save()" #f="ngForm">
+            <div class="contact-form__grid">
+              <label class="cf-field">
+                <span>{{ i18n.t('profile.governorate') }} *</span>
+                <select name="governorate" [(ngModel)]="form.governorate" required>
+                  <option value="" disabled>{{ i18n.t('profile.edit.selectGovernorate') }}</option>
+                  @for (g of governorates; track g.value) {
+                    <option [value]="g.value">{{ governorateLabel(g) }}</option>
+                  }
+                </select>
+              </label>
+              <label class="cf-field">
+                <span>{{ i18n.t('profile.wilayat') }} *</span>
+                <input name="wilayat" [(ngModel)]="form.wilayat" required maxlength="50" />
+              </label>
+              <label class="cf-field">
+                <span>{{ i18n.t('profile.village') }}</span>
+                <input name="village" [(ngModel)]="form.village" maxlength="80" />
+              </label>
+              <label class="cf-field">
+                <span>{{ i18n.t('profile.street') }}</span>
+                <input name="street" [(ngModel)]="form.street" maxlength="120" />
+              </label>
+              <label class="cf-field">
+                <span>{{ i18n.t('profile.building') }}</span>
+                <input name="buildingNumber" [(ngModel)]="form.buildingNumber" maxlength="20" />
+              </label>
+              <label class="cf-field">
+                <span>{{ i18n.t('profile.postalCode') }}</span>
+                <input
+                  name="postalCode"
+                  [(ngModel)]="form.postalCode"
+                  maxlength="10"
+                  inputmode="numeric"
+                />
+              </label>
+              <label class="cf-field">
+                <span>{{ i18n.t('profile.mobile') }}</span>
+                <input
+                  name="mobile"
+                  [(ngModel)]="form.mobile"
+                  maxlength="20"
+                  dir="ltr"
+                  placeholder="+96891234567"
+                />
+              </label>
+              <label class="cf-field">
+                <span>{{ i18n.t('profile.email') }}</span>
+                <input
+                  name="email"
+                  type="email"
+                  [(ngModel)]="form.email"
+                  maxlength="120"
+                  dir="ltr"
+                />
+              </label>
             </div>
-            <div class="field">
-              <dt>{{ i18n.t('profile.wilayat') }}</dt>
-              <dd>{{ value(a.wilayat) }}</dd>
-            </div>
-            <div class="field">
-              <dt>{{ i18n.t('profile.village') }}</dt>
-              <dd>{{ value(a.village) }}</dd>
-            </div>
-            <div class="field">
-              <dt>{{ i18n.t('profile.street') }}</dt>
-              <dd>{{ value(a.street) }}</dd>
-            </div>
-            <div class="field">
-              <dt>{{ i18n.t('profile.building') }}</dt>
-              <dd>{{ value(a.buildingNumber) }}</dd>
-            </div>
-            <div class="field">
-              <dt>{{ i18n.t('profile.postalCode') }}</dt>
-              <dd>{{ value(a.postalCode) }}</dd>
-            </div>
-          </dl>
-        } @else {
-          <p class="muted">{{ i18n.t('profile.noAddress') }}</p>
-        }
-      </section>
 
-      <section class="panel">
-        <h2>{{ i18n.t('profile.contact') }}</h2>
-        @if (p.contact; as c) {
-          <dl class="fields">
-            <div class="field">
-              <dt>{{ i18n.t('profile.mobile') }}</dt>
-              <dd class="mono" dir="ltr">{{ value(c.mobile) }}</dd>
+            @if (saveError()) {
+              <p class="form-error" role="alert">{{ saveError() }}</p>
+            }
+
+            <div class="contact-form__actions">
+              <button
+                type="submit"
+                class="btn-primary"
+                [disabled]="saving() || !form.governorate || !form.wilayat.trim()"
+              >
+                {{ saving() ? i18n.t('profile.edit.saving') : i18n.t('profile.edit.save') }}
+              </button>
+              <button
+                type="button"
+                class="btn-secondary"
+                (click)="cancelEdit()"
+                [disabled]="saving()"
+              >
+                {{ i18n.t('profile.edit.cancel') }}
+              </button>
             </div>
-            <div class="field">
-              <dt>{{ i18n.t('profile.email') }}</dt>
-              <dd dir="ltr">{{ value(c.email) }}</dd>
-            </div>
-          </dl>
-        } @else {
-          <p class="muted">{{ i18n.t('profile.noContact') }}</p>
-        }
-      </section>
+          </form>
+        </section>
+      } @else {
+        <section class="panel">
+          <div class="panel__head">
+            <h2>{{ i18n.t('profile.address') }}</h2>
+            <button type="button" class="edit-link" (click)="startEdit()">
+              {{ i18n.t('profile.edit.button') }}
+            </button>
+          </div>
+          @if (missingContact()) {
+            <p class="edit-hint">{{ i18n.t('profile.edit.hint') }}</p>
+          }
+          @if (p.address; as a) {
+            <dl class="fields">
+              <div class="field">
+                <dt>{{ i18n.t('profile.governorate') }}</dt>
+                <dd>{{ value(a.governorate) }}</dd>
+              </div>
+              <div class="field">
+                <dt>{{ i18n.t('profile.wilayat') }}</dt>
+                <dd>{{ value(a.wilayat) }}</dd>
+              </div>
+              <div class="field">
+                <dt>{{ i18n.t('profile.village') }}</dt>
+                <dd>{{ value(a.village) }}</dd>
+              </div>
+              <div class="field">
+                <dt>{{ i18n.t('profile.street') }}</dt>
+                <dd>{{ value(a.street) }}</dd>
+              </div>
+              <div class="field">
+                <dt>{{ i18n.t('profile.building') }}</dt>
+                <dd>{{ value(a.buildingNumber) }}</dd>
+              </div>
+              <div class="field">
+                <dt>{{ i18n.t('profile.postalCode') }}</dt>
+                <dd>{{ value(a.postalCode) }}</dd>
+              </div>
+            </dl>
+          } @else {
+            <p class="muted">{{ i18n.t('profile.noAddress') }}</p>
+          }
+        </section>
+
+        <section class="panel">
+          <h2>{{ i18n.t('profile.contact') }}</h2>
+          @if (p.contact; as c) {
+            <dl class="fields">
+              <div class="field">
+                <dt>{{ i18n.t('profile.mobile') }}</dt>
+                <dd class="mono" dir="ltr">{{ value(c.mobile) }}</dd>
+              </div>
+              <div class="field">
+                <dt>{{ i18n.t('profile.email') }}</dt>
+                <dd dir="ltr">{{ value(c.email) }}</dd>
+              </div>
+            </dl>
+          } @else {
+            <p class="muted">{{ i18n.t('profile.noContact') }}</p>
+          }
+        </section>
+      }
     </div>
 
     <section class="panel documents">

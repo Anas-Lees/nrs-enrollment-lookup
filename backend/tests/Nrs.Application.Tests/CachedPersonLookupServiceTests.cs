@@ -70,6 +70,23 @@ public class CachedPersonLookupServiceTests
         Assert.Equal(2, inner.SearchCalls);
     }
 
+    [Fact]
+    public async Task UpdateContactDetailsAsync_EvictsCache_SoNextReadIsFresh()
+    {
+        var inner = new CountingLookupService { Result = BuildDto("77777777") };
+        var service = new CachedPersonLookupService(inner, NewCache());
+
+        await service.GetByCrnAsync("77777777"); // populates the cache (inner call #1)
+        await service.UpdateContactDetailsAsync("77777777", new UpdateContactDetailsRequest
+        {
+            Governorate = "Muscat",
+            Wilayat = "Seeb",
+        });
+        await service.GetByCrnAsync("77777777"); // cache was evicted → inner call #2
+
+        Assert.Equal(2, inner.GetByCrnCalls);
+    }
+
     // --- helpers ---------------------------------------------------------
 
     private static MemoryDistributedCache NewCache()
@@ -91,6 +108,7 @@ public class CachedPersonLookupServiceTests
     {
         public int GetByCrnCalls { get; private set; }
         public int SearchCalls { get; private set; }
+        public int UpdateContactCalls { get; private set; }
         public PersonDto? Result { get; set; }
 
         public Task<PagedResult<PersonSummaryDto>> SearchAsync(
@@ -103,6 +121,13 @@ public class CachedPersonLookupServiceTests
         public Task<PersonDto?> GetByCrnAsync(string crn, CancellationToken cancellationToken = default)
         {
             GetByCrnCalls++;
+            return Task.FromResult(Result);
+        }
+
+        public Task<PersonDto?> UpdateContactDetailsAsync(
+            string crn, UpdateContactDetailsRequest request, CancellationToken cancellationToken = default)
+        {
+            UpdateContactCalls++;
             return Task.FromResult(Result);
         }
     }

@@ -103,7 +103,69 @@ public class PersonLookupServiceTests
         Assert.Equal(PassportStatus.ACTIVE, result.Passports[0].Status);
     }
 
+    [Fact]
+    public async Task UpdateContactDetailsAsync_ReturnsNull_WhenPersonMissing()
+    {
+        var repository = new FakePersonRepository { UpdateContactResult = null };
+        var service = new PersonLookupService(repository);
+
+        var result = await service.UpdateContactDetailsAsync("00000000", ValidRequest());
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task UpdateContactDetailsAsync_TrimsInput_AndFoldsBlankOptionalsToNull()
+    {
+        var person = BuildPerson("44444444");
+        var repository = new FakePersonRepository { UpdateContactResult = person };
+        var service = new PersonLookupService(repository);
+
+        await service.UpdateContactDetailsAsync("44444444", new UpdateContactDetailsRequest
+        {
+            Governorate = "  Muscat  ",
+            Wilayat = "  Seeb  ",
+            Village = "   ", // whitespace-only → null
+            Street = "  Street 12  ",
+            BuildingNumber = "",
+            PostalCode = null,
+            Mobile = "  +96891234567  ",
+            Email = "   ",
+        });
+
+        var forwarded = repository.LastContactRequest;
+        Assert.NotNull(forwarded);
+        Assert.Equal("Muscat", forwarded!.Governorate);
+        Assert.Equal("Seeb", forwarded.Wilayat);
+        Assert.Null(forwarded.Village);
+        Assert.Equal("Street 12", forwarded.Street);
+        Assert.Null(forwarded.BuildingNumber);
+        Assert.Null(forwarded.PostalCode);
+        Assert.Equal("+96891234567", forwarded.Mobile);
+        Assert.Null(forwarded.Email);
+    }
+
+    [Fact]
+    public async Task UpdateContactDetailsAsync_MapsRefreshedProfile()
+    {
+        var person = BuildPerson("55555555", firstNameEn: "Nasser");
+        var repository = new FakePersonRepository { UpdateContactResult = person };
+        var service = new PersonLookupService(repository);
+
+        var result = await service.UpdateContactDetailsAsync("55555555", ValidRequest());
+
+        Assert.NotNull(result);
+        Assert.Equal("55555555", result!.CivilNumber);
+        Assert.Equal("Nasser", result.FirstNameEn);
+    }
+
     // --- helpers ---------------------------------------------------------
+
+    private static UpdateContactDetailsRequest ValidRequest() => new()
+    {
+        Governorate = "Muscat",
+        Wilayat = "Seeb",
+    };
 
     private static Person BuildPerson(
         string civilNumber,

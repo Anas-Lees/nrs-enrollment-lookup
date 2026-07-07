@@ -66,6 +66,27 @@ public sealed class CachedPersonLookupService(
         return person;
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Writes through to the inner service, then evicts the cached profile so the next read
+    /// reflects the change immediately instead of serving the stale entry for the rest of its
+    /// TTL. Eviction is best-effort — a cache that is momentarily unavailable simply expires
+    /// the old value in a few minutes.
+    /// </remarks>
+    public async Task<PersonDto?> UpdateContactDetailsAsync(
+        string crn,
+        UpdateContactDetailsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var updated = await inner.UpdateContactDetailsAsync(crn, request, cancellationToken);
+        if (updated is not null)
+        {
+            await TryRemoveAsync(KeyPrefix + crn, cancellationToken);
+        }
+
+        return updated;
+    }
+
     private async Task<string?> TryGetAsync(string key, CancellationToken ct)
     {
         try
@@ -95,6 +116,22 @@ public sealed class CachedPersonLookupService(
         catch
         {
             // Best-effort cache write; a failure to populate must not fail the lookup.
+        }
+    }
+
+    private async Task TryRemoveAsync(string key, CancellationToken ct)
+    {
+        try
+        {
+            await cache.RemoveAsync(key, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Best-effort eviction; the stale entry expires on its own TTL if this fails.
         }
     }
 }

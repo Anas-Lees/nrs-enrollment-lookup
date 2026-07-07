@@ -45,6 +45,17 @@ public class AuditActionFilter(IAuditLogger auditLogger) : IAsyncActionFilter
             await auditLogger.LogAsync(
                 actor, ip, AuditAction.VIEW_PROFILE, crn, criteria: null, resultCount: null, CancellationToken.None);
         }
+        else if (actionName == "UpdateContactDetails")
+        {
+            // Audit the change only when it actually succeeded: a 404/400 leaves the record
+            // untouched, and the action returns the person object only on success.
+            var crn = context.ActionArguments.TryGetValue("crn", out var value) ? value?.ToString() : null;
+            if ((executed.Result as ObjectResult)?.Value is PersonDto)
+            {
+                await auditLogger.LogAsync(
+                    actor, ip, AuditAction.UPDATE_CONTACT, crn, "address+contact", resultCount: null, CancellationToken.None);
+            }
+        }
     }
 
     private static string Summarize(PersonSearchCriteria? c)

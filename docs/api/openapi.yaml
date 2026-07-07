@@ -205,6 +205,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /api/v1/persons/{crn}/contact-details:
+    put:
+      tags: [Persons]
+      operationId: updatePersonContactDetails
+      summary: Set a person's address and contact details
+      description: >
+        Sets the residential address and contact details for a person, returning their
+        refreshed profile. A freshly-registered applicant is created from the enrollment form
+        without an address or contact; an operator uses this endpoint to fill those in (and to
+        correct them later). The address and contact rows are created on the first save.
+      parameters:
+        - name: crn
+          in: path
+          description: Civil Registration Number (8 or 9 digits).
+          required: true
+          schema:
+            type: string
+            maxLength: 9
+            example: "12345678"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactDetailsRequest"
+            example:
+              governorate: "Muscat"
+              wilayat: "Seeb"
+              village: "Al Khoudh"
+              street: "Street 12"
+              buildingNumber: "45"
+              postalCode: "133"
+              mobile: "+96891234567"
+              email: "applicant@example.com"
+      responses:
+        "200":
+          description: The person's refreshed full profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+        "400":
+          description: Invalid address or contact details.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: No person exists with the supplied CRN.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
   /api/v1/enrollments:
     post:
       tags: [Enrollments]
@@ -989,6 +1043,53 @@ components:
           type: string
           nullable: true
           example: "mohammed.albalushi@example.com"
+
+    UpdateContactDetailsRequest:
+      type: object
+      description: >
+        Operator-supplied residential address and contact details for a person. The governorate
+        must be one of Oman's 11 governorates (English name); address fields are Latin text.
+      required: [governorate, wilayat]
+      properties:
+        governorate:
+          type: string
+          maxLength: 50
+          description: One of Oman's 11 governorates (English name).
+          example: "Muscat"
+        wilayat:
+          type: string
+          maxLength: 50
+          example: "Seeb"
+        village:
+          type: string
+          nullable: true
+          maxLength: 80
+          example: "Al Khoudh"
+        street:
+          type: string
+          nullable: true
+          maxLength: 120
+          example: "Street 12"
+        buildingNumber:
+          type: string
+          nullable: true
+          maxLength: 20
+          example: "45"
+        postalCode:
+          type: string
+          nullable: true
+          maxLength: 10
+          example: "133"
+        mobile:
+          type: string
+          nullable: true
+          maxLength: 20
+          example: "+96891234567"
+        email:
+          type: string
+          nullable: true
+          maxLength: 120
+          example: "applicant@example.com"
 
     PagedResultOfPersonSummary:
       type: object

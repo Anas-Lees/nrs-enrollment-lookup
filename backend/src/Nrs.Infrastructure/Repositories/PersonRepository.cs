@@ -98,4 +98,48 @@ public class PersonRepository(NrsDbContext db) : IPersonRepository
             .Include(p => p.Passports)
             .FirstOrDefaultAsync(p => p.CivilNumber == crn, cancellationToken);
     }
+
+    /// <summary>
+    /// Loads the person (tracked, with their address and contact), applies the new values —
+    /// creating the address/contact rows when the person had none yet — saves, then returns
+    /// the refreshed profile. Returns <see langword="null"/> if the CRN is unknown.
+    /// </summary>
+    /// <param name="crn">The Civil Registration Number of the person to update.</param>
+    /// <param name="request">The new address and contact values (already trimmed).</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task<Person?> UpdateContactDetailsAsync(
+        string crn,
+        UpdateContactDetailsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        // Tracked load: EF observes the edits (and any inserted dependents) for SaveChanges.
+        var person = await db.Persons
+            .Include(p => p.Address)
+            .Include(p => p.Contact)
+            .FirstOrDefaultAsync(p => p.CivilNumber == crn, cancellationToken);
+
+        if (person is null)
+        {
+            return null;
+        }
+
+        // Address and Contact share the CRN as their primary key. A freshly-registered
+        // applicant has neither row yet, so create it on first save; otherwise update in place.
+        person.Address ??= new Address { CivilNumber = crn };
+        person.Address.Governorate = request.Governorate;
+        person.Address.Wilayat = request.Wilayat;
+        person.Address.Village = request.Village;
+        person.Address.Street = request.Street;
+        person.Address.BuildingNumber = request.BuildingNumber;
+        person.Address.PostalCode = request.PostalCode;
+
+        person.Contact ??= new Contact { CivilNumber = crn };
+        person.Contact.Mobile = request.Mobile;
+        person.Contact.Email = request.Email;
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Re-read (no-tracking, all includes) so the caller gets the full profile to map.
+        return await GetByCrnAsync(crn, cancellationToken);
+    }
 }

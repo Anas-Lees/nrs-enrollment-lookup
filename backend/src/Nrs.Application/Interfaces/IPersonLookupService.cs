@@ -22,4 +22,18 @@ public interface IPersonLookupService
     /// <param name="crn">The Civil Registration Number to look up.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task<PersonDto?> GetByCrnAsync(string crn, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets a person's residential address and contact details, then returns their full,
+    /// refreshed profile — or <see langword="null"/> if no person has the supplied CRN.
+    /// Creates the address/contact rows if the person did not have them yet (the case for a
+    /// freshly-registered applicant).
+    /// </summary>
+    /// <param name="crn">The Civil Registration Number of the person to update.</param>
+    /// <param name="request">The new address and contact values.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task<PersonDto?> UpdateContactDetailsAsync(
+        string crn,
+        UpdateContactDetailsRequest request,
+        CancellationToken cancellationToken = default);
 }

@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { APP_CONFIG } from '../config/app-config';
 import { PagedResult, PersonSearchCriteria } from '../models/paged-result.model';
-import { Person, PersonSummary } from '../models/person.model';
+import { Person, PersonSummary, UpdateContactDetailsRequest } from '../models/person.model';
 
 /**
  * Talks to the Applicant Lookup API. The single place HTTP calls to /persons live,
@@ -44,5 +44,16 @@ export class PersonService {
   /** Full profile (with documents) for one civil registration number. */
   getByCrn(crn: string): Observable<Person> {
     return this.http.get<Person>(`${this.baseUrl}/${encodeURIComponent(crn)}`);
+  }
+
+  /**
+   * Sets a person's address and contact details, returning their refreshed profile. Used to
+   * fill in the fields a freshly-registered applicant does not have yet, or to correct them.
+   */
+  updateContactDetails(crn: string, request: UpdateContactDetailsRequest): Observable<Person> {
+    return this.http.put<Person>(
+      `${this.baseUrl}/${encodeURIComponent(crn)}/contact-details`,
+      request,
+    );
   }
 }

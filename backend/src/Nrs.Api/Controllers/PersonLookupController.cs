@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Nrs.Api.Filters;
@@ -53,5 +54,41 @@ public class PersonLookupController(IPersonLookupService service) : ControllerBa
                 title: "Person not found",
                 detail: $"No person exists with CRN '{crn}'.")
             : Ok(person);
+    }
+
+    /// <summary>
+    /// Sets a person's residential address and contact details, returning their refreshed
+    /// profile. Fills in the fields a freshly-registered applicant does not have yet (a new
+    /// enrollment creates the person from the form, without an address or contact), and lets
+    /// an operator correct them later. Creates the rows on first save.
+    /// </summary>
+    [HttpPut("{crn:regex(^\\d{{1,9}}$)}/contact-details")]
+    [ProducesResponseType(typeof(PersonDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PersonDto>> UpdateContactDetails(
+        string crn,
+        [FromBody] UpdateContactDetailsRequest request,
+        [FromServices] IValidator<UpdateContactDetailsRequest> validator,
+        CancellationToken cancellationToken)
+    {
+        var validation = await validator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors)
+            {
+                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        var updated = await service.UpdateContactDetailsAsync(crn, request, cancellationToken);
+        return updated is null
+            ? Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Person not found",
+                detail: $"No person exists with CRN '{crn}'.")
+            : Ok(updated);
     }
 }
