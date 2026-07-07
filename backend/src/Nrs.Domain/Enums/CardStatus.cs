@@ -5,6 +5,7 @@ namespace Nrs.Domain.Enums;
 /// <summary>
 /// Status of an ID card. Persisted as a string token. A newly issued card runs through
 /// production (IN_PRODUCTION → READY_FOR_COLLECTION → ACTIVE) before it becomes a live card.
+/// A person holds at most one live card: issuing a new one supersedes the previous card.
 /// </summary>
 public enum CardStatus
 {
@@ -16,6 +17,10 @@ public enum CardStatus
 
     ACTIVE,
     EXPIRED,
+
+    /// <summary>Invalidated because a newer card was issued to the same holder (renewal/replacement).</summary>
+    SUPERSEDED,
+
     BLOCKED,
     LOST
 }

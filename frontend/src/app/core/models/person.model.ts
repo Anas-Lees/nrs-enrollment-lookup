@@ -3,7 +3,14 @@
 
 export type Gender = 'M' | 'F';
 export type PersonStatus = 'ACTIVE' | 'DECEASED' | 'MERGED';
-export type CardStatus = 'ACTIVE' | 'EXPIRED' | 'BLOCKED' | 'LOST';
+export type CardStatus =
+  | 'IN_PRODUCTION'
+  | 'READY_FOR_COLLECTION'
+  | 'ACTIVE'
+  | 'EXPIRED'
+  | 'SUPERSEDED'
+  | 'BLOCKED'
+  | 'LOST';
 export type CardType = 'OMANI' | 'RESIDENT' | 'GCC' | 'INVESTOR';
 export type PassportType = 'ORDINARY' | 'DIPLOMATIC' | 'SERVICE' | 'SPECIAL' | 'ROYAL_DIPLOMATIC';
 export type PassportStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'LOST' | 'STOLEN';

@@ -1725,7 +1725,7 @@ components:
 
     CardStatus:
       type: string
-      enum: [IN_PRODUCTION, READY_FOR_COLLECTION, ACTIVE, EXPIRED, BLOCKED, LOST]
+      enum: [IN_PRODUCTION, READY_FOR_COLLECTION, ACTIVE, EXPIRED, SUPERSEDED, BLOCKED, LOST]
 
     CardType:
       type: string

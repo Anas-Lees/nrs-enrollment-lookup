@@ -33,6 +33,7 @@
   "nationality.USA": "الولايات المتحدة",
   "status.ACTIVE": "فعّال",
   "status.EXPIRED": "منتهٍ",
+  "status.SUPERSEDED": "مُستبدل",
   "status.BLOCKED": "محظور",
   "status.LOST": "مفقود",
   "status.STOLEN": "مسروق",

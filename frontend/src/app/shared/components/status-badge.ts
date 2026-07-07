@@ -37,6 +37,7 @@ export class StatusBadge {
       case 'MERGED':
       case 'DRAFT':
       case 'WITHDRAWN':
+      case 'SUPERSEDED':
         return 'badge--muted';
       case 'APPROVED':
         return 'badge--ok';

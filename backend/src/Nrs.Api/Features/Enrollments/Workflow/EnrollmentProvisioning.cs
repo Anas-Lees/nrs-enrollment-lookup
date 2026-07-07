@@ -85,9 +85,10 @@ public static class EnrollmentProvisioning
 
     /// <summary>
     /// Activates the card this enrollment produced (once collected) and supersedes the holder's
-    /// previous live cards — a renewal/replacement makes the old card EXPIRED. Returns true only if
-    /// it actually activated the card (idempotent; the caller notifies only on a real change). Does
-    /// not save — the caller commits the status change together with its notification.
+    /// previous live card — a person may hold only one active card, so a renewal/replacement marks
+    /// the old card <see cref="CardStatus.SUPERSEDED"/>. Returns true only if it actually activated
+    /// the card (idempotent; the caller notifies only on a real change). Does not save — the caller
+    /// commits the status change together with its notification.
     /// </summary>
     public static async Task<bool> ActivateCardAsync(NrsDbContext db, Enrollment enrollment, CancellationToken ct)
     {
@@ -98,6 +99,8 @@ public static class EnrollmentProvisioning
         }
 
         // The old card stays valid right up until the new one is collected, so supersede only now.
+        // "Superseded" (replaced by a newer card), not "expired" (reached its expiry date) — the
+        // distinction keeps the card history honest.
         var superseded = await db.IdCards
             .Where(c => c.CivilNumber == card.CivilNumber
                         && c.IdCardId != card.IdCardId
@@ -105,7 +108,7 @@ public static class EnrollmentProvisioning
             .ToListAsync(ct);
         foreach (var old in superseded)
         {
-            old.Status = CardStatus.EXPIRED;
+            old.Status = CardStatus.SUPERSEDED;
         }
 
         card.Status = CardStatus.ACTIVE;
