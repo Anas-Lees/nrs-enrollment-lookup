@@ -83,6 +83,9 @@
                 </span>
                 <span class="bell__item-body">
                   <span class="bell__item-text">{{ message(n) }}</span>
+                  <span class="bell__item-time">{{
+                    n.createdAtUtc | appDate: i18n.lang() : true
+                  }}</span>
                   @if (n.enrollmentId) {
                     <span class="bell__item-open">{{ i18n.t('notif.open') }} ›</span>
                   }

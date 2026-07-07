@@ -2,7 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+import { navigateBack } from '../../shared/navigate-back';
 
 import { TranslationService } from '../../core/i18n/translation.service';
 import { PersonService } from '../../core/services/person.service';
@@ -40,6 +43,8 @@ interface ContactForm {
 export class PersonProfile {
   protected readonly i18n = inject(TranslationService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly personService = inject(PersonService);
 
   readonly person = signal<Person | null>(null);
@@ -120,6 +125,11 @@ export class PersonProfile {
         }
       },
     });
+  }
+
+  /** Back to wherever the operator came from (search, an enrollment, a card…). */
+  goBack(): void {
+    navigateBack(this.location, this.router, '/search');
   }
 
   // --- address + contact editing ---

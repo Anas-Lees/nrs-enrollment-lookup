@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { AppNotification } from '../../core/models/notification.model';
+import { AppDatePipe } from '../app-date.pipe';
 
 /**
  * The staff notification bell in the sidebar: an unread badge, and a panel listing what the
@@ -20,7 +21,7 @@ import { AppNotification } from '../../core/models/notification.model';
  */
 @Component({
   selector: 'app-notification-bell',
-  imports: [],
+  imports: [AppDatePipe],
   templateUrl: './notification-bell.html',
   styleUrl: './notification-bell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,5 +1,5 @@
 <section class="page">
-  <a class="back-link" routerLink="/enrollment/queue">← {{ i18n.t('detail.back') }}</a>
+  <button type="button" class="back-link" (click)="goBack()">{{ i18n.t('common.back') }}</button>
 
   @if (loading()) {
     <p class="muted">{{ i18n.t('detail.loading') }}</p>
@@ -77,7 +77,7 @@
             <dt>{{ i18n.t('detail.decidedAt') }}</dt>
             <dd>
               @if (e.decidedAtUtc) {
-                {{ e.decidedAtUtc | appDate: i18n.lang() }}
+                {{ e.decidedAtUtc | appDate: i18n.lang() : true }}
               } @else {
                 —
               }
@@ -176,7 +176,7 @@
         @if (e.assignedAtUtc) {
           <div class="kv__row">
             <dt>{{ i18n.t('detail.assignedAt') }}</dt>
-            <dd>{{ e.assignedAtUtc | appDate: i18n.lang() }}</dd>
+            <dd>{{ e.assignedAtUtc | appDate: i18n.lang() : true }}</dd>
           </div>
         }
         <div class="kv__row">
@@ -185,7 +185,7 @@
         </div>
         <div class="kv__row">
           <dt>{{ i18n.t('detail.createdAt') }}</dt>
-          <dd>{{ e.createdAtUtc | appDate: i18n.lang() }}</dd>
+          <dd>{{ e.createdAtUtc | appDate: i18n.lang() : true }}</dd>
         </div>
       </dl>
     </section>

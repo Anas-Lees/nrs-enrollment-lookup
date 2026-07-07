@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Location } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -6,6 +7,7 @@ import { TranslationService } from '../../core/i18n/translation.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { EnrollmentRequest, EnrollmentType } from '../../core/models/enrollment.model';
 import { DateField } from '../../shared/components/date-field';
+import { navigateBack } from '../../shared/navigate-back';
 
 interface NationalityOption {
   code: string;
@@ -29,6 +31,7 @@ export class EnrollmentForm {
   private readonly enrollments = inject(EnrollmentService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly location = inject(Location);
 
   /** Set in edit mode; null when creating. */
   readonly id = signal<string | null>(null);
@@ -129,6 +132,11 @@ export class EnrollmentForm {
   invalid(control: string): boolean {
     const c = this.form.get(control);
     return !!c && c.invalid && c.touched;
+  }
+
+  /** Back to wherever the operator came from (falls back to the queue on a deep link). */
+  goBack(): void {
+    navigateBack(this.location, this.router, '/enrollment/queue');
   }
 
   save(): void {

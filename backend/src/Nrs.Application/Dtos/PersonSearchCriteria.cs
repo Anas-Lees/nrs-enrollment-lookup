@@ -24,6 +24,14 @@ public record PersonSearchCriteria
     [RegularExpression(@"^[A-Za-z]{3}$", ErrorMessage = "Nationality must be a 3-letter ISO code.")]
     public string? Nationality { get; init; }
 
+    /// <summary>
+    /// Result ordering key: <c>name-asc</c> (default), <c>name-desc</c>, <c>dob-desc</c>
+    /// (youngest first), <c>dob-asc</c> (oldest first) or <c>crn-asc</c>. Applied server-side
+    /// so the order covers every page.
+    /// </summary>
+    [RegularExpression("^(name-asc|name-desc|dob-desc|dob-asc|crn-asc)$", ErrorMessage = "Unknown sort key.")]
+    public string? Sort { get; init; }
+
     /// <summary>The 1-based page number to retrieve. Defaults to 1.</summary>
     [Range(1, int.MaxValue, ErrorMessage = "Page must be 1 or greater.")]
     public int Page { get; init; } = 1;

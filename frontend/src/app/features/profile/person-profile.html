@@ -1,6 +1,6 @@
 <section class="page">
   <div class="topbar">
-    <a routerLink="/search" class="back-link">{{ i18n.t('profile.back') }}</a>
+    <button type="button" class="back-link" (click)="goBack()">{{ i18n.t('common.back') }}</button>
   </div>
 
   @if (loading()) {

@@ -19,6 +19,7 @@ import { Person, PersonSummary } from '../../core/models/person.model';
 import { Pagination } from '../../shared/components/pagination';
 import { StatusBadge } from '../../shared/components/status-badge';
 import { DateField } from '../../shared/components/date-field';
+import { SortSelect, SortOption } from '../../shared/components/sort-select';
 import { AppDatePipe } from '../../shared/app-date.pipe';
 import { avatarColor, personInitials } from '../../shared/avatar';
 
@@ -29,7 +30,15 @@ interface NationalityOption {
 
 @Component({
   selector: 'app-person-search',
-  imports: [ReactiveFormsModule, RouterLink, Pagination, StatusBadge, DateField, AppDatePipe],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    Pagination,
+    StatusBadge,
+    DateField,
+    SortSelect,
+    AppDatePipe,
+  ],
   templateUrl: './person-search.html',
   styleUrl: './person-search.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -61,6 +70,15 @@ export class PersonSearch {
   private criteria: PersonSearchCriteria = {};
   readonly pageSize = signal(10);
   readonly pageSizeOptions = [10, 25, 50, 100];
+
+  readonly sortBy = signal('name-asc');
+  readonly sortOptions: SortOption[] = [
+    { value: 'name-asc', label: 'sort.nameAsc' },
+    { value: 'name-desc', label: 'sort.nameDesc' },
+    { value: 'dob-desc', label: 'sort.dobNewest' },
+    { value: 'dob-asc', label: 'sort.dobOldest' },
+    { value: 'crn-asc', label: 'sort.crn' },
+  ];
 
   readonly totalPages = computed(() => {
     const r = this.results();
@@ -108,6 +126,8 @@ export class PersonSearch {
       );
       const size = Number(pm.get('size'));
       this.pageSize.set(this.pageSizeOptions.includes(size) ? size : 10);
+      const sort = pm.get('sort');
+      this.sortBy.set(this.sortOptions.some((o) => o.value === sort) ? sort! : 'name-asc');
       this.criteria = this.buildCriteria();
       this.load(Number(pm.get('page')) || 1);
     });
@@ -140,10 +160,19 @@ export class PersonSearch {
     if (v.nationality.trim()) {
       criteria.nationality = v.nationality.trim();
     }
+    if (this.sortBy() !== 'name-asc') {
+      criteria.sort = this.sortBy();
+    }
     return criteria;
   }
 
   onSubmit(): void {
+    this.navigateToSearch(1);
+  }
+
+  /** Re-sort: reflect the new order in the URL (which reruns the search). */
+  onSortChange(sort: string): void {
+    this.sortBy.set(sort);
     this.navigateToSearch(1);
   }
 
@@ -171,6 +200,7 @@ export class PersonSearch {
       q: v.query.trim() || null,
       dob: v.dob.trim() || null,
       nat: v.nationality.trim() || null,
+      sort: this.sortBy() === 'name-asc' ? null : this.sortBy(),
       size: this.pageSize() === 10 ? null : this.pageSize(),
     };
     this.router.navigate([], { relativeTo: this.route, queryParams });

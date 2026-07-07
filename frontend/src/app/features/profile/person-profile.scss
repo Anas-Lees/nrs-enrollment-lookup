@@ -3,9 +3,14 @@
 }
 
 .back-link {
+  border: none;
+  background: none;
+  padding: 0;
   color: var(--color-muted);
   text-decoration: none;
+  font: inherit;
   font-size: 0.9rem;
+  cursor: pointer;
 
   &:hover {
     color: var(--rop-green-600);

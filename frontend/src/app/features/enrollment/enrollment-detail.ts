@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { TranslationService } from '../../core/i18n/translation.service';
@@ -9,6 +10,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { Enrollment } from '../../core/models/enrollment.model';
 import { StatusBadge } from '../../shared/components/status-badge';
 import { AppDatePipe } from '../../shared/app-date.pipe';
+import { navigateBack } from '../../shared/navigate-back';
 
 /**
  * Read-only view of a single enrollment application: the full applicant record, why screening
@@ -30,6 +32,8 @@ export class EnrollmentDetail {
   private readonly enrollments = inject(EnrollmentService);
   private readonly notifications = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
 
   readonly enrollment = signal<Enrollment | null>(null);
   readonly loading = signal(false);
@@ -91,6 +95,11 @@ export class EnrollmentDetail {
     return this.i18n.lang() === 'ar'
       ? `${e.firstNameAr} ${e.familyNameAr}`
       : `${e.firstNameEn} ${e.familyNameEn}`;
+  }
+
+  /** Back to wherever the operator came from (queue, review tasks, a notification…). */
+  goBack(): void {
+    navigateBack(this.location, this.router, '/enrollment/queue');
   }
 
   flagLabel(flag: string): string {

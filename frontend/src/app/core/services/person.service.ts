@@ -31,6 +31,9 @@ export class PersonService {
     if (criteria.nationality?.trim()) {
       params = params.set('nationality', criteria.nationality.trim());
     }
+    if (criteria.sort) {
+      params = params.set('sort', criteria.sort);
+    }
     if (criteria.page != null) {
       params = params.set('page', criteria.page);
     }

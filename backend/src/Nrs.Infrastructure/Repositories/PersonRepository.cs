@@ -67,13 +67,21 @@ public class PersonRepository(NrsDbContext db) : IPersonRepository
         // Total count of all matches, before paging is applied.
         var totalCount = await query.CountAsync(cancellationToken);
 
+        // Server-side ordering so the chosen sort covers every page, not just the visible one.
+        // Every branch ends on CivilNumber so paging is deterministic even when the primary
+        // key ties (e.g. two people share a name or date of birth).
+        IQueryable<Person> ordered = criteria.Sort switch
+        {
+            "name-desc" => query.OrderByDescending(p => p.FamilyNameEn).ThenByDescending(p => p.FirstNameEn).ThenBy(p => p.CivilNumber),
+            "dob-desc" => query.OrderByDescending(p => p.DateOfBirth).ThenBy(p => p.FamilyNameEn).ThenBy(p => p.CivilNumber),
+            "dob-asc" => query.OrderBy(p => p.DateOfBirth).ThenBy(p => p.FamilyNameEn).ThenBy(p => p.CivilNumber),
+            "crn-asc" => query.OrderBy(p => p.CivilNumber),
+            _ => query.OrderBy(p => p.FamilyNameEn).ThenBy(p => p.FirstNameEn).ThenBy(p => p.CivilNumber),
+        };
+
         // Paging is validated at the API boundary and normalised by the service, so the
-        // values are trusted here (no second clamp). Stable ordering before Skip/Take keeps
-        // pages deterministic.
-        var items = await query
-            .OrderBy(p => p.FamilyNameEn)
-            .ThenBy(p => p.FirstNameEn)
-            .ThenBy(p => p.CivilNumber)
+        // values are trusted here (no second clamp).
+        var items = await ordered
             .Skip((criteria.Page - 1) * criteria.PageSize)
             .Take(criteria.PageSize)
             .ToListAsync(cancellationToken);

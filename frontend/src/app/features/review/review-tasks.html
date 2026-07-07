@@ -96,7 +96,7 @@
         }
         <div>
           <dt>{{ i18n.t('review.waitingSince') }}</dt>
-          <dd>{{ t.queuedAtUtc.substring(0, 10) | appDate: i18n.lang() }}</dd>
+          <dd>{{ t.queuedAtUtc | appDate: i18n.lang() : true }}</dd>
         </div>
         <div>
           <dt>{{ i18n.t('review.assignee') }}</dt>

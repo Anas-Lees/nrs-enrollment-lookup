@@ -12,6 +12,8 @@ export interface PersonSearchCriteria {
   name?: string;
   dob?: string;
   nationality?: string;
+  /** Result ordering: name-asc (default), name-desc, dob-desc, dob-asc, crn-asc. */
+  sort?: string | null;
   page?: number;
   pageSize?: number;
 }

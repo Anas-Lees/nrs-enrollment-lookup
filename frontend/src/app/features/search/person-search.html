@@ -65,6 +65,14 @@
     } @else if (results(); as r) {
       <div class="results-meta" aria-live="polite">
         <span class="results-meta__count">{{ r.totalCount }} {{ i18n.t('search.matches') }}</span>
+        @if (r.items.length > 0) {
+          <app-sort-select
+            class="results-meta__sort"
+            [options]="sortOptions"
+            [value]="sortBy()"
+            (valueChange)="onSortChange($event)"
+          />
+        }
         <span class="results-meta__perf">
           {{ i18n.t('search.page') }} {{ r.page }}/{{ totalPages() }} · {{ elapsedMs() }} ms
         </span>

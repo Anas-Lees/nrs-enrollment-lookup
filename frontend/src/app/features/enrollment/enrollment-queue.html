@@ -61,7 +61,7 @@
                     <span class="chip-escalated">{{ i18n.t('queue.escalated') }}</span>
                   }
                 </td>
-                <td>{{ e.createdAtUtc.substring(0, 10) | appDate: i18n.lang() }}</td>
+                <td>{{ e.createdAtUtc | appDate: i18n.lang() : true }}</td>
                 <td class="col-actions">
                   <div class="row-actions">
                     <button

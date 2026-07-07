@@ -1,6 +1,6 @@
 <section class="page">
   <div class="topbar">
-    <a routerLink="/enrollment/queue" class="back-link">{{ i18n.t('enroll.backToQueue') }}</a>
+    <button type="button" class="back-link" (click)="goBack()">{{ i18n.t('common.back') }}</button>
   </div>
 
   <article class="panel enroll-form">
@@ -14,6 +14,8 @@
       }
 
       <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <p class="form-section">{{ i18n.t('enroll.section.applicant') }}</p>
+
         <div class="field">
           <label for="civilNumber">{{ i18n.t('enroll.field.civilNumber') }}</label>
           <input
@@ -106,6 +108,8 @@
           </div>
         </div>
 
+        <p class="form-section">{{ i18n.t('enroll.section.details') }}</p>
+
         <div class="grid-2">
           <div class="field">
             <label for="nationalityCode">{{ i18n.t('enroll.field.nationality') }}</label>
@@ -115,15 +119,14 @@
               }
             </select>
           </div>
-        </div>
-
-        <div class="field">
-          <label for="type">{{ i18n.t('enroll.field.type') }}</label>
-          <select id="type" formControlName="type">
-            @for (t of types; track t) {
-              <option [value]="t">{{ i18n.t('enroll.type.' + t) }}</option>
-            }
-          </select>
+          <div class="field">
+            <label for="type">{{ i18n.t('enroll.field.type') }}</label>
+            <select id="type" formControlName="type">
+              @for (t of types; track t) {
+                <option [value]="t">{{ i18n.t('enroll.type.' + t) }}</option>
+              }
+            </select>
+          </div>
         </div>
 
         <div class="field">

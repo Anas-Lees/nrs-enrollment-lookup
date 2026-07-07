@@ -149,6 +149,12 @@
     line-height: 1.35;
   }
 
+  &__item-time {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--color-muted);
+  }
+
   &__item-open {
     font-size: 0.72rem;
     font-weight: 600;

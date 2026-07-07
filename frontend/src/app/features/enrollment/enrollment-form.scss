@@ -7,9 +7,14 @@
 }
 
 .back-link {
+  border: none;
+  background: none;
+  padding: 0;
   color: var(--color-muted);
   text-decoration: none;
+  font: inherit;
   font-size: 0.9rem;
+  cursor: pointer;
 
   &:hover {
     color: var(--color-primary);
@@ -26,9 +31,25 @@
 
 .enroll-form {
   h1 {
-    margin: 0 0 1.25rem;
+    margin: 0 0 1.5rem;
     font-size: 1.4rem;
     color: var(--color-text);
+  }
+}
+
+// Small uppercase group heading with a divider — gives the form clear sections.
+.form-section {
+  margin: 1.75rem 0 1rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rop-green-600);
+
+  &:first-of-type {
+    margin-top: 0;
   }
 }
 

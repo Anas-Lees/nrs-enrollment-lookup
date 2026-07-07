@@ -78,6 +78,15 @@ paths:
             minLength: 3
             maxLength: 3
             example: "OMN"
+        - name: sort
+          in: query
+          description: >
+            Result ordering (applied server-side, across all pages). Defaults to name A–Z.
+          required: false
+          schema:
+            type: string
+            enum: [name-asc, name-desc, dob-desc, dob-asc, crn-asc]
+            default: name-asc
         - name: page
           in: query
           description: 1-based page number.
