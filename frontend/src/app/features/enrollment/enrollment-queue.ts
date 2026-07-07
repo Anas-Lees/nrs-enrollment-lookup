@@ -81,7 +81,12 @@ export class EnrollmentQueue {
   private refresh(): void {
     const page = this.results()?.page ?? 1;
     this.enrollments
-      .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize(), sort: this.sortBy() })
+      .list({
+        status: this.statusFilter() || null,
+        page,
+        pageSize: this.pageSize(),
+        sort: this.sortBy(),
+      })
       .subscribe({
         next: (r) => {
           if (r.items.length === 0 && r.page > 1) {
@@ -97,7 +102,12 @@ export class EnrollmentQueue {
     this.loading.set(true);
     this.error.set(null);
     this.enrollments
-      .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize(), sort: this.sortBy() })
+      .list({
+        status: this.statusFilter() || null,
+        page,
+        pageSize: this.pageSize(),
+        sort: this.sortBy(),
+      })
       .subscribe({
         next: (r) => {
           if (r.items.length === 0 && r.page > 1) {

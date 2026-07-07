@@ -18,7 +18,11 @@ export interface SortOption {
   template: `
     <label class="sort-select">
       <span class="sort-select__label">{{ i18n.t('sort.label') }}</span>
-      <select [value]="value()" (change)="onChange($event)" [attr.aria-label]="i18n.t('sort.label')">
+      <select
+        [value]="value()"
+        (change)="onChange($event)"
+        [attr.aria-label]="i18n.t('sort.label')"
+      >
         @for (o of options(); track o.value) {
           <option [value]="o.value">{{ i18n.t(o.label) }}</option>
         }
