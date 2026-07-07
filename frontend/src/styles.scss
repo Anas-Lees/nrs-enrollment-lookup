@@ -1,5 +1,15 @@
 /* Global styles + design tokens — Royal Oman Police palette (NRS console) */
 
+/* Arabic typeface — 29LT Azer (self-hosted, licensed .ttf dropped in public/fonts).
+   One file claims the whole weight range; the browser synthesises heavier weights. */
+@font-face {
+  font-family: '29LT Azer';
+  src: url('/fonts/29LTAzer.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ROP greens */
   --rop-green: #14512f;
@@ -35,8 +45,11 @@
   --shadow-card-lg: 0 4px 16px rgb(12 39 24 / 10%);
   --sidebar-w: 256px;
 
-  /* Typography — system stack with Arabic coverage */
-  --font-sans: 'Segoe UI', Tahoma, 'Noto Sans Arabic', system-ui, -apple-system, Arial, sans-serif;
+  /* Typography — Inter for Latin, 29LT Azer for Arabic. Inter has no Arabic glyphs, so
+     Arabic codepoints fall through the stack to 29LT Azer automatically; Latin stays on Inter. */
+  --font-sans:
+    'Inter', '29LT Azer', 'Noto Sans Arabic', 'Segoe UI', system-ui, -apple-system, Arial,
+    sans-serif;
   --font-mono: 'SF Mono', 'Cascadia Mono', Consolas, 'Noto Sans Mono', monospace;
 }
 
