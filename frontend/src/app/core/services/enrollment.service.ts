@@ -21,9 +21,14 @@ export class EnrollmentService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${APP_CONFIG.apiBaseUrl}/api/v1/enrollments`;
 
-  /** Paged list of enrollments, newest first, optionally filtered by status. */
+  /** Paged list of enrollments, optionally filtered by status and sorted server-side. */
   list(
-    opts: { status?: EnrollmentStatus | null; page?: number; pageSize?: number } = {},
+    opts: {
+      status?: EnrollmentStatus | null;
+      page?: number;
+      pageSize?: number;
+      sort?: string | null;
+    } = {},
   ): Observable<PagedResult<EnrollmentSummary>> {
     let params = new HttpParams();
     if (opts.status) {
@@ -34,6 +39,9 @@ export class EnrollmentService {
     }
     if (opts.pageSize != null) {
       params = params.set('pageSize', opts.pageSize);
+    }
+    if (opts.sort) {
+      params = params.set('sort', opts.sort);
     }
     return this.http.get<PagedResult<EnrollmentSummary>>(this.baseUrl, { params });
   }

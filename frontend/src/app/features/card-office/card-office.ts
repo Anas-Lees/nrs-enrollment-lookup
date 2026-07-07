@@ -15,6 +15,7 @@ import { TranslationService } from '../../core/i18n/translation.service';
 import { CardOfficeService } from '../../core/services/card-office.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CardTask } from '../../core/models/card-office.model';
+import { SortSelect, SortOption } from '../../shared/components/sort-select';
 
 /**
  * The card office's workspace: the physical fulfilment of an approved application. Cards waiting
@@ -24,7 +25,7 @@ import { CardTask } from '../../core/models/card-office.model';
  */
 @Component({
   selector: 'app-card-office',
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, SortSelect],
   templateUrl: './card-office.html',
   styleUrl: './card-office.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,13 +44,45 @@ export class CardOffice implements OnInit {
   /** Card id whose action is in flight. */
   readonly busy = signal<number | null>(null);
 
+  readonly sortBy = signal('oldest');
+  readonly sortOptions: SortOption[] = [
+    { value: 'oldest', label: 'sort.oldest' },
+    { value: 'newest', label: 'sort.newest' },
+    { value: 'name-asc', label: 'sort.nameAsc' },
+    { value: 'name-desc', label: 'sort.nameDesc' },
+    { value: 'type', label: 'sort.type' },
+  ];
+
   /** Cards being produced — the print queue. */
-  readonly toPrint = computed(() => this.tasks().filter((t) => t.status === 'IN_PRODUCTION'));
+  readonly toPrint = computed(() =>
+    this.sortCards(this.tasks().filter((t) => t.status === 'IN_PRODUCTION')),
+  );
 
   /** Printed cards waiting for the applicant — the hand-over queue. */
   readonly toHandOver = computed(() =>
-    this.tasks().filter((t) => t.status === 'READY_FOR_COLLECTION'),
+    this.sortCards(this.tasks().filter((t) => t.status === 'READY_FOR_COLLECTION')),
   );
+
+  private sortCards(list: CardTask[]): CardTask[] {
+    const name = (t: CardTask) =>
+      (this.i18n.lang() === 'ar'
+        ? `${t.familyNameAr} ${t.firstNameAr}`
+        : `${t.familyNameEn} ${t.firstNameEn}`
+      ).toLowerCase();
+    const arr = [...list];
+    switch (this.sortBy()) {
+      case 'newest':
+        return arr.sort((a, b) => b.idCardId - a.idCardId);
+      case 'name-asc':
+        return arr.sort((a, b) => name(a).localeCompare(name(b)));
+      case 'name-desc':
+        return arr.sort((a, b) => name(b).localeCompare(name(a)));
+      case 'type':
+        return arr.sort((a, b) => a.enrollmentType.localeCompare(b.enrollmentType));
+      default:
+        return arr.sort((a, b) => a.idCardId - b.idCardId); // oldest first
+    }
+  }
 
   ngOnInit(): void {
     this.load();

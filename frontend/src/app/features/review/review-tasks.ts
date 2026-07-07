@@ -17,6 +17,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ReviewTask } from '../../core/models/enrollment.model';
+import { SortSelect, SortOption } from '../../shared/components/sort-select';
 import { AppDatePipe } from '../../shared/app-date.pipe';
 
 /**
@@ -28,7 +29,7 @@ import { AppDatePipe } from '../../shared/app-date.pipe';
  */
 @Component({
   selector: 'app-review-tasks',
-  imports: [FormsModule, NgTemplateOutlet, AppDatePipe],
+  imports: [FormsModule, NgTemplateOutlet, SortSelect, AppDatePipe],
   templateUrl: './review-tasks.html',
   styleUrl: './review-tasks.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,16 +57,49 @@ export class ReviewTasks implements OnInit {
   readonly correcting = signal<string | null>(null);
   correctionNote = '';
 
+  readonly sortBy = signal('oldest');
+  readonly sortOptions: SortOption[] = [
+    { value: 'oldest', label: 'sort.oldest' },
+    { value: 'newest', label: 'sort.newest' },
+    { value: 'name-asc', label: 'sort.nameAsc' },
+    { value: 'name-desc', label: 'sort.nameDesc' },
+    { value: 'type', label: 'sort.type' },
+  ];
+
   /** Waiting in the shared queue, unassigned — anyone may claim. */
-  readonly available = computed(() => this.tasks().filter((t) => !t.assignee));
+  readonly available = computed(() => this.sortTasks(this.tasks().filter((t) => !t.assignee)));
 
   /** Claimed by me — mine to decide or release. */
-  readonly mine = computed(() => this.tasks().filter((t) => t.assignee === this.auth.username()));
+  readonly mine = computed(() =>
+    this.sortTasks(this.tasks().filter((t) => t.assignee === this.auth.username())),
+  );
 
   /** In progress with a colleague — shown read-only for transparency. */
   readonly others = computed(() =>
-    this.tasks().filter((t) => t.assignee && t.assignee !== this.auth.username()),
+    this.sortTasks(this.tasks().filter((t) => t.assignee && t.assignee !== this.auth.username())),
   );
+
+  /** Client-side sort of an already-loaded group (reacts to the sort selection). */
+  private sortTasks(list: ReviewTask[]): ReviewTask[] {
+    const name = (t: ReviewTask) =>
+      (this.i18n.lang() === 'ar'
+        ? `${t.enrollment.familyNameAr} ${t.enrollment.firstNameAr}`
+        : `${t.enrollment.familyNameEn} ${t.enrollment.firstNameEn}`
+      ).toLowerCase();
+    const arr = [...list];
+    switch (this.sortBy()) {
+      case 'newest':
+        return arr.sort((a, b) => b.queuedAtUtc.localeCompare(a.queuedAtUtc));
+      case 'name-asc':
+        return arr.sort((a, b) => name(a).localeCompare(name(b)));
+      case 'name-desc':
+        return arr.sort((a, b) => name(b).localeCompare(name(a)));
+      case 'type':
+        return arr.sort((a, b) => a.enrollment.type.localeCompare(b.enrollment.type));
+      default:
+        return arr.sort((a, b) => a.queuedAtUtc.localeCompare(b.queuedAtUtc)); // oldest first
+    }
+  }
 
   ngOnInit(): void {
     this.load();

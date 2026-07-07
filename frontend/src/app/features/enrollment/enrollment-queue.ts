@@ -8,6 +8,7 @@ import { PagedResult } from '../../core/models/paged-result.model';
 import { EnrollmentStatus, EnrollmentSummary } from '../../core/models/enrollment.model';
 import { Pagination } from '../../shared/components/pagination';
 import { StatusBadge } from '../../shared/components/status-badge';
+import { SortSelect, SortOption } from '../../shared/components/sort-select';
 import { AppDatePipe } from '../../shared/app-date.pipe';
 
 /**
@@ -19,7 +20,7 @@ import { AppDatePipe } from '../../shared/app-date.pipe';
  */
 @Component({
   selector: 'app-enrollment-queue',
-  imports: [RouterLink, Pagination, StatusBadge, AppDatePipe],
+  imports: [RouterLink, Pagination, StatusBadge, SortSelect, AppDatePipe],
   templateUrl: './enrollment-queue.html',
   styleUrl: './enrollment-queue.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +38,16 @@ export class EnrollmentQueue {
   readonly pageSize = signal(10);
   readonly pageSizeOptions = [10, 25, 50, 100];
   readonly statusFilter = signal<EnrollmentStatus | ''>('');
+  readonly sortBy = signal('created-desc');
+
+  readonly sortOptions: SortOption[] = [
+    { value: 'created-desc', label: 'sort.newest' },
+    { value: 'created-asc', label: 'sort.oldest' },
+    { value: 'name-asc', label: 'sort.nameAsc' },
+    { value: 'name-desc', label: 'sort.nameDesc' },
+    { value: 'type-asc', label: 'sort.type' },
+    { value: 'status-asc', label: 'sort.status' },
+  ];
 
   readonly statuses: EnrollmentStatus[] = [
     'SUBMITTED',
@@ -54,6 +65,8 @@ export class EnrollmentQueue {
       const size = Number(pm.get('size'));
       this.pageSize.set(this.pageSizeOptions.includes(size) ? size : 10);
       this.statusFilter.set((pm.get('status') as EnrollmentStatus | null) ?? '');
+      const sort = pm.get('sort');
+      this.sortBy.set(this.sortOptions.some((o) => o.value === sort) ? sort! : 'created-desc');
       this.load(Number(pm.get('page')) || 1);
     });
 
@@ -68,7 +81,7 @@ export class EnrollmentQueue {
   private refresh(): void {
     const page = this.results()?.page ?? 1;
     this.enrollments
-      .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize() })
+      .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize(), sort: this.sortBy() })
       .subscribe({
         next: (r) => {
           if (r.items.length === 0 && r.page > 1) {
@@ -84,7 +97,7 @@ export class EnrollmentQueue {
     this.loading.set(true);
     this.error.set(null);
     this.enrollments
-      .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize() })
+      .list({ status: this.statusFilter() || null, page, pageSize: this.pageSize(), sort: this.sortBy() })
       .subscribe({
         next: (r) => {
           if (r.items.length === 0 && r.page > 1) {
@@ -114,11 +127,17 @@ export class EnrollmentQueue {
     this.navigate(1, (event.target as HTMLSelectElement).value);
   }
 
+  onSortChange(sort: string): void {
+    this.sortBy.set(sort);
+    this.navigate(1);
+  }
+
   private navigate(page: number, status?: string): void {
     const queryParams: Params = {
       page,
       size: this.pageSize() === 10 ? null : this.pageSize(),
       status: (status ?? this.statusFilter()) || null,
+      sort: this.sortBy() === 'created-desc' ? null : this.sortBy(),
     };
     this.router.navigate([], { relativeTo: this.route, queryParams });
   }

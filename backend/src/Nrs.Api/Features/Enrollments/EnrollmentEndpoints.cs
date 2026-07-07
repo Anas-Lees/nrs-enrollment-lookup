@@ -41,13 +41,14 @@ public static class EnrollmentEndpoints
                 EnrollmentStatus? status,
                 int? page,
                 int? pageSize,
+                string? sort,
                 ListEnrollments.Handler handler,
                 CancellationToken cancellationToken) =>
             {
-                var result = await handler.HandleAsync(status, page ?? 1, pageSize ?? 20, cancellationToken);
+                var result = await handler.HandleAsync(status, page ?? 1, pageSize ?? 20, sort, cancellationToken);
                 return Results.Ok(result);
             })
-            .WithSummary("List enrollment applications (paged, newest first)")
+            .WithSummary("List enrollment applications (paged; newest first by default, sortable)")
             .Produces<PagedResult<EnrollmentSummaryDto>>();
 
         group.MapGet("{id:guid}", async (

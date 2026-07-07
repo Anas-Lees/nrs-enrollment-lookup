@@ -1,7 +1,16 @@
 <section class="page">
   <header class="review-head">
-    <h1>{{ i18n.t('review.title') }}</h1>
-    <p class="muted">{{ i18n.t('review.subtitle') }}</p>
+    <div class="review-head__text">
+      <h1>{{ i18n.t('review.title') }}</h1>
+      <p class="muted">{{ i18n.t('review.subtitle') }}</p>
+    </div>
+    @if (tasks().length > 0) {
+      <app-sort-select
+        [options]="sortOptions"
+        [value]="sortBy()"
+        (valueChange)="sortBy.set($event)"
+      />
+    }
   </header>
 
   @if (loading()) {

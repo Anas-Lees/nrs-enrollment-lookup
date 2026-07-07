@@ -15,6 +15,11 @@
           }
         </select>
       </label>
+      <app-sort-select
+        [options]="sortOptions"
+        [value]="sortBy()"
+        (valueChange)="onSortChange($event)"
+      />
       <a routerLink="/enrollment/new" class="btn-primary">+ {{ i18n.t('queue.new') }}</a>
     </div>
   </header>

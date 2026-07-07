@@ -1,4 +1,9 @@
 .review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 1.25rem;
 
   h1 {
