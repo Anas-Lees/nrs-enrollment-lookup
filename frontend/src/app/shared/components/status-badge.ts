@@ -42,8 +42,10 @@ export class StatusBadge {
         return 'badge--ok';
       case 'UNDER_REVIEW':
       case 'NEEDS_CORRECTION':
+      case 'READY_FOR_COLLECTION':
         return 'badge--warn';
       case 'PENDING_REVIEW':
+      case 'IN_PRODUCTION':
         return 'badge--default';
       default:
         return 'badge--default';

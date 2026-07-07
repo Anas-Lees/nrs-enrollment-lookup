@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -61,10 +62,14 @@ export class EnrollmentDetail {
   });
 
   constructor() {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.load(id);
-    }
+    // React to the id param, not just the first snapshot: opening another enrollment from the
+    // notification bell reuses this component (same route), so we must reload on each change.
+    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
+      const id = pm.get('id');
+      if (id) {
+        this.load(id);
+      }
+    });
   }
 
   private load(id: string): void {

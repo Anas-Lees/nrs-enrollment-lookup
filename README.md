@@ -61,6 +61,10 @@ codebase shows a layered feature (lookup) and a vertical-slice feature (enrollme
 
 ![Enrollment detail with a corrections-requested banner, the reviewer's note, and edit / resubmit / withdraw actions](docs/screenshots/enrollment-corrections.png)
 
+**Card Office — the fulfilment of an approved application: cards to print and cards to hand over, each showing the freshly generated CRN**
+
+![Card office screen with a "to print" queue of issued cards showing card number, application reference and CRN](docs/screenshots/card-office.png)
+
 **Reports — enrollment analytics: throughput, auto-approval and approval rates, time-to-decision, SLA escalations, why applications were flagged, and reviewer workload (the in-app equivalent of a Camunda Optimize report)**
 
 ![Reports dashboard with KPI cards and charts computed from the review workflow](docs/screenshots/reports.png)
@@ -167,6 +171,15 @@ flowchart LR
   decision is audited (who/when/why). Camunda is feature-flagged: with no engine configured,
   decisions apply directly to the database — see [ADR 0006](docs/adr/0006-camunda-workflow.md)
   and [ADR 0007](docs/adr/0007-human-in-the-loop-review.md).
+- Approval isn't the end — the process continues into **fulfilment**, where the paperwork becomes
+  real registry data and a physical card. A **service task provisions the registry**: a brand-new
+  applicant is registered as a **person with a freshly generated CRN** (written back onto the
+  application, so they now appear in Applicant Lookup search), and an **ID card is issued** in
+  production. The card office then works two **human user tasks** — *print the card*, then *hand it
+  over* — moving it `IN_PRODUCTION → READY_FOR_COLLECTION → ACTIVE`; activating a renewal/replacement
+  supersedes the old card. A dedicated **Card Office** screen drives both queues. The whole journey —
+  submit → screen → review → approve → provision → print → collect — is one Camunda process,
+  visible end to end in Operate.
 - A **supervisor-only Reports** dashboard turns that workflow data into operational analytics —
   throughput, straight-through (auto-approval) rate, approval/rejection rates, average
   time-to-decision, SLA-escalation rate, why applications get flagged, and per-reviewer

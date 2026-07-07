@@ -53,6 +53,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/review/review-tasks').then((m) => m.ReviewTasks),
   },
   {
+    path: 'card-office',
+    title: 'Card office · NRS',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/card-office/card-office').then((m) => m.CardOffice),
+  },
+  {
     path: 'reports',
     title: 'Reports · NRS',
     canActivate: [authGuard, supervisorGuard],

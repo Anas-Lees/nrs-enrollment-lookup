@@ -92,6 +92,14 @@
         } @else if (isRejected()) {
           <p class="muted">{{ i18n.t('detail.noReason') }}</p>
         }
+        @if (e.status === 'APPROVED' && e.civilNumber) {
+          <p class="decision-panel__registry">
+            {{ i18n.t('detail.registered') }}
+            <a [routerLink]="['/persons', e.civilNumber]">
+              {{ i18n.t('detail.viewProfile') }} ({{ e.civilNumber }}) ›
+            </a>
+          </p>
+        }
       </div>
     }
 

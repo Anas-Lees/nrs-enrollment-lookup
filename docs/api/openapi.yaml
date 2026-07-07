@@ -610,6 +610,83 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /api/v1/card-office:
+    get:
+      tags: [Card office]
+      operationId: listCardOffice
+      summary: List cards in production and awaiting collection
+      description: >
+        The card office's work queue, driven by card status: everything IN_PRODUCTION (to be
+        printed) or READY_FOR_COLLECTION (to be handed over). Only cards issued through the
+        review workflow appear here.
+      responses:
+        "200":
+          description: Cards in production and awaiting collection.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardTask"
+
+  /api/v1/card-office/{cardId}/printed:
+    post:
+      tags: [Card office]
+      operationId: markCardPrinted
+      summary: Mark a card printed — it becomes ready for collection
+      description: >
+        Completes the Camunda "print card" user task, advancing the card to
+        READY_FOR_COLLECTION (or applying it directly with no engine).
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: The card advanced to ready-for-collection.
+        "202":
+          description: Accepted but the workflow has not applied the next status yet.
+        "404":
+          description: No workflow-issued card exists with that id.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "409":
+          description: The card is not in production.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
+  /api/v1/card-office/{cardId}/collected:
+    post:
+      tags: [Card office]
+      operationId: markCardCollected
+      summary: Mark a card collected — it becomes active
+      description: >
+        Completes the Camunda "hand over card" user task, activating the card (and superseding
+        any previous card for the holder), or applying it directly with no engine.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: The card was activated.
+        "202":
+          description: Accepted but the workflow has not applied the next status yet.
+        "404":
+          description: No workflow-issued card exists with that id.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "409":
+          description: The card is not awaiting collection.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
   /api/v1/notifications:
     get:
       tags: [Notifications]
@@ -1006,6 +1083,37 @@ components:
         enrollment:
           $ref: "#/components/schemas/Enrollment"
 
+    CardTask:
+      type: object
+      description: One card in production or awaiting collection, with its applicant details.
+      properties:
+        idCardId:
+          type: integer
+          format: int64
+        cardNumber:
+          type: string
+        civilNumber:
+          type: string
+        cardType:
+          $ref: "#/components/schemas/CardType"
+        status:
+          $ref: "#/components/schemas/CardStatus"
+        enrollmentId:
+          type: string
+          format: uuid
+        referenceNumber:
+          type: string
+        firstNameEn:
+          type: string
+        familyNameEn:
+          type: string
+        firstNameAr:
+          type: string
+        familyNameAr:
+          type: string
+        enrollmentType:
+          $ref: "#/components/schemas/EnrollmentType"
+
     Notification:
       type: object
       description: One staff notification written by the enrollment review workflow.
@@ -1288,7 +1396,7 @@ components:
 
     CardStatus:
       type: string
-      enum: [ACTIVE, EXPIRED, BLOCKED, LOST]
+      enum: [IN_PRODUCTION, READY_FOR_COLLECTION, ACTIVE, EXPIRED, BLOCKED, LOST]
 
     CardType:
       type: string

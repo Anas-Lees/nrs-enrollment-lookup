@@ -1,0 +1,95 @@
+<section class="page">
+  <header class="cards-head">
+    <h1>{{ i18n.t('cards.title') }}</h1>
+    <p class="muted">{{ i18n.t('cards.subtitle') }}</p>
+  </header>
+
+  @if (loading()) {
+    <p class="muted">{{ i18n.t('cards.loading') }}</p>
+  } @else if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (!loading()) {
+    @if (tasks().length === 0) {
+      <p class="empty">{{ i18n.t('cards.empty') }}</p>
+    } @else {
+      @if (toPrint().length > 0) {
+        <h2 class="group-head">
+          {{ i18n.t('cards.group.print') }} <span class="count">{{ toPrint().length }}</span>
+        </h2>
+        <div class="task-list">
+          @for (t of toPrint(); track t.idCardId) {
+            <ng-container *ngTemplateOutlet="cardItem; context: { $implicit: t, mode: 'print' }" />
+          }
+        </div>
+      }
+
+      @if (toHandOver().length > 0) {
+        <h2 class="group-head">
+          {{ i18n.t('cards.group.handover') }}
+          <span class="count">{{ toHandOver().length }}</span>
+        </h2>
+        <div class="task-list">
+          @for (t of toHandOver(); track t.idCardId) {
+            <ng-container
+              *ngTemplateOutlet="cardItem; context: { $implicit: t, mode: 'handover' }"
+            />
+          }
+        </div>
+      }
+    }
+  }
+</section>
+
+<ng-template #cardItem let-t let-mode="mode">
+  <article class="task-card">
+    <div class="task-card__main">
+      <div class="task-card__id">
+        <span class="mono">{{ t.cardNumber }}</span>
+        <span class="chip chip--type">{{ i18n.t('enroll.type.' + t.enrollmentType) }}</span>
+      </div>
+      <h3 class="task-card__name">{{ applicantName(t) }}</h3>
+      <dl class="task-card__meta">
+        <div>
+          <dt>{{ i18n.t('cards.ref') }}</dt>
+          <dd class="mono">{{ t.referenceNumber }}</dd>
+        </div>
+        <div>
+          <dt>{{ i18n.t('cards.crn') }}</dt>
+          <dd class="mono">{{ t.civilNumber }}</dd>
+        </div>
+        <div>
+          <dt>{{ i18n.t('cards.cardType') }}</dt>
+          <dd>{{ i18n.t('cardType.' + t.cardType) }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="task-card__actions">
+      <button type="button" class="link-btn" (click)="viewDetails(t)">
+        {{ i18n.t('cards.viewDetails') }}
+      </button>
+      @if (mode === 'print') {
+        <button
+          type="button"
+          class="decide-btn decide-btn--print"
+          [disabled]="busy() !== null"
+          (click)="markPrinted(t)"
+        >
+          {{ i18n.t('cards.markPrinted') }}
+        </button>
+      }
+      @if (mode === 'handover') {
+        <button
+          type="button"
+          class="decide-btn decide-btn--collect"
+          [disabled]="busy() !== null"
+          (click)="markCollected(t)"
+        >
+          {{ i18n.t('cards.markCollected') }}
+        </button>
+      }
+    </div>
+  </article>
+</ng-template>

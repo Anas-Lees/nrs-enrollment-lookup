@@ -25,6 +25,11 @@
         <span class="nav-item__label">{{ i18n.t('nav.myQueue') }}</span>
       </a>
 
+      <a class="nav-item" routerLink="/card-office" routerLinkActive="is-active">
+        <span class="nav-item__dot" aria-hidden="true"></span>
+        <span class="nav-item__label">{{ i18n.t('nav.cardOffice') }}</span>
+      </a>
+
       @if (auth.isReviewer()) {
         <a class="nav-item" routerLink="/review" routerLinkActive="is-active">
           <span class="nav-item__dot" aria-hidden="true"></span>
