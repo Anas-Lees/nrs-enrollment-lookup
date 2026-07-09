@@ -16,6 +16,7 @@ import { CardOfficeService } from '../../core/services/card-office.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CardTask } from '../../core/models/card-office.model';
 import { SortSelect, SortOption } from '../../shared/components/sort-select';
+import { avatarColor, personInitials } from '../../shared/avatar';
 
 /**
  * The card office's workspace: the physical fulfilment of an approved application. Cards waiting
@@ -115,10 +116,19 @@ export class CardOffice implements OnInit {
     });
   }
 
-  applicantName(t: CardTask): string {
-    return this.i18n.lang() === 'ar'
-      ? `${t.firstNameAr} ${t.familyNameAr}`
-      : `${t.firstNameEn} ${t.familyNameEn}`;
+  /** Coloured avatar initials for the applicant (language-aware, seeded by the CRN). */
+  initials(t: CardTask): string {
+    return personInitials(
+      t.firstNameEn,
+      t.familyNameEn,
+      t.firstNameAr,
+      t.familyNameAr,
+      this.i18n.lang(),
+    );
+  }
+
+  color(t: CardTask): string {
+    return avatarColor(t.civilNumber ?? t.cardNumber);
   }
 
   viewDetails(t: CardTask): void {

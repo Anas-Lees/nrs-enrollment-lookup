@@ -53,27 +53,29 @@
 
 <ng-template #cardItem let-t let-mode="mode">
   <article class="task-card">
+    <span class="task-card__avatar" [style.background]="color(t)" aria-hidden="true">
+      {{ initials(t) }}
+    </span>
+
     <div class="task-card__main">
-      <div class="task-card__id">
-        <span class="mono">{{ t.cardNumber }}</span>
-        <span class="chip chip--type">{{ i18n.t('enroll.type.' + t.enrollmentType) }}</span>
+      <div class="task-card__names">
+        <span class="task-card__name">{{ t.firstNameEn }} {{ t.familyNameEn }}</span>
+        <span class="task-card__name-ar" dir="rtl">{{ t.firstNameAr }} {{ t.familyNameAr }}</span>
       </div>
-      <h3 class="task-card__name">{{ applicantName(t) }}</h3>
-      <dl class="task-card__meta">
-        <div>
-          <dt>{{ i18n.t('cards.ref') }}</dt>
-          <dd class="mono">{{ t.referenceNumber }}</dd>
-        </div>
-        <div>
-          <dt>{{ i18n.t('cards.crn') }}</dt>
-          <dd class="mono">{{ t.civilNumber }}</dd>
-        </div>
-        <div>
-          <dt>{{ i18n.t('cards.cardType') }}</dt>
-          <dd>{{ i18n.t('cardType.' + t.cardType) }}</dd>
-        </div>
-      </dl>
+      <div class="task-card__meta">
+        <span class="task-card__ref mono" [title]="i18n.t('cards.ref')">
+          {{ t.referenceNumber }}
+        </span>
+        <span class="task-card__dot" aria-hidden="true">·</span>
+        <span class="mono" [title]="i18n.t('cards.crn')">{{ t.civilNumber }}</span>
+        <span class="task-card__dot" aria-hidden="true">·</span>
+        <span [title]="i18n.t('cards.cardType')">{{ i18n.t('cardType.' + t.cardType) }}</span>
+        <span class="task-card__dot" aria-hidden="true">·</span>
+        <span class="mono">{{ t.cardNumber }}</span>
+      </div>
     </div>
+
+    <span class="chip chip--type">{{ i18n.t('enroll.type.' + t.enrollmentType) }}</span>
 
     <div class="task-card__actions">
       <button type="button" class="link-btn" (click)="viewDetails(t)">

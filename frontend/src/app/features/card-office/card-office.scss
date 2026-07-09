@@ -1,5 +1,8 @@
 .page {
-  max-width: 1000px;
+  // Centre the queues between the sidebar and the page edge so the cards read as a
+  // balanced column instead of hugging the left with dead space on the right.
+  max-width: 1160px;
+  margin-inline: auto;
 }
 
 .cards-head {
@@ -12,115 +15,162 @@
 
   h1 {
     margin: 0 0 0.25rem;
+    font-size: 1.4rem;
+    color: var(--color-text);
   }
 }
 
 .muted {
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-muted);
 }
 
 .empty {
-  padding: 2rem;
+  margin-top: 1.5rem;
+  padding: 3.5rem 2rem;
   text-align: center;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-muted);
   background: var(--color-surface);
   border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius);
+}
+
+.form-error {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: rgb(140 29 43 / 8%);
+  border: 1px solid rgb(140 29 43 / 25%);
+  color: var(--color-danger);
 }
 
 .group-head {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 1.5rem 0 0.75rem;
-  font-size: 0.95rem;
+  margin: 1.75rem 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-muted, #64748b);
+  color: var(--rop-green-600);
 
   .count {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.4rem;
-    height: 1.4rem;
+    min-width: 1.35rem;
+    height: 1.35rem;
     padding: 0 0.4rem;
     border-radius: 999px;
-    background: var(--color-surface-alt);
-    color: var(--color-text);
-    font-size: 0.8rem;
+    background: rgb(30 100 60 / 10%);
+    border: 1px solid rgb(30 100 60 / 25%);
+    color: var(--rop-green-600);
+    font-size: 0.72rem;
   }
 }
 
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
+/* ---- Task cards (styled like the My Queue applicant cards) ---- */
 .task-card {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
   padding: 1rem 1.15rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-inline-start: 3px solid var(--rop-green, #1c6b41);
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+
+  &:hover {
+    border-color: var(--rop-green-600);
+    box-shadow: var(--shadow-card-lg);
+  }
+
+  &__avatar {
+    flex: 0 0 auto;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
 
   &__main {
-    flex: 1 1 20rem;
+    flex: 1 1 auto;
     min-width: 0;
   }
 
-  &__id {
+  &__names {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.3rem;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex-wrap: wrap;
   }
 
   &__name {
-    margin: 0 0 0.6rem;
-    font-size: 1.05rem;
+    font-weight: 600;
+    font-size: 1.02rem;
+    color: var(--color-text);
+  }
+
+  &__name-ar {
+    color: var(--color-muted);
+    font-size: 0.92rem;
   }
 
   &__meta {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 0.4rem 1.5rem;
-    margin: 0;
+    gap: 0.45rem;
+    margin-top: 0.25rem;
+    font-size: 0.82rem;
+    color: var(--color-muted-2);
+  }
 
-    div {
-      min-width: 0;
-    }
+  &__ref {
+    color: var(--color-text);
+  }
 
-    dt {
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--color-text-muted, #64748b);
-    }
-
-    dd {
-      margin: 0.1rem 0 0;
-      font-weight: 500;
-    }
+  &__dot {
+    color: var(--color-border);
   }
 
   &__actions {
-    display: flex;
+    flex: 0 0 auto;
+    display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.9rem;
+    justify-content: flex-end;
     flex-wrap: wrap;
+  }
+
+  // Stack the type chip + actions under the name on narrow screens.
+  @media (max-width: 760px) {
+    flex-wrap: wrap;
+
+    .chip--type,
+    .task-card__actions {
+      margin-inline-start: 3.7rem;
+    }
   }
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
   font-size: 0.72rem;
