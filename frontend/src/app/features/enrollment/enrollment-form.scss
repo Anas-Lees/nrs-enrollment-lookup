@@ -1,7 +1,7 @@
 .page {
-  // A centred, comfortable column — the form reads as one tidy card between the sidebar and the
-  // page edge, rather than a full-bleed sheet with the fields stretched too wide.
-  max-width: 860px;
+  // A centred, comfortable column — wide enough for four fields side by side so a whole
+  // enrollment fits on roughly one screen, but still a tidy card rather than a full-bleed sheet.
+  max-width: 1100px;
   margin-inline: auto;
 }
 
@@ -64,7 +64,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 
   label {
     font-size: 0.85rem;
@@ -103,6 +103,34 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr 1fr;
+  }
 
   @media (max-width: 560px) {
     grid-template-columns: 1fr;

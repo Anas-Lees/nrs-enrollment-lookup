@@ -3,6 +3,15 @@
   position: relative;
 }
 
+/* Opt-in block mode: in form grids the control fills its column like any other input. */
+:host(.df-block) {
+  display: block;
+
+  .df__input {
+    width: 100%;
+  }
+}
+
 .df {
   position: relative;
 }

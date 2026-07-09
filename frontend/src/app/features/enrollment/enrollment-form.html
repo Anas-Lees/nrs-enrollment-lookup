@@ -27,7 +27,7 @@
           />
         </div>
 
-        <div class="grid-2">
+        <div class="grid-4">
           <div class="field">
             <label for="firstNameEn">{{ i18n.t('enroll.field.firstNameEn') }}</label>
             <input
@@ -52,9 +52,6 @@
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }
           </div>
-        </div>
-
-        <div class="grid-2">
           <div class="field">
             <label for="firstNameAr">{{ i18n.t('enroll.field.firstNameAr') }}</label>
             <input
@@ -83,10 +80,11 @@
           </div>
         </div>
 
-        <div class="grid-2">
+        <div class="grid-3">
           <div class="field">
             <label>{{ i18n.t('enroll.field.dob') }}</label>
             <app-date-field
+              class="df-block"
               formControlName="dateOfBirth"
               [placeholder]="i18n.t('enroll.field.dob')"
               [ariaLabel]="i18n.t('enroll.field.dob')"
@@ -106,9 +104,17 @@
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }
           </div>
+          <div class="field">
+            <label for="nationalityCode">{{ i18n.t('enroll.field.nationality') }}</label>
+            <select id="nationalityCode" formControlName="nationalityCode">
+              @for (opt of nationalityOptions; track opt.code) {
+                <option [value]="opt.code">{{ i18n.t('nationality.' + opt.code) }}</option>
+              }
+            </select>
+          </div>
         </div>
 
-        <div class="grid-2">
+        <div class="grid-4">
           <div class="field">
             <label for="placeOfBirthEn">{{ i18n.t('enroll.field.placeOfBirthEn') }} *</label>
             <input
@@ -134,9 +140,6 @@
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }
           </div>
-        </div>
-
-        <div class="grid-2">
           <div class="field">
             <label for="motherNameEn">{{ i18n.t('enroll.field.motherNameEn') }} *</label>
             <input
@@ -164,18 +167,9 @@
           </div>
         </div>
 
-        <div class="field">
-          <label for="nationalityCode">{{ i18n.t('enroll.field.nationality') }}</label>
-          <select id="nationalityCode" formControlName="nationalityCode">
-            @for (opt of nationalityOptions; track opt.code) {
-              <option [value]="opt.code">{{ i18n.t('nationality.' + opt.code) }}</option>
-            }
-          </select>
-        </div>
-
         <p class="form-section">{{ i18n.t('enroll.section.personal') }}</p>
 
-        <div class="grid-2">
+        <div class="grid-4">
           <div class="field">
             <label for="maritalStatus">{{ i18n.t('enroll.field.maritalStatus') }}</label>
             <select id="maritalStatus" formControlName="maritalStatus">
@@ -189,9 +183,6 @@
             <label for="bloodType">{{ i18n.t('enroll.field.bloodType') }}</label>
             <input id="bloodType" type="text" formControlName="bloodType" placeholder="O+" />
           </div>
-        </div>
-
-        <div class="grid-2">
           <div class="field">
             <label for="occupationEn">{{ i18n.t('enroll.field.occupationEn') }}</label>
             <input id="occupationEn" type="text" formControlName="occupationEn" />
@@ -204,7 +195,7 @@
 
         <p class="form-section">{{ i18n.t('enroll.section.address') }}</p>
 
-        <div class="grid-2">
+        <div class="grid-3">
           <div class="field">
             <label for="governorate">{{ i18n.t('enroll.field.governorate') }} *</label>
             <select
@@ -233,20 +224,17 @@
               <span class="field-error">{{ i18n.t('enroll.required') }}</span>
             }
           </div>
-        </div>
-
-        <div class="grid-2">
           <div class="field">
             <label for="village">{{ i18n.t('enroll.field.village') }}</label>
             <input id="village" type="text" formControlName="village" />
           </div>
+        </div>
+
+        <div class="grid-3">
           <div class="field">
             <label for="street">{{ i18n.t('enroll.field.street') }}</label>
             <input id="street" type="text" formControlName="street" />
           </div>
-        </div>
-
-        <div class="grid-2">
           <div class="field">
             <label for="buildingNumber">{{ i18n.t('enroll.field.building') }}</label>
             <input id="buildingNumber" type="text" formControlName="buildingNumber" />
@@ -300,7 +288,7 @@
 
         <p class="form-section">{{ i18n.t('enroll.section.passport') }}</p>
 
-        <div class="grid-2">
+        <div class="grid-4">
           <div class="field">
             <label for="passportNumber">{{ i18n.t('enroll.field.passportNumber') }}</label>
             <input id="passportNumber" type="text" dir="ltr" formControlName="passportNumber" />
@@ -314,9 +302,6 @@
               }
             </select>
           </div>
-        </div>
-
-        <div class="grid-2">
           <div class="field">
             <label for="passportIssueDate">{{ i18n.t('enroll.field.passportIssue') }}</label>
             <input id="passportIssueDate" type="date" formControlName="passportIssueDate" />
@@ -329,13 +314,16 @@
 
         <p class="form-section">{{ i18n.t('enroll.section.details') }}</p>
 
-        <div class="field">
-          <label for="type">{{ i18n.t('enroll.field.type') }}</label>
-          <select id="type" formControlName="type">
-            @for (t of types; track t) {
-              <option [value]="t">{{ i18n.t('enroll.type.' + t) }}</option>
-            }
-          </select>
+        <!-- Half-width on purpose — the empty column is reserved for a future application field. -->
+        <div class="grid-2">
+          <div class="field">
+            <label for="type">{{ i18n.t('enroll.field.type') }}</label>
+            <select id="type" formControlName="type">
+              @for (t of types; track t) {
+                <option [value]="t">{{ i18n.t('enroll.type.' + t) }}</option>
+              }
+            </select>
+          </div>
         </div>
 
         <div class="field">
